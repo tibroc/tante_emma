@@ -11,6 +11,7 @@ type MessageHandler = (msg: WsMessage) => void;
 let socket: WebSocket | null = null;
 let reconnectDelay = 1000;
 const handlers = new Set<MessageHandler>();
+const reconnectHandlers = new Set<() => void>();
 // Tracks active subscriptions so they can be re-sent after reconnect.
 const activeSubscriptions = new Set<string>();
 
@@ -25,6 +26,8 @@ function connect() {
 		for (const listId of activeSubscriptions) {
 			socket?.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
 		}
+		// Notify listeners so they can drain their offline queues.
+		for (const h of reconnectHandlers) h();
 	});
 
 	socket.addEventListener('message', (e: MessageEvent<string>) => {
@@ -63,6 +66,11 @@ export function unsubscribe(listId: string) {
 export function onMessage(handler: MessageHandler): () => void {
 	handlers.add(handler);
 	return () => handlers.delete(handler);
+}
+
+export function onReconnect(handler: () => void): () => void {
+	reconnectHandlers.add(handler);
+	return () => reconnectHandlers.delete(handler);
 }
 
 export function startWs() {

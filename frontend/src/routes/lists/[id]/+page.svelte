@@ -5,7 +5,10 @@
 	import { ulid } from '$lib/ulid';
 	import { user } from '$lib/stores/userStore';
 	import { items, type ListItem } from '$lib/stores/listStore';
-	import { subscribe, unsubscribe, onMessage } from '$lib/ws';
+	import { subscribe, unsubscribe, onMessage, onReconnect } from '$lib/ws';
+	import { enqueue } from '$lib/offline/eventQueue';
+	import { syncList } from '$lib/offline/sync';
+	import { syncStatus } from '$lib/stores/syncStore';
 	import AddItemBar from '$lib/components/AddItemBar.svelte';
 	import ListItemRow from '$lib/components/ListItem.svelte';
 
@@ -35,6 +38,9 @@
 		subscribe(listId);
 	});
 
+	// Sync queued offline events whenever the WS reconnects.
+	const unsubReconnect = onReconnect(() => syncList(listId));
+
 	// Handle real-time events from other users.
 	const unsub = onMessage((msg) => {
 		if (msg.type !== 'event') return;
@@ -45,6 +51,7 @@
 	onDestroy(() => {
 		unsubscribe(listId);
 		unsub();
+		unsubReconnect();
 	});
 
 	function applyEvent(ev: { type: string; payload: Record<string, unknown> }) {
@@ -89,10 +96,34 @@
 		});
 	}
 
+	async function submitEvent(
+		eventId: string,
+		type: string,
+		payload: Record<string, unknown>
+	): Promise<void> {
+		const event = {
+			id: eventId,
+			type,
+			list_id: listId,
+			user_id: $user!.id,
+			payload,
+			client_ts: Date.now()
+		};
+		if ($syncStatus === 'offline' || !navigator.onLine) {
+			await enqueue(event);
+			return;
+		}
+		try {
+			await api.post(`/api/lists/${listId}/events`, event);
+		} catch {
+			await enqueue(event);
+			syncStatus.set('offline');
+		}
+	}
+
 	async function handleAdd(name: string) {
 		if (!$user) return;
 		const itemId = ulid();
-		const now = Date.now();
 
 		// Optimistic update.
 		const optimistic: ListItem = {
@@ -101,23 +132,15 @@
 			name_override: name,
 			checked: false,
 			added_by: $user.id,
-			added_at: now,
+			added_at: Date.now(),
 			sort_order: 0,
 			display_name: name
 		};
 		items.update((ls) => [optimistic, ...ls]);
 
 		try {
-			await api.post(`/api/lists/${listId}/events`, {
-				id: itemId,
-				type: 'item.added',
-				list_id: listId,
-				user_id: $user.id,
-				payload: { item_id: itemId, name_override: name },
-				client_ts: now
-			});
+			await submitEvent(itemId, 'item.added', { item_id: itemId, name_override: name });
 		} catch {
-			// Revert optimistic update.
 			items.update((ls) => ls.filter((i) => i.id !== itemId));
 			showToast('Konnte nicht synchronisiert werden');
 		}
@@ -125,24 +148,15 @@
 
 	async function handleCheck(itemId: string, checked: boolean) {
 		if (!$user) return;
-		const now = Date.now();
 		const type = checked ? 'item.checked' : 'item.unchecked';
 
 		// Optimistic update.
-		items.update((ls) => ls.map((i) => i.id === itemId ? { ...i, checked } : i));
+		items.update((ls) => ls.map((i) => (i.id === itemId ? { ...i, checked } : i)));
 
 		try {
-			await api.post(`/api/lists/${listId}/events`, {
-				id: ulid(),
-				type,
-				list_id: listId,
-				user_id: $user.id,
-				payload: { item_id: itemId },
-				client_ts: now
-			});
+			await submitEvent(ulid(), type, { item_id: itemId });
 		} catch {
-			// Revert.
-			items.update((ls) => ls.map((i) => i.id === itemId ? { ...i, checked: !checked } : i));
+			items.update((ls) => ls.map((i) => (i.id === itemId ? { ...i, checked: !checked } : i)));
 			showToast('Konnte nicht synchronisiert werden');
 		}
 	}
@@ -153,14 +167,7 @@
 		items.update((ls) => ls.filter((i) => i.id !== itemId));
 
 		try {
-			await api.post(`/api/lists/${listId}/events`, {
-				id: ulid(),
-				type: 'item.deleted',
-				list_id: listId,
-				user_id: $user.id,
-				payload: { item_id: itemId },
-				client_ts: Date.now()
-			});
+			await submitEvent(ulid(), 'item.deleted', { item_id: itemId });
 			showToast('Entfernt');
 		} catch {
 			if (snapshot) items.update((ls) => [...ls, snapshot]);
@@ -174,14 +181,7 @@
 		items.update((ls) => ls.filter((i) => !i.checked));
 
 		try {
-			await api.post(`/api/lists/${listId}/events`, {
-				id: ulid(),
-				type: 'list.cleared',
-				list_id: listId,
-				user_id: $user.id,
-				payload: {},
-				client_ts: Date.now()
-			});
+			await submitEvent(ulid(), 'list.cleared', {});
 		} catch {
 			items.set(snapshot);
 			showToast('Konnte nicht synchronisiert werden');
