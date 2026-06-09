@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/gorilla/securecookie"
 
 	"github.com/tante-emma/tanteemma/config"
 	"github.com/tante-emma/tanteemma/db"
@@ -18,6 +21,16 @@ import (
 func main() {
 	cfg := config.Load()
 
+	hashKey, err := hex.DecodeString(cfg.SessionHashKey)
+	if err != nil || len(hashKey) < 32 {
+		log.Fatalf("SESSION_HASH_KEY must be 32+ bytes hex (got: %v)", err)
+	}
+	blockKey, err := hex.DecodeString(cfg.SessionBlockKey)
+	if err != nil || len(blockKey) != 32 {
+		log.Fatalf("SESSION_BLOCK_KEY must be exactly 32 bytes hex (got: %v)", err)
+	}
+	sc := securecookie.New(hashKey, blockKey)
+
 	database, err := db.Open(cfg.DBPath)
 	if err != nil {
 		log.Fatalf("open db: %v", err)
@@ -27,33 +40,41 @@ func main() {
 	hub := ws.NewHub()
 	go hub.Run()
 
-	auth := &handlers.Auth{}
-	lists := &handlers.Lists{DB: database}
-	items := &handlers.Items{DB: database, Hub: hub}
+	auth := &handlers.Auth{SC: sc, DB: database, Cfg: cfg}
+	if err := auth.Init(context.Background()); err != nil {
+		log.Fatalf("oidc init: %v", err)
+	}
+
+	lists   := &handlers.Lists{DB: database}
+	items   := &handlers.Items{DB: database, Hub: hub}
 	products := &handlers.Products{DB: database}
-	stores := &handlers.Stores{DB: database}
-	users := &handlers.Users{DB: database}
-	wsHandler := &handlers.WS{DB: database, Hub: hub}
+	stores  := &handlers.Stores{DB: database}
+	users   := &handlers.Users{DB: database}
+	wsHandler := &handlers.WS{DB: database, Hub: hub, SC: sc}
+
+	requireAuth := middleware.NewRequireAuth(sc)
+	requireAdmin := middleware.NewRequireRole("admin")
 
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(middleware.CORS([]string{cfg.FrontendURL}))
 
-	// Auth
+	// Auth (no auth required)
 	r.Get("/auth/login", auth.Login)
 	r.Get("/auth/callback", auth.Callback)
 	r.Post("/auth/logout", auth.Logout)
 
-	// WebSocket
+	// WebSocket (self-authenticates via cookie)
 	r.Get("/ws", wsHandler.ServeWS)
 
 	// API (auth required)
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.RequireAuth)
+		r.Use(requireAuth)
 
 		r.Get("/api/health", health)
 		r.Get("/api/version", version)
+		r.Get("/api/auth/me", auth.Me)
 
 		// Lists
 		r.Get("/api/lists", lists.GetAll)
@@ -82,9 +103,12 @@ func main() {
 		r.Get("/api/stores/{id}/shelf-order", stores.GetShelfOrder)
 		r.Put("/api/stores/{id}/shelf-order", stores.UpdateShelfOrder)
 
-		// Users (admin)
-		r.Get("/api/users", users.GetAll)
-		r.Put("/api/users/{id}/role", users.UpdateRole)
+		// Users (admin only)
+		r.Group(func(r chi.Router) {
+			r.Use(requireAdmin)
+			r.Get("/api/users", users.GetAll)
+			r.Put("/api/users/{id}/role", users.UpdateRole)
+		})
 	})
 
 	log.Printf("tanteemma listening on :%s", cfg.Port)
