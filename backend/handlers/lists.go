@@ -202,14 +202,7 @@ func (h *Lists) Unshare(w http.ResponseWriter, r *http.Request) {
 
 // canAccess returns true if userID owns or has a share on the list.
 func (h *Lists) canAccess(r *http.Request, userID, listID string) bool {
-	var exists int
-	_ = h.DB.QueryRowContext(r.Context(), `
-		SELECT COUNT(*) FROM lists l
-		LEFT JOIN list_shares ls ON ls.list_id = l.id AND ls.user_id = ?
-		WHERE l.id = ? AND (l.owner_id = ? OR ls.user_id = ?)`,
-		userID, listID, userID, userID,
-	).Scan(&exists)
-	return exists > 0
+	return canAccessList(r.Context(), h.DB, userID, listID)
 }
 
 func (h *Lists) isOwnerOrAdmin(r *http.Request, sess *models.Session, listID string) bool {

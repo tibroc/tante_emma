@@ -50,9 +50,9 @@ func main() {
 	products := &handlers.Products{DB: database}
 	stores  := &handlers.Stores{DB: database}
 	users   := &handlers.Users{DB: database}
-	wsHandler := &handlers.WS{DB: database, Hub: hub, SC: sc}
+	wsHandler := &handlers.WS{DB: database, Hub: hub, SC: sc, AllowedOrigins: []string{cfg.FrontendURL}}
 
-	requireAuth := middleware.NewRequireAuth(sc)
+	requireAuth := middleware.NewRequireAuth(sc, database)
 	requireAdmin := middleware.NewRequireRole("admin")
 
 	r := chi.NewRouter()

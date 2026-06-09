@@ -97,3 +97,12 @@ func (h *Hub) Unsubscribe(client *Client, listID string) {
 	}
 	delete(client.Rooms, listID)
 }
+
+// IsSubscribed reports whether the client is currently subscribed to listID.
+// Reads under the hub lock so it is safe to call from the read pump.
+func (h *Hub) IsSubscribed(client *Client, listID string) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	_, ok := client.Rooms[listID]
+	return ok
+}

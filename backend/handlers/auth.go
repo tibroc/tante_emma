@@ -48,25 +48,36 @@ func (a *Auth) Init(ctx context.Context) error {
 }
 
 func (a *Auth) Login(w http.ResponseWriter, r *http.Request) {
-	state := randomState()
-	http.SetCookie(w, &http.Cookie{
-		Name:     "oauth_state",
-		Value:    state,
-		Path:     "/",
-		MaxAge:   300,
-		HttpOnly: true,
-		SameSite: http.SameSiteLaxMode,
-	})
-	http.Redirect(w, r, a.oauth2.AuthCodeURL(state), http.StatusFound)
+	state, err := randomToken()
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	nonce, err := randomToken()
+	if err != nil {
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	a.setShortCookie(w, "oauth_state", state)
+	a.setShortCookie(w, "oauth_nonce", nonce)
+
+	http.Redirect(w, r, a.oauth2.AuthCodeURL(state, gooidc.Nonce(nonce)), http.StatusFound)
 }
 
 func (a *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 	stateCookie, err := r.Cookie("oauth_state")
-	if err != nil || stateCookie.Value != r.URL.Query().Get("state") {
+	if err != nil || stateCookie.Value == "" || stateCookie.Value != r.URL.Query().Get("state") {
 		http.Error(w, "invalid state", http.StatusBadRequest)
 		return
 	}
-	http.SetCookie(w, &http.Cookie{Name: "oauth_state", MaxAge: -1, Path: "/"})
+	nonceCookie, err := r.Cookie("oauth_nonce")
+	if err != nil || nonceCookie.Value == "" {
+		http.Error(w, "missing nonce", http.StatusBadRequest)
+		return
+	}
+	a.clearCookie(w, "oauth_state")
+	a.clearCookie(w, "oauth_nonce")
 
 	token, err := a.oauth2.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
@@ -83,6 +94,11 @@ func (a *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 	idToken, err := a.verifier.Verify(r.Context(), rawID)
 	if err != nil {
 		http.Error(w, "id_token verify failed", http.StatusUnauthorized)
+		return
+	}
+	// Bind the ID token to this login (OIDC replay protection).
+	if idToken.Nonce != nonceCookie.Value {
+		http.Error(w, "invalid nonce", http.StatusUnauthorized)
 		return
 	}
 
@@ -113,14 +129,40 @@ func (a *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 		Path:     "/",
 		MaxAge:   30 * 24 * 3600,
 		HttpOnly: true,
+		Secure:   a.Cfg.SecureCookies,
 		SameSite: http.SameSiteLaxMode,
 	})
 	http.Redirect(w, r, a.Cfg.FrontendURL+"/lists", http.StatusFound)
 }
 
 func (a *Auth) Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{Name: "session", MaxAge: -1, Path: "/"})
+	a.clearCookie(w, "session")
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// setShortCookie writes a 5-minute HttpOnly cookie for the OIDC handshake.
+func (a *Auth) setShortCookie(w http.ResponseWriter, name, value string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		MaxAge:   300,
+		HttpOnly: true,
+		Secure:   a.Cfg.SecureCookies,
+		SameSite: http.SameSiteLaxMode,
+	})
+}
+
+func (a *Auth) clearCookie(w http.ResponseWriter, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   a.Cfg.SecureCookies,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
 
 func (a *Auth) Me(w http.ResponseWriter, r *http.Request) {
@@ -178,8 +220,12 @@ func (a *Auth) upsertUser(ctx context.Context, sub, email, name string) (*models
 	return &user, nil
 }
 
-func randomState() string {
+// randomToken returns a 128-bit URL-safe random value, failing closed on
+// entropy errors rather than producing a predictable token.
+func randomToken() (string, error) {
 	b := make([]byte, 16)
-	_, _ = rand.Read(b)
-	return base64.URLEncoding.EncodeToString(b)
+	if _, err := rand.Read(b); err != nil {
+		return "", fmt.Errorf("randomToken: %w", err)
+	}
+	return base64.URLEncoding.EncodeToString(b), nil
 }

@@ -25,6 +25,11 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())
 	listID := chi.URLParam(r, "id")
 
+	if !canAccessList(r.Context(), h.DB, sess.UserID, listID) {
+		respondErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
+
 	// Accept either a single event or { "events": [...] }
 	var raw json.RawMessage
 	if err := json.NewDecoder(r.Body).Decode(&raw); err != nil {
@@ -121,15 +126,7 @@ func (h *Items) GetEvents(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())
 	listID := chi.URLParam(r, "id")
 
-	// Check access.
-	var access int
-	_ = h.DB.QueryRowContext(r.Context(), `
-		SELECT COUNT(*) FROM lists l
-		LEFT JOIN list_shares ls ON ls.list_id=l.id AND ls.user_id=?
-		WHERE l.id=? AND (l.owner_id=? OR ls.user_id=?)`,
-		sess.UserID, listID, sess.UserID, sess.UserID,
-	).Scan(&access)
-	if access == 0 {
+	if !canAccessList(r.Context(), h.DB, sess.UserID, listID) {
 		respondErr(w, http.StatusForbidden, "forbidden")
 		return
 	}

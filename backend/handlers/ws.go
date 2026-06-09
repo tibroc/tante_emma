@@ -15,16 +15,32 @@ import (
 	appws "github.com/tante-emma/tanteemma/ws"
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 4096,
-	CheckOrigin:    func(r *http.Request) bool { return true }, // CORS handled by middleware
+type WS struct {
+	DB             *sql.DB
+	Hub            *appws.Hub
+	SC             *securecookie.SecureCookie
+	AllowedOrigins []string // origins permitted to open a WebSocket (CSWSH protection)
 }
 
-type WS struct {
-	DB  *sql.DB
-	Hub *appws.Hub
-	SC  *securecookie.SecureCookie
+// upgrader validates the Origin header against AllowedOrigins. CORS middleware
+// does NOT cover WebSocket handshakes, so this is the only origin guard for /ws.
+func (h *WS) upgrader() websocket.Upgrader {
+	return websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 4096,
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				return false // non-browser clients must still set Origin
+			}
+			for _, allowed := range h.AllowedOrigins {
+				if origin == allowed {
+					return true
+				}
+			}
+			return false
+		},
+	}
 }
 
 func (h *WS) ServeWS(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +56,8 @@ func (h *WS) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	up := h.upgrader()
+	conn, err := up.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("ws upgrade: %v", err)
 		return
@@ -103,12 +120,20 @@ func (h *WS) ServeWS(w http.ResponseWriter, r *http.Request) {
 		}
 		switch m.Type {
 		case "subscribe":
+			// Only allow subscribing to lists the user may access.
+			if !canAccessList(r.Context(), h.DB, sess.UserID, m.ListID) {
+				continue
+			}
 			h.Hub.Subscribe(client, m.ListID)
 		case "unsubscribe":
 			h.Hub.Unsubscribe(client, m.ListID)
 		case "pong":
 			_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 		case "presence":
+			// Presence may only be broadcast to lists the user is subscribed to.
+			if !h.Hub.IsSubscribed(client, m.ListID) {
+				continue
+			}
 			payload, _ := json.Marshal(map[string]any{
 				"type":    "presence",
 				"user_id": sess.UserID,

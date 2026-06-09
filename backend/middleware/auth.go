@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	"github.com/gorilla/securecookie"
@@ -13,7 +14,10 @@ type contextKey string
 const sessionCtxKey contextKey = "session"
 
 // NewRequireAuth builds an auth middleware using the given securecookie codec.
-func NewRequireAuth(sc *securecookie.SecureCookie) func(http.Handler) http.Handler {
+// The signed cookie establishes identity (user_id); the role is read fresh from
+// the database on every request so that role changes and account deletion take
+// effect immediately rather than being pinned for the cookie's 30-day lifetime.
+func NewRequireAuth(sc *securecookie.SecureCookie, db *sql.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			cookie, err := r.Cookie("session")
@@ -26,6 +30,17 @@ func NewRequireAuth(sc *securecookie.SecureCookie) func(http.Handler) http.Handl
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
+
+			// Re-read the role from the DB; rejects deleted users too.
+			var role models.Role
+			if err := db.QueryRowContext(r.Context(),
+				`SELECT role FROM users WHERE id = ?`, sess.UserID,
+			).Scan(&role); err != nil {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			sess.Role = role
+
 			ctx := context.WithValue(r.Context(), sessionCtxKey, &sess)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -56,10 +71,4 @@ func NewRequireRole(minRole models.Role) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
-}
-
-// Keep the old stubs so existing call sites in main.go still compile during refactor.
-func RequireAuth(next http.Handler) http.Handler { return next }
-func RequireRole(_ string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler { return next }
 }

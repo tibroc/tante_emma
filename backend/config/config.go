@@ -3,6 +3,7 @@ package config
 import (
 	"log"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -18,6 +19,7 @@ type Config struct {
 	FrontendURL      string
 	MaxUploadSize    int64
 	LitestreamURL    string
+	SecureCookies    bool // set Secure flag on auth cookies (auto: true when serving over HTTPS)
 }
 
 func Load() *Config {
@@ -34,6 +36,12 @@ func Load() *Config {
 		FrontendURL:      getenv("FRONTEND_URL", "http://localhost:5173"),
 		MaxUploadSize:    5 << 20, // 5MB
 		LitestreamURL:    os.Getenv("LITESTREAM_REPLICA_URL"),
+	}
+	// Auto-detect: cookies must be Secure when the public redirect URL is HTTPS.
+	// Explicit SECURE_COOKIES=true|false overrides the heuristic.
+	cfg.SecureCookies = strings.HasPrefix(cfg.OIDCRedirectURL, "https://")
+	if v := os.Getenv("SECURE_COOKIES"); v != "" {
+		cfg.SecureCookies = v == "true" || v == "1"
 	}
 	return cfg
 }
