@@ -9,7 +9,6 @@
 	let { item, onCheck, onDelete }: Props = $props();
 </script>
 
-<!-- TODO: full ListItem with swipe-to-delete (Phase 1 step 10) -->
 <div class="list-item" class:checked={item.checked}>
 	<button
 		class="checkbox"
@@ -24,6 +23,11 @@
 		style:background-color={item.category?.color ?? 'var(--border-subtle)'}
 	></div>
 	<span class="name">{item.display_name ?? item.name_override ?? ''}</span>
+	<button
+		class="delete-btn"
+		onclick={() => onDelete?.(item.id)}
+		aria-label="Artikel entfernen"
+	>✕</button>
 </div>
 
 <style>
@@ -79,5 +83,26 @@
 		font-size: var(--text-base);
 		color: var(--text-primary);
 		flex: 1;
+	}
+
+	.delete-btn {
+		width: 40px;
+		height: 40px;
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
+		font-size: 16px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		border-radius: 8px;
+		transition: background 100ms, color 100ms;
+	}
+
+	.delete-btn:hover {
+		background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+		color: var(--color-danger);
 	}
 </style>

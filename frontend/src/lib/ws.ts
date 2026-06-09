@@ -11,6 +11,8 @@ type MessageHandler = (msg: WsMessage) => void;
 let socket: WebSocket | null = null;
 let reconnectDelay = 1000;
 const handlers = new Set<MessageHandler>();
+// Tracks active subscriptions so they can be re-sent after reconnect.
+const activeSubscriptions = new Set<string>();
 
 function connect() {
 	if (socket?.readyState === WebSocket.OPEN) return;
@@ -19,6 +21,10 @@ function connect() {
 
 	socket.addEventListener('open', () => {
 		reconnectDelay = 1000;
+		// Re-subscribe to all rooms after (re)connect.
+		for (const listId of activeSubscriptions) {
+			socket?.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
+		}
 	});
 
 	socket.addEventListener('message', (e: MessageEvent<string>) => {
@@ -40,11 +46,18 @@ function connect() {
 }
 
 export function subscribe(listId: string) {
-	socket?.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
+	activeSubscriptions.add(listId);
+	if (socket?.readyState === WebSocket.OPEN) {
+		socket.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
+	}
+	// If not yet open, the open handler will replay all activeSubscriptions.
 }
 
 export function unsubscribe(listId: string) {
-	socket?.send(JSON.stringify({ type: 'unsubscribe', list_id: listId }));
+	activeSubscriptions.delete(listId);
+	if (socket?.readyState === WebSocket.OPEN) {
+		socket.send(JSON.stringify({ type: 'unsubscribe', list_id: listId }));
+	}
 }
 
 export function onMessage(handler: MessageHandler): () => void {
