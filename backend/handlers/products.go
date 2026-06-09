@@ -11,75 +11,31 @@ import (
 
 	"github.com/tante-emma/tanteemma/middleware"
 	"github.com/tante-emma/tanteemma/models"
+	"github.com/tante-emma/tanteemma/services"
 )
 
 type Products struct {
 	DB *sql.DB
 }
 
-// Search does a simple LIKE query for Phase 1.
-// Phase 2 will replace this with FTS5 + scoring.
+// Search runs FTS5 search with suggestion scoring.
 func (h *Products) Search(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.SessionFromContext(r.Context())
 	q := r.URL.Query().Get("q")
+	if q == "" {
+		respond(w, http.StatusOK, []models.Suggestion{})
+		return
+	}
 	locale := r.URL.Query().Get("locale")
 	listID := r.URL.Query().Get("list_id")
 	if locale == "" {
 		locale = "de"
 	}
 
-	nameCol := "name_de"
-	switch locale {
-	case "en":
-		nameCol = "name_en"
-	case "pt", "pt-BR":
-		nameCol = "name_pt"
-	}
-
-	pattern := "%" + q + "%"
-	query := `
-		SELECT p.id,
-		       COALESCE(p.` + nameCol + `, p.name_de, p.name_en, '') AS display_name,
-		       COALESCE(p.brand, ''),
-		       COALESCE(p.category_id, ''),
-		       COALESCE(c.` + nameCol + `, c.name_de, '') AS cat_name,
-		       COALESCE(c.icon, ''), COALESCE(c.color, '')
-		  FROM products p
-		  LEFT JOIN categories c ON c.id = p.category_id
-		 WHERE (p.name_de LIKE ? OR p.name_en LIKE ? OR p.name_pt LIKE ? OR p.brand LIKE ?)`
-
-	args := []any{pattern, pattern, pattern, pattern}
-
-	if listID != "" {
-		query += ` AND p.id NOT IN (SELECT product_id FROM list_items WHERE list_id=? AND product_id IS NOT NULL)`
-		args = append(args, listID)
-	}
-	query += ` ORDER BY display_name ASC LIMIT 6`
-
-	rows, err := h.DB.QueryContext(r.Context(), query, args...)
+	suggestions, err := services.SearchProducts(h.DB, q, locale, listID, sess.UserID)
 	if err != nil {
-		respondErr(w, http.StatusInternalServerError, "db error")
+		respondErr(w, http.StatusInternalServerError, "search error")
 		return
-	}
-	defer rows.Close()
-
-	suggestions := make([]models.Suggestion, 0)
-	for rows.Next() {
-		var s models.Suggestion
-		var catID, catName, catIcon, catColor string
-		if err := rows.Scan(&s.ProductID, &s.DisplayName, &s.Brand,
-			&catID, &catName, &catIcon, &catColor); err != nil {
-			continue
-		}
-		if catID != "" {
-			s.Category = &models.Category{ID: catID, Icon: catIcon, Color: catColor}
-			switch locale {
-			case "en":
-				s.Category.NameEn = catName
-			default:
-				s.Category.NameDe = catName
-			}
-		}
-		suggestions = append(suggestions, s)
 	}
 	respond(w, http.StatusOK, suggestions)
 }
@@ -189,9 +145,5 @@ func (h *Products) Update(w http.ResponseWriter, r *http.Request) {
 
 // lookupOFF delegates to the openfoodfacts service.
 func lookupOFF(r *http.Request, barcode string) (*models.Product, error) {
-	// Import avoided by calling through the service package.
-	// The actual implementation is in services/openfoodfacts.go.
-	_ = r
-	_ = barcode
-	return nil, nil // TODO: wire services.LookupBarcode in Phase 2
+	return services.LookupBarcode(r.Context(), barcode)
 }
