@@ -1,0 +1,2 @@
+-- Seed data: categories and ~800 products.
+-- Populated in Phase 2 — see backend/db/seed/ for source files.
