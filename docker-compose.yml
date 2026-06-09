@@ -1,0 +1,34 @@
+# Development compose — works with both `docker compose` and `podman compose`
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      - DB_PATH=/data/tanteemma.db
+      - SESSION_HASH_KEY=${SESSION_HASH_KEY}
+      - SESSION_BLOCK_KEY=${SESSION_BLOCK_KEY}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - OIDC_REDIRECT_URL=${OIDC_REDIRECT_URL}
+      - FRONTEND_URL=http://localhost:5173
+      - LOG_LEVEL=debug
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:3000"
+    environment:
+      - PUBLIC_API_URL=http://localhost:8080
+      - PUBLIC_WS_URL=ws://localhost:8080
+    depends_on:
+      - backend
+    restart: unless-stopped
