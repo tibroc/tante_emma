@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -69,6 +70,7 @@ func (a *Auth) Callback(w http.ResponseWriter, r *http.Request) {
 
 	token, err := a.oauth2.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
+		log.Printf("token exchange error: %v", err)
 		http.Error(w, "token exchange failed", http.StatusBadRequest)
 		return
 	}
@@ -129,10 +131,11 @@ func (a *Auth) Me(w http.ResponseWriter, r *http.Request) {
 	}
 	var u models.User
 	err := a.DB.QueryRowContext(r.Context(),
-		`SELECT id, email, name, avatar_url, role, locale, created_at, last_seen
+		`SELECT id, COALESCE(email,''), name, COALESCE(avatar_url,''), role, locale, created_at, last_seen
 		   FROM users WHERE id = ?`, sess.UserID,
 	).Scan(&u.ID, &u.Email, &u.Name, &u.AvatarURL, &u.Role, &u.Locale, &u.CreatedAt, &u.LastSeen)
 	if err != nil {
+		log.Printf("auth.Me scan error: %v", err)
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}

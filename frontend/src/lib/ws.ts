@@ -1,4 +1,5 @@
-const WS_BASE = import.meta.env.PUBLIC_WS_URL ?? '';
+import { PUBLIC_WS_URL } from '$env/static/public';
+const WS_BASE = PUBLIC_WS_URL;
 
 type WsMessage =
 	| { type: 'event';    event: unknown }

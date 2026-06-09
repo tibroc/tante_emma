@@ -1,5 +1,6 @@
 <script lang="ts">
-	const API = import.meta.env.PUBLIC_API_URL ?? '';
+	import { PUBLIC_API_URL } from '$env/static/public';
+	const API = PUBLIC_API_URL;
 </script>
 
 <main class="login-screen">

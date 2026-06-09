@@ -17,9 +17,7 @@
 		{ href: '/settings', icon: '⚙️', label: 'Einst.' },
 	];
 
-	const isAuthPage = $derived(
-		page.url.pathname === '/login' || page.url.pathname === '/'
-	);
+	const isAuthPage = $derived(page.url.pathname === '/login');
 
 	onMount(async () => {
 		if (isAuthPage) return;
@@ -27,8 +25,9 @@
 			const u = await api.get<typeof $user>('/api/auth/me');
 			user.set(u);
 			startWs();
+			if (page.url.pathname === '/') goto('/lists', { replaceState: true });
 		} catch {
-			goto('/login');
+			goto('/login', { replaceState: true });
 		}
 	});
 </script>

@@ -22,7 +22,7 @@ func (h *Users) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rows, err := h.DB.QueryContext(r.Context(),
-		`SELECT id, email, name, avatar_url, role, locale, created_at, last_seen FROM users ORDER BY name`)
+		`SELECT id, COALESCE(email,''), name, COALESCE(avatar_url,''), role, locale, created_at, last_seen FROM users ORDER BY name`)
 	if err != nil {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return

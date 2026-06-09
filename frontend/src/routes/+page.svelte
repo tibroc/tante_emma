@@ -1,8 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { onMount } from 'svelte';
-
-	onMount(() => {
-		goto('/lists', { replaceState: true });
-	});
+	// Navigation is handled by +layout.svelte:
+	// - authenticated  → goes to /lists after auth check succeeds
+	// - unauthenticated → layout redirects to /login
 </script>

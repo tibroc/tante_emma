@@ -1,4 +1,5 @@
-const BASE = import.meta.env.PUBLIC_API_URL ?? '';
+import { PUBLIC_API_URL } from '$env/static/public';
+const BASE = PUBLIC_API_URL;
 
 class ApiError extends Error {
 	constructor(
