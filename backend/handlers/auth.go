@@ -186,36 +186,33 @@ func (a *Auth) Me(w http.ResponseWriter, r *http.Request) {
 
 func (a *Auth) upsertUser(ctx context.Context, sub, email, name string) (*models.User, error) {
 	now := time.Now().UnixMilli()
+	newID := ulid.Make().String()
+
+	// Single atomic upsert. The "first user becomes admin" decision is made
+	// inside the INSERT via a scalar subquery, so it cannot race two concurrent
+	// first-logins into both becoming admin. A repeat login for the same
+	// oidc_sub hits the conflict clause and just refreshes the profile fields;
+	// the role is left untouched.
+	_, err := a.DB.ExecContext(ctx, `
+		INSERT INTO users (id, oidc_sub, email, name, role, locale, created_at, last_seen)
+		VALUES (?, ?, ?, ?,
+		        CASE WHEN (SELECT COUNT(*) FROM users) = 0 THEN 'admin' ELSE 'member' END,
+		        'de', ?, ?)
+		ON CONFLICT(oidc_sub) DO UPDATE SET
+		        email     = excluded.email,
+		        name      = excluded.name,
+		        last_seen = excluded.last_seen`,
+		newID, sub, email, name, now, now,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("upsertUser: %w", err)
+	}
 
 	var user models.User
-	err := a.DB.QueryRowContext(ctx,
+	if err := a.DB.QueryRowContext(ctx,
 		`SELECT id, role FROM users WHERE oidc_sub = ?`, sub,
-	).Scan(&user.ID, &user.Role)
-
-	if err == sql.ErrNoRows {
-		var count int
-		_ = a.DB.QueryRowContext(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
-		role := models.RoleMember
-		if count == 0 {
-			role = models.RoleAdmin
-		}
-		user.ID = ulid.Make().String()
-		user.Role = role
-		_, err = a.DB.ExecContext(ctx, `
-			INSERT INTO users (id, oidc_sub, email, name, role, locale, created_at, last_seen)
-			VALUES (?, ?, ?, ?, ?, 'de', ?, ?)`,
-			user.ID, sub, email, name, role, now, now,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("upsertUser insert: %w", err)
-		}
-	} else if err != nil {
-		return nil, fmt.Errorf("upsertUser query: %w", err)
-	} else {
-		_, _ = a.DB.ExecContext(ctx,
-			`UPDATE users SET email=?, name=?, last_seen=? WHERE id=?`,
-			email, name, now, user.ID,
-		)
+	).Scan(&user.ID, &user.Role); err != nil {
+		return nil, fmt.Errorf("upsertUser read-back: %w", err)
 	}
 	return &user, nil
 }
