@@ -8,12 +8,17 @@
 	import { subscribe, unsubscribe, onMessage, onReconnect } from '$lib/ws';
 	import { enqueue, drainQueue, pendingCount } from '$lib/offline/eventQueue';
 	import { syncStatus } from '$lib/stores/syncStore';
+	import { browser } from '$app/environment';
 	import AddItemBar from '$lib/components/AddItemBar.svelte';
 	import ListItemRow from '$lib/components/ListItem.svelte';
+	import TileItem from '$lib/components/TileItem.svelte';
 	import SortBar from '$lib/components/SortBar.svelte';
+	import PresenceAvatars from '$lib/components/PresenceAvatars.svelte';
 
 	interface Store { id: string; name: string; icon: string; color: string; }
 	interface ShelfEntry { category_id: string; position: number; }
+	interface Member { id: string; name: string; avatar_url?: string; }
+	interface Share { user_id: string; name: string; avatar_url?: string; permission: string; }
 
 	const listId = $derived(page.params.id ?? '');
 
@@ -22,11 +27,64 @@
 	let toastMessage = $state('');
 	let toastTimer: ReturnType<typeof setTimeout>;
 
+	// View mode — persisted in localStorage per list
+	const viewModeKey = $derived(`view-mode-${listId}`);
+	let viewMode = $state<'list' | 'tile'>(
+		browser ? ((localStorage.getItem(`view-mode-${listId}`) as 'list' | 'tile') ?? 'list') : 'list'
+	);
+
+	function toggleViewMode() {
+		viewMode = viewMode === 'list' ? 'tile' : 'list';
+		if (browser) localStorage.setItem(viewModeKey, viewMode);
+	}
+
 	// Sorting
 	let sortMode = $state<'category' | 'store' | 'date' | 'alpha'>('category');
 	let stores = $state<Store[]>([]);
 	let selectedStoreId = $state<string | null>(null);
 	let shelfOrder = $state<Map<string, number>>(new Map());
+
+	// Active shopping store — used when clearing to trigger shelf-order learning.
+	let activeStoreId = $state<string | null>(null);
+	let sessionStart = $state<number>(Date.now());
+
+	// Presence
+	let activeUsers = $state<{ id: string; name: string; avatar_url?: string }[]>([]);
+	let memberMap = $state<Map<string, { name: string; avatar_url?: string }>>(new Map());
+
+	// Sharing
+	let shareOpen = $state(false);
+	let members = $state<Member[]>([]);
+	let shares = $state<Share[]>([]);
+	let shareLoading = $state(false);
+
+	async function openShare() {
+		shareOpen = true;
+		shareLoading = true;
+		try {
+			[members, shares] = await Promise.all([
+				api.get<Member[]>('/api/users/members'),
+				api.get<Share[]>(`/api/lists/${listId}/share`)
+			]);
+		} finally {
+			shareLoading = false;
+		}
+	}
+
+	function isShared(userId: string) {
+		return shares.some((s) => s.user_id === userId);
+	}
+
+	async function toggleShare(userId: string) {
+		if (isShared(userId)) {
+			await api.delete(`/api/lists/${listId}/share/${userId}`);
+			shares = shares.filter((s) => s.user_id !== userId);
+		} else {
+			await api.post(`/api/lists/${listId}/share`, { user_id: userId, permission: 'write' });
+			const m = members.find((m) => m.id === userId)!;
+			shares = [...shares, { user_id: userId, name: m.name, permission: 'write' }];
+		}
+	}
 
 	// Group items: unchecked first, then checked.
 	const unchecked = $derived(sortedItems($items.filter((i) => !i.checked)));
@@ -60,10 +118,12 @@
 		}
 
 		try {
-			const [data, storeList] = await Promise.all([
+			const [data, storeList, memberList] = await Promise.all([
 				api.get<{ list: { name: string }; items: ListItem[] }>(`/api/lists/${listId}`),
-				api.get<Store[]>('/api/stores').catch(() => [] as Store[])
+				api.get<Store[]>('/api/stores').catch(() => [] as Store[]),
+				api.get<{ id: string; name: string; avatar_url?: string }[]>('/api/users/members').catch(() => [])
 			]);
+			memberMap = new Map(memberList.map((m) => [m.id, { name: m.name, avatar_url: m.avatar_url }]));
 			listName = data.list.name;
 			stores = storeList;
 			if (remaining === 0) {
@@ -122,6 +182,19 @@
 
 	// Handle real-time events from other users.
 	const unsub = onMessage((msg) => {
+		if (msg.type === 'presence') {
+			const p = msg as { type: 'presence'; user_id: string; list_id: string; active: boolean };
+			if (p.list_id !== listId || p.user_id === $user?.id) return;
+			if (p.active) {
+				const info = memberMap.get(p.user_id);
+				if (info && !activeUsers.find((u) => u.id === p.user_id)) {
+					activeUsers = [...activeUsers, { id: p.user_id, ...info }];
+				}
+			} else {
+				activeUsers = activeUsers.filter((u) => u.id !== p.user_id);
+			}
+			return;
+		}
 		if (msg.type !== 'event') return;
 		const ev = (msg as { type: 'event'; event: { type: string; payload: Record<string, unknown> } }).event;
 		applyEvent(ev);
@@ -286,8 +359,15 @@
 		const snapshot = $items;
 		items.update((ls) => ls.filter((i) => !i.checked));
 
+		const payload: Record<string, unknown> = {};
+		if (activeStoreId) {
+			payload.store_id = activeStoreId;
+			payload.session_start = sessionStart;
+		}
+
 		try {
-			await submitEvent(ulid(), 'list.cleared', {});
+			await submitEvent(ulid(), 'list.cleared', payload);
+			sessionStart = Date.now();
 		} catch {
 			items.set(snapshot);
 			showToast('Konnte nicht synchronisiert werden');
@@ -309,6 +389,17 @@
 	{:else}
 		<header class="list-header">
 			<h1 class="list-title">{listName}</h1>
+			{#if activeUsers.length > 0}
+				<PresenceAvatars users={activeUsers} />
+			{/if}
+			{#if $user?.role !== 'child'}
+				<button class="header-btn" onclick={openShare} aria-label="Liste teilen">⎘</button>
+			{/if}
+			<button
+				class="header-btn"
+				onclick={toggleViewMode}
+				aria-label={viewMode === 'list' ? 'Kachelansicht' : 'Listenansicht'}
+			>{viewMode === 'list' ? '⊞' : '☰'}</button>
 		</header>
 
 		<SortBar mode={sortMode} onModeChange={handleSortModeChange} />
@@ -327,6 +418,25 @@
 			</div>
 		{/if}
 
+		{#if stores.length > 0}
+			<div class="active-store-bar">
+				<span class="active-store-label">Einkauf bei:</span>
+				<select
+					value={activeStoreId ?? ''}
+					onchange={(e) => {
+						activeStoreId = (e.target as HTMLSelectElement).value || null;
+						sessionStart = Date.now();
+					}}
+					aria-label="Aktiver Laden für diesen Einkauf"
+				>
+					<option value="">– kein Laden –</option>
+					{#each stores as s (s.id)}
+						<option value={s.id}>{s.icon} {s.name}</option>
+					{/each}
+				</select>
+			</div>
+		{/if}
+
 		{#if unchecked.length === 0 && checked.length === 0}
 			<div class="empty">
 				<span class="empty-icon">🛒</span>
@@ -334,17 +444,21 @@
 				<p class="empty-body">Tippe oben, um etwas hinzuzufügen.</p>
 			</div>
 		{:else}
-			<ul class="item-list">
-				{#each unchecked as item (item.id)}
-					<li>
-						<ListItemRow
-							{item}
-							onCheck={handleCheck}
-							onDelete={handleDelete}
-						/>
-					</li>
-				{/each}
-			</ul>
+			{#if viewMode === 'tile'}
+				<div class="tile-grid">
+					{#each unchecked as item (item.id)}
+						<TileItem {item} onCheck={handleCheck} onDelete={handleDelete} />
+					{/each}
+				</div>
+			{:else}
+				<ul class="item-list">
+					{#each unchecked as item (item.id)}
+						<li>
+							<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} />
+						</li>
+					{/each}
+				</ul>
+			{/if}
 
 			{#if checked.length > 0}
 				<div class="checked-section">
@@ -357,21 +471,27 @@
 							<span>✓ {checked.length} erledigt</span>
 							<span class="chevron" class:rotated={showChecked}>›</span>
 						</button>
-						<button class="clear-btn" onclick={clearChecked}>Alle löschen</button>
+						{#if $user?.role !== 'child'}
+							<button class="clear-btn" onclick={clearChecked}>Alle löschen</button>
+						{/if}
 					</div>
 
 					{#if showChecked}
-						<ul class="item-list">
-							{#each checked as item (item.id)}
-								<li>
-									<ListItemRow
-										{item}
-										onCheck={handleCheck}
-										onDelete={handleDelete}
-									/>
-								</li>
-							{/each}
-						</ul>
+						{#if viewMode === 'tile'}
+							<div class="tile-grid tile-grid--checked">
+								{#each checked as item (item.id)}
+									<TileItem {item} onCheck={handleCheck} onDelete={handleDelete} />
+								{/each}
+							</div>
+						{:else}
+							<ul class="item-list">
+								{#each checked as item (item.id)}
+									<li>
+										<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} />
+									</li>
+								{/each}
+							</ul>
+						{/if}
 					{/if}
 				</div>
 			{/if}
@@ -383,6 +503,35 @@
 	<div class="toast" role="status">{toastMessage}</div>
 {/if}
 
+{#if shareOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<div class="backdrop" role="presentation" onclick={() => (shareOpen = false)}></div>
+	<div class="share-sheet" role="dialog" aria-modal="true" aria-label="Liste teilen">
+		<div class="sheet-handle"></div>
+		<h2 class="sheet-title">Liste teilen</h2>
+		{#if shareLoading}
+			<p class="hint">Lade…</p>
+		{:else}
+			<ul class="member-list">
+				{#each members.filter(m => m.id !== $user?.id) as m (m.id)}
+					<li class="member-row">
+						<div class="avatar">{m.name[0]?.toUpperCase()}</div>
+						<span class="member-name">{m.name}</span>
+						<button
+							class="share-toggle"
+							class:shared={isShared(m.id)}
+							onclick={() => toggleShare(m.id)}
+							aria-pressed={isShared(m.id)}
+						>
+							{isShared(m.id) ? '✓ Geteilt' : 'Teilen'}
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
+	</div>
+{/if}
+
 <style>
 	.shopping-page {
 		display: flex;
@@ -391,6 +540,9 @@
 	}
 
 	.list-header {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
 		padding: var(--space-4) var(--space-4) var(--space-2);
 	}
 
@@ -399,6 +551,129 @@
 		font-size: var(--text-2xl);
 		margin: 0;
 		color: var(--text-primary);
+		flex: 1;
+	}
+
+	.header-btn {
+		width: 40px;
+		height: 40px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 10px;
+		background: var(--surface-overlay);
+		color: var(--text-secondary);
+		font-size: 20px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.backdrop {
+		position: fixed;
+		inset: 0;
+		background: rgba(0 0 0 / 0.4);
+		z-index: 200;
+	}
+
+	.share-sheet {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background: var(--surface-base);
+		border-radius: 20px 20px 0 0;
+		padding: var(--space-2) var(--space-4) calc(var(--space-8) + env(safe-area-inset-bottom));
+		z-index: 201;
+		max-width: 640px;
+		margin: 0 auto;
+		max-height: 70dvh;
+		overflow-y: auto;
+	}
+
+	.sheet-handle {
+		width: 36px;
+		height: 4px;
+		border-radius: 2px;
+		background: var(--border-default);
+		margin: var(--space-2) auto var(--space-4);
+	}
+
+	.sheet-title {
+		font-family: var(--font-display);
+		font-size: var(--text-xl);
+		margin: 0 0 var(--space-4);
+	}
+
+	.member-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.member-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-3);
+		padding: var(--space-2) 0;
+		min-height: 56px;
+	}
+
+	.avatar {
+		width: 40px;
+		height: 40px;
+		border-radius: 50%;
+		background: var(--color-primary-light);
+		color: var(--color-primary);
+		font-weight: 600;
+		font-size: var(--text-base);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.member-name {
+		flex: 1;
+		font-size: var(--text-base);
+		color: var(--text-primary);
+	}
+
+	.share-toggle {
+		height: 36px;
+		padding: 0 var(--space-3);
+		border-radius: 8px;
+		border: 1px solid var(--border-default);
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: var(--text-sm);
+		font-family: var(--font-body);
+		cursor: pointer;
+		transition: background 120ms, color 120ms, border-color 120ms;
+	}
+
+	.share-toggle.shared {
+		background: var(--color-accent-light);
+		color: var(--color-accent);
+		border-color: var(--color-accent);
+	}
+
+	.tile-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: var(--space-3);
+		padding: var(--space-3) var(--space-4);
+	}
+
+	.tile-grid--checked {
+		padding-top: var(--space-2);
+	}
+
+	@media (min-width: 480px) {
+		.tile-grid { grid-template-columns: repeat(3, 1fr); }
 	}
 
 	.item-list {
@@ -480,6 +755,31 @@
 		padding: var(--space-2) var(--space-4);
 		background: var(--surface-base);
 		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.active-store-bar {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		padding: var(--space-2) var(--space-4);
+		background: var(--surface-raised);
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.active-store-label {
+		font-size: var(--text-xs);
+		color: var(--text-muted);
+		white-space: nowrap;
+	}
+
+	.active-store-bar select {
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		padding: var(--space-1) var(--space-2);
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		background: var(--surface-overlay);
+		color: var(--text-primary);
 	}
 
 	.store-picker select {

@@ -18,6 +18,35 @@ type Products struct {
 	DB *sql.DB
 }
 
+// GetCategories returns all categories for UI dropdowns.
+func (h *Products) GetCategories(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.DB.QueryContext(r.Context(),
+		`SELECT id, COALESCE(name_de,''), COALESCE(name_en,''),
+		        COALESCE(icon,''), COALESCE(color,'')
+		   FROM categories ORDER BY name_de`)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	defer rows.Close()
+	type Category struct {
+		ID     string `json:"id"`
+		NameDe string `json:"name_de"`
+		NameEn string `json:"name_en"`
+		Icon   string `json:"icon"`
+		Color  string `json:"color"`
+	}
+	cats := make([]Category, 0)
+	for rows.Next() {
+		var c Category
+		if err := rows.Scan(&c.ID, &c.NameDe, &c.NameEn, &c.Icon, &c.Color); err != nil {
+			continue
+		}
+		cats = append(cats, c)
+	}
+	respond(w, http.StatusOK, cats)
+}
+
 // Search runs FTS5 search with suggestion scoring.
 func (h *Products) Search(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())

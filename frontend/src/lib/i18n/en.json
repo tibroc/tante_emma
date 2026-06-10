@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "lists":    "Lists",
+    "stores":   "Stores",
+    "history":  "History",
+    "settings": "Settings"
+  },
+  "list": {
+    "empty_heading": "List is empty",
+    "empty_body":    "Tap above to add something.",
+    "loading":       "Loading…",
+    "checked_count": "{n} done",
+    "clear_checked": "Clear all",
+    "tile_view":     "Tile view",
+    "list_view":     "List view",
+    "share":         "Share",
+    "active_store":  "Shopping at:",
+    "no_store":      "– no store –"
+  },
+  "add_item": {
+    "placeholder": "Add item…",
+    "aria_add":    "Add",
+    "aria_scan":   "Scan barcode",
+    "aria_input":  "Add item"
+  },
+  "sort": {
+    "category": "Category",
+    "store":    "Store",
+    "date":     "Date",
+    "alpha":    "A–Z"
+  },
+  "item": {
+    "check":   "Mark as done",
+    "uncheck": "Mark as not done",
+    "delete":  "Remove item"
+  },
+  "share_sheet": {
+    "title":  "Share list",
+    "shared": "✓ Shared",
+    "share":  "Share"
+  },
+  "stores": {
+    "title":         "Stores",
+    "add":           "+ Store",
+    "empty":         "No stores yet.",
+    "create_first":  "Create first store",
+    "no_categories": "No categories saved. Buy items to auto-learn the order.",
+    "shelf_hint":    "Drag to sort – order = aisle sequence.",
+    "edit":          "Edit",
+    "delete":        "Delete",
+    "shelf_order":   "Shelf order",
+    "confirm_delete": "Really delete store?",
+    "save_error":    "Save failed",
+    "delete_error":  "Delete failed",
+    "load_error":    "Could not load stores",
+    "shelf_error":   "Could not save shelf order",
+    "form": {
+      "name":       "Name",
+      "name_ph":    "e.g. Tesco High Street",
+      "emoji":      "Emoji",
+      "color":      "Color",
+      "address":    "Address (optional)",
+      "address_ph": "123 Main St",
+      "create":     "Create store",
+      "edit":       "Edit store",
+      "cancel":     "Cancel",
+      "save":       "Save"
+    }
+  },
+  "history": {
+    "title":       "History",
+    "search_ph":   "Search…",
+    "empty":       "Nothing purchased yet.",
+    "no_results":  "No results for \"{q}\".",
+    "load_error":  "Could not load history"
+  },
+  "settings": {
+    "title":       "Settings",
+    "language":    "Language",
+    "dark_mode":   "Dark mode",
+    "logout":      "Log out",
+    "version":     "Version"
+  },
+  "admin": {
+    "users_title":    "User management",
+    "products_title": "Product management",
+    "role_admin":     "Admin",
+    "role_member":    "Member",
+    "role_child":     "Child",
+    "save_role":      "Save role"
+  },
+  "errors": {
+    "sync": "Could not sync"
+  }
+}

@@ -85,14 +85,17 @@ func main() {
 		r.Get("/api/lists/{id}", lists.Get)
 		r.Put("/api/lists/{id}", lists.Update)
 		r.Delete("/api/lists/{id}", lists.Delete)
+		r.Get("/api/lists/{id}/share", lists.GetShares)
 		r.Post("/api/lists/{id}/share", lists.Share)
 		r.Delete("/api/lists/{id}/share/{uid}", lists.Unshare)
+		r.Get("/api/history", lists.GetHistory)
 
 		// Events
 		r.Post("/api/lists/{id}/events", items.SubmitEvents)
 		r.Get("/api/lists/{id}/events", items.GetEvents)
 
-		// Products
+		// Products & categories
+		r.Get("/api/categories", products.GetCategories)
 		r.Get("/api/products/search", products.Search)
 		r.Get("/api/products/barcode/{code}", products.GetByBarcode)
 		r.Post("/api/products", products.Create)
@@ -106,7 +109,8 @@ func main() {
 		r.Get("/api/stores/{id}/shelf-order", stores.GetShelfOrder)
 		r.Put("/api/stores/{id}/shelf-order", stores.UpdateShelfOrder)
 
-		// Users (admin only)
+		// Users
+		r.Get("/api/users/members", users.GetMembers)
 		r.Group(func(r chi.Router) {
 			r.Use(requireAdmin)
 			r.Get("/api/users", users.GetAll)

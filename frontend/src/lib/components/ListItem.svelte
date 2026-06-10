@@ -18,7 +18,7 @@
 	>
 		{#if item.checked}✓{/if}
 	</button>
-	<div class="category-line"></div>
+	<div class="category-line" style:background-color={item.category_color ?? 'var(--border-subtle)'}></div>
 	<span class="name">{item.display_name}</span>
 	<button
 		class="delete-btn"

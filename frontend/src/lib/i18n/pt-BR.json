@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "lists":    "Listas",
+    "stores":   "Lojas",
+    "history":  "Histórico",
+    "settings": "Configurações"
+  },
+  "list": {
+    "empty_heading": "Lista vazia",
+    "empty_body":    "Toque acima para adicionar algo.",
+    "loading":       "Carregando…",
+    "checked_count": "{n} feito(s)",
+    "clear_checked": "Limpar todos",
+    "tile_view":     "Visualização em grade",
+    "list_view":     "Visualização em lista",
+    "share":         "Compartilhar",
+    "active_store":  "Comprando em:",
+    "no_store":      "– sem loja –"
+  },
+  "add_item": {
+    "placeholder": "Adicionar…",
+    "aria_add":    "Adicionar",
+    "aria_scan":   "Escanear código",
+    "aria_input":  "Adicionar item"
+  },
+  "sort": {
+    "category": "Categoria",
+    "store":    "Loja",
+    "date":     "Data",
+    "alpha":    "A–Z"
+  },
+  "item": {
+    "check":   "Marcar como feito",
+    "uncheck": "Marcar como não feito",
+    "delete":  "Remover item"
+  },
+  "share_sheet": {
+    "title":  "Compartilhar lista",
+    "shared": "✓ Compartilhado",
+    "share":  "Compartilhar"
+  },
+  "stores": {
+    "title":         "Lojas",
+    "add":           "+ Loja",
+    "empty":         "Nenhuma loja ainda.",
+    "create_first":  "Criar primeira loja",
+    "no_categories": "Nenhuma categoria salva. Compre itens para aprender a ordem automaticamente.",
+    "shelf_hint":    "Arraste para ordenar – ordem = sequência de corredor.",
+    "edit":          "Editar",
+    "delete":        "Excluir",
+    "shelf_order":   "Ordem das prateleiras",
+    "confirm_delete": "Excluir loja?",
+    "save_error":    "Falha ao salvar",
+    "delete_error":  "Falha ao excluir",
+    "load_error":    "Não foi possível carregar lojas",
+    "shelf_error":   "Não foi possível salvar ordem das prateleiras",
+    "form": {
+      "name":       "Nome",
+      "name_ph":    "ex. Supermercado Central",
+      "emoji":      "Emoji",
+      "color":      "Cor",
+      "address":    "Endereço (opcional)",
+      "address_ph": "Rua Principal, 123",
+      "create":     "Criar loja",
+      "edit":       "Editar loja",
+      "cancel":     "Cancelar",
+      "save":       "Salvar"
+    }
+  },
+  "history": {
+    "title":       "Histórico",
+    "search_ph":   "Pesquisar…",
+    "empty":       "Nada comprado ainda.",
+    "no_results":  "Nenhum resultado para \"{q}\".",
+    "load_error":  "Não foi possível carregar o histórico"
+  },
+  "settings": {
+    "title":       "Configurações",
+    "language":    "Idioma",
+    "dark_mode":   "Modo escuro",
+    "logout":      "Sair",
+    "version":     "Versão"
+  },
+  "admin": {
+    "users_title":    "Gerenciamento de usuários",
+    "products_title": "Gerenciamento de produtos",
+    "role_admin":     "Admin",
+    "role_member":    "Membro",
+    "role_child":     "Criança",
+    "save_role":      "Salvar função"
+  },
+  "errors": {
+    "sync": "Não foi possível sincronizar"
+  }
+}

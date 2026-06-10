@@ -155,6 +155,41 @@ func (h *Lists) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetShares returns current shares for a list (owner or admin only).
+func (h *Lists) GetShares(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.SessionFromContext(r.Context())
+	listID := chi.URLParam(r, "id")
+	if !h.isOwnerOrAdmin(r, sess, listID) {
+		respondErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	rows, err := h.DB.QueryContext(r.Context(), `
+		SELECT ls.user_id, u.name, COALESCE(u.avatar_url,''), ls.permission
+		  FROM list_shares ls
+		  JOIN users u ON u.id = ls.user_id
+		 WHERE ls.list_id = ? ORDER BY u.name`, listID)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	defer rows.Close()
+	type Share struct {
+		UserID     string `json:"user_id"`
+		Name       string `json:"name"`
+		AvatarURL  string `json:"avatar_url,omitempty"`
+		Permission string `json:"permission"`
+	}
+	shares := make([]Share, 0)
+	for rows.Next() {
+		var s Share
+		if err := rows.Scan(&s.UserID, &s.Name, &s.AvatarURL, &s.Permission); err != nil {
+			continue
+		}
+		shares = append(shares, s)
+	}
+	respond(w, http.StatusOK, shares)
+}
+
 func (h *Lists) Share(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())
 	listID := chi.URLParam(r, "id")
@@ -200,6 +235,56 @@ func (h *Lists) Unshare(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// GetHistory returns recent purchase history for all lists the user can access.
+func (h *Lists) GetHistory(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.SessionFromContext(r.Context())
+	rows, err := h.DB.QueryContext(r.Context(), `
+		SELECT ph.id, ph.list_id, ph.name_snapshot,
+		       COALESCE(s.name, '') AS store_name,
+		       COALESCE(s.icon, '') AS store_icon,
+		       COALESCE(p.category_id, '') AS category_id,
+		       COALESCE(c.color, '') AS category_color,
+		       COALESCE(c.icon, '') AS category_icon,
+		       ph.checked_at
+		  FROM purchase_history ph
+		  JOIN lists l ON l.id = ph.list_id
+		  LEFT JOIN list_shares ls ON ls.list_id = l.id AND ls.user_id = ?
+		  LEFT JOIN stores s ON s.id = ph.store_id
+		  LEFT JOIN products p ON p.id = ph.product_id
+		  LEFT JOIN categories c ON c.id = p.category_id
+		 WHERE (l.owner_id = ? OR ls.user_id = ?)
+		 ORDER BY ph.checked_at DESC
+		 LIMIT 200`, sess.UserID, sess.UserID, sess.UserID)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	defer rows.Close()
+
+	type HistoryEntry struct {
+		ID            string `json:"id"`
+		ListID        string `json:"list_id"`
+		NameSnapshot  string `json:"name_snapshot"`
+		StoreName     string `json:"store_name,omitempty"`
+		StoreIcon     string `json:"store_icon,omitempty"`
+		CategoryID    string `json:"category_id,omitempty"`
+		CategoryColor string `json:"category_color,omitempty"`
+		CategoryIcon  string `json:"category_icon,omitempty"`
+		CheckedAt     int64  `json:"checked_at"`
+	}
+	result := make([]HistoryEntry, 0)
+	for rows.Next() {
+		var e HistoryEntry
+		if err := rows.Scan(&e.ID, &e.ListID, &e.NameSnapshot,
+			&e.StoreName, &e.StoreIcon, &e.CategoryID,
+			&e.CategoryColor, &e.CategoryIcon, &e.CheckedAt); err != nil {
+			continue
+		}
+		result = append(result, e)
+	}
+	respond(w, http.StatusOK, map[string]any{"history": result})
+}
+
 // canAccess returns true if userID owns or has a share on the list.
 func (h *Lists) canAccess(r *http.Request, userID, listID string) bool {
 	return canAccessList(r.Context(), h.DB, userID, listID)
@@ -220,9 +305,11 @@ func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, er
 		       li.checked, li.checked_by, li.checked_at, li.added_by, li.added_at,
 		       li.sort_order, li.store_id,
 		       COALESCE(li.category_id, p.category_id),
+		       c.color, c.icon,
 		       COALESCE(li.name_override, p.name_de, p.name_en, '') AS display_name
 		  FROM list_items li
 		  LEFT JOIN products p ON p.id = li.product_id
+		  LEFT JOIN categories c ON c.id = COALESCE(li.category_id, p.category_id)
 		 WHERE li.list_id = ?
 		 ORDER BY li.checked ASC, li.sort_order ASC, li.added_at ASC`, listID)
 	if err != nil {
@@ -236,7 +323,7 @@ func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, er
 		if err := rows.Scan(&it.ID, &it.ListID, &it.ProductID, &it.NameOverride,
 			&it.Quantity, &it.Unit, &it.Note, &it.Checked, &it.CheckedBy, &it.CheckedAt,
 			&it.AddedBy, &it.AddedAt, &it.SortOrder, &it.StoreID,
-			&it.CategoryID, &it.DisplayName); err != nil {
+			&it.CategoryID, &it.CategoryColor, &it.CategoryIcon, &it.DisplayName); err != nil {
 			return nil, err
 		}
 		items = append(items, it)

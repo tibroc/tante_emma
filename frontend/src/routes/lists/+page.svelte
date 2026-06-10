@@ -41,17 +41,19 @@
 		<h1>Einkaufslisten</h1>
 	</header>
 
-	<form class="create-form" onsubmit={(e) => { e.preventDefault(); createList(); }}>
-		<input
-			type="text"
-			bind:value={newName}
-			placeholder="Neue Liste…"
-			aria-label="Name der neuen Liste"
-		/>
-		<button type="submit" disabled={creating || !newName.trim()} aria-label="Liste erstellen">
-			+
-		</button>
-	</form>
+	{#if $user?.role !== 'child'}
+		<form class="create-form" onsubmit={(e) => { e.preventDefault(); createList(); }}>
+			<input
+				type="text"
+				bind:value={newName}
+				placeholder="Neue Liste…"
+				aria-label="Name der neuen Liste"
+			/>
+			<button type="submit" disabled={creating || !newName.trim()} aria-label="Liste erstellen">
+				+
+			</button>
+		</form>
+	{/if}
 
 	{#if loading}
 		<p class="hint">Lade…</p>

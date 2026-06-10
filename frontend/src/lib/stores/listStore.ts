@@ -16,6 +16,8 @@ export interface ListItem {
 	sort_order: number;
 	store_id?: string;
 	category_id?: string;
+	category_color?: string;
+	category_icon?: string;
 	display_name: string;
 }
 

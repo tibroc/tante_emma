@@ -15,6 +15,32 @@ type Users struct {
 	DB *sql.DB
 }
 
+// GetMembers returns a minimal user list (id, name, avatar) for all authenticated
+// users so they can pick whom to share a list with.
+func (h *Users) GetMembers(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.DB.QueryContext(r.Context(),
+		`SELECT id, name, COALESCE(avatar_url,'') FROM users ORDER BY name`)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	defer rows.Close()
+	type Member struct {
+		ID        string `json:"id"`
+		Name      string `json:"name"`
+		AvatarURL string `json:"avatar_url,omitempty"`
+	}
+	members := make([]Member, 0)
+	for rows.Next() {
+		var m Member
+		if err := rows.Scan(&m.ID, &m.Name, &m.AvatarURL); err != nil {
+			continue
+		}
+		members = append(members, m)
+	}
+	respond(w, http.StatusOK, members)
+}
+
 func (h *Users) GetAll(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())
 	if sess.Role != models.RoleAdmin {

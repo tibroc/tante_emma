@@ -1,0 +1,95 @@
+{
+  "nav": {
+    "lists":   "Listen",
+    "stores":  "Läden",
+    "history": "Verlauf",
+    "settings": "Einstellungen"
+  },
+  "list": {
+    "empty_heading": "Liste ist leer",
+    "empty_body":    "Tippe oben, um etwas hinzuzufügen.",
+    "loading":       "Lade…",
+    "checked_count": "{n} erledigt",
+    "clear_checked": "Alle löschen",
+    "tile_view":     "Kachelansicht",
+    "list_view":     "Listenansicht",
+    "share":         "Teilen",
+    "active_store":  "Einkauf bei:",
+    "no_store":      "– kein Laden –"
+  },
+  "add_item": {
+    "placeholder": "Hinzufügen…",
+    "aria_add":    "Hinzufügen",
+    "aria_scan":   "Barcode scannen",
+    "aria_input":  "Artikel hinzufügen"
+  },
+  "sort": {
+    "category": "Kategorie",
+    "store":    "Laden",
+    "date":     "Datum",
+    "alpha":    "A–Z"
+  },
+  "item": {
+    "check":   "Als erledigt markieren",
+    "uncheck": "Als unerledigt markieren",
+    "delete":  "Artikel entfernen"
+  },
+  "share_sheet": {
+    "title":  "Liste teilen",
+    "shared": "✓ Geteilt",
+    "share":  "Teilen"
+  },
+  "stores": {
+    "title":         "Läden",
+    "add":           "+ Laden",
+    "empty":         "Noch keine Läden angelegt.",
+    "create_first":  "Ersten Laden anlegen",
+    "no_categories": "Keine Kategorien gespeichert. Kaufe Artikel ein, um die Reihenfolge automatisch zu lernen.",
+    "shelf_hint":    "Ziehen zum Sortieren – Reihenfolge = Ladengang-Abfolge.",
+    "edit":          "Bearbeiten",
+    "delete":        "Löschen",
+    "shelf_order":   "Regalreihenfolge",
+    "confirm_delete": "Laden wirklich löschen?",
+    "save_error":    "Speichern fehlgeschlagen",
+    "delete_error":  "Löschen fehlgeschlagen",
+    "load_error":    "Läden konnten nicht geladen werden",
+    "shelf_error":   "Regalreihenfolge konnte nicht gespeichert werden",
+    "form": {
+      "name":       "Name",
+      "name_ph":    "z.B. Rewe Hauptstraße",
+      "emoji":      "Emoji",
+      "color":      "Farbe",
+      "address":    "Adresse (optional)",
+      "address_ph": "Musterstraße 1",
+      "create":     "Laden anlegen",
+      "edit":       "Laden bearbeiten",
+      "cancel":     "Abbrechen",
+      "save":       "Speichern"
+    }
+  },
+  "history": {
+    "title":       "Verlauf",
+    "search_ph":   "Suchen…",
+    "empty":       "Noch nichts eingekauft.",
+    "no_results":  "Keine Ergebnisse für „{q}".",
+    "load_error":  "Verlauf konnte nicht geladen werden"
+  },
+  "settings": {
+    "title":       "Einstellungen",
+    "language":    "Sprache",
+    "dark_mode":   "Dunkles Design",
+    "logout":      "Abmelden",
+    "version":     "Version"
+  },
+  "admin": {
+    "users_title":    "Benutzerverwaltung",
+    "products_title": "Produktverwaltung",
+    "role_admin":     "Admin",
+    "role_member":    "Mitglied",
+    "role_child":     "Kind",
+    "save_role":      "Rolle speichern"
+  },
+  "errors": {
+    "sync": "Konnte nicht synchronisiert werden"
+  }
+}
