@@ -9,22 +9,31 @@ import (
 	"github.com/tante-emma/tanteemma/models"
 )
 
+// db is needed by processListCleared for shelf-order learning.
+// We accept it alongside the tx so we can start a separate transaction.
+var globalDB *sql.DB
+
+// SetDB wires the package-level DB reference used for shelf-order learning.
+func SetDB(db *sql.DB) { globalDB = db }
+
 // ProcessEvent applies a single event to the list_items materialized view.
-// Must be called inside a transaction.
-func ProcessEvent(tx *sql.Tx, event models.Event) error {
+// Must be called inside a transaction. The event may be enriched in place
+// (e.g. item.added gets its resolved category_id) so callers can propagate the
+// enriched payload to the response and WebSocket broadcast.
+func ProcessEvent(tx *sql.Tx, event *models.Event) error {
 	switch event.Type {
 	case "item.added":
 		return processItemAdded(tx, event)
 	case "item.checked":
-		return processItemChecked(tx, event)
+		return processItemChecked(tx, *event)
 	case "item.unchecked":
-		return processItemUnchecked(tx, event)
+		return processItemUnchecked(tx, *event)
 	case "item.deleted":
-		return processItemDeleted(tx, event)
+		return processItemDeleted(tx, *event)
 	case "list.cleared":
-		return processListCleared(tx, event)
+		return processListCleared(tx, *event)
 	case "item.updated":
-		return processItemUpdated(tx, event)
+		return processItemUpdated(tx, *event)
 	case "list.created", "list.renamed", "list.deleted",
 		"list.shared", "list.unshared",
 		"store.created", "store.updated",
@@ -36,19 +45,40 @@ func ProcessEvent(tx *sql.Tx, event models.Event) error {
 	}
 }
 
-func processItemAdded(tx *sql.Tx, ev models.Event) error {
+func processItemAdded(tx *sql.Tx, ev *models.Event) error {
 	var p models.ItemAddedPayload
 	if err := json.Unmarshal(ev.Payload, &p); err != nil {
 		return fmt.Errorf("itemAdded unmarshal: %w", err)
 	}
+
+	// Resolve the category so the item can sort by store shelf order even when
+	// it was typed as free text. Priority: explicit payload → product's category
+	// → best fuzzy product-name match (FTS).
+	categoryID := p.CategoryID
+	if categoryID == nil && p.ProductID != nil {
+		categoryID = lookupProductCategory(tx, *p.ProductID)
+	}
+	if categoryID == nil && p.NameOverride != nil && *p.NameOverride != "" {
+		categoryID = resolveCategoryByName(tx, *p.NameOverride)
+	}
+
+	// Enrich the event payload so the response and broadcast carry the resolved
+	// category to every client.
+	if categoryID != nil && p.CategoryID == nil {
+		p.CategoryID = categoryID
+		if b, err := json.Marshal(p); err == nil {
+			ev.Payload = b
+		}
+	}
+
 	// Upsert: if the same product is already in the list, ignore.
 	_, err := tx.Exec(`
 		INSERT INTO list_items
-		  (id, list_id, product_id, name_override, quantity, unit, note,
+		  (id, list_id, product_id, name_override, category_id, quantity, unit, note,
 		   checked, added_by, added_at, sort_order, store_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, ?)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, ?)
 		ON CONFLICT(list_id, product_id) DO NOTHING`,
-		p.ItemID, *ev.ListID, p.ProductID, p.NameOverride,
+		p.ItemID, *ev.ListID, p.ProductID, p.NameOverride, categoryID,
 		p.Quantity, p.Unit, p.Note, ev.UserID, ev.ClientTS, p.StoreID,
 	)
 	if err != nil {
@@ -130,8 +160,54 @@ func processItemDeleted(tx *sql.Tx, ev models.Event) error {
 }
 
 func processListCleared(tx *sql.Tx, ev models.Event) error {
-	_, err := tx.Exec(`DELETE FROM list_items WHERE list_id=? AND checked=1`, *ev.ListID)
-	return err
+	if _, err := tx.Exec(`DELETE FROM list_items WHERE list_id=? AND checked=1`, *ev.ListID); err != nil {
+		return err
+	}
+	// Fire-and-forget shelf-order learning if store context is present.
+	var p models.ListClearedPayload
+	if globalDB != nil && json.Unmarshal(ev.Payload, &p) == nil && p.StoreID != nil {
+		go func() {
+			_ = LearnShelfOrder(globalDB, *p.StoreID, *ev.ListID, p.SessionStart)
+		}()
+	}
+	return nil
+}
+
+// lookupProductCategory returns the category of a known product, or nil.
+func lookupProductCategory(tx *sql.Tx, productID string) *string {
+	var cat sql.NullString
+	if err := tx.QueryRow(`SELECT category_id FROM products WHERE id = ?`, productID).Scan(&cat); err != nil {
+		return nil
+	}
+	if cat.Valid && cat.String != "" {
+		return &cat.String
+	}
+	return nil
+}
+
+// resolveCategoryByName finds the category of the best FTS product match for a
+// typed item name, so free-text items can still be grouped by store shelf order.
+func resolveCategoryByName(tx *sql.Tx, name string) *string {
+	q := ftsEscape(name)
+	if q == "" {
+		return nil
+	}
+	var cat sql.NullString
+	err := tx.QueryRow(`
+		SELECT p.category_id
+		  FROM products_fts
+		  JOIN products p ON p.rowid = products_fts.rowid
+		 WHERE products_fts MATCH ?
+		   AND p.category_id IS NOT NULL
+		 ORDER BY bm25(products_fts) ASC
+		 LIMIT 1`, q+"*").Scan(&cat)
+	if err != nil {
+		return nil
+	}
+	if cat.Valid && cat.String != "" {
+		return &cat.String
+	}
+	return nil
 }
 
 func processItemUpdated(tx *sql.Tx, ev models.Event) error {

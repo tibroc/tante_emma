@@ -15,6 +15,7 @@ import (
 	"github.com/tante-emma/tanteemma/db"
 	"github.com/tante-emma/tanteemma/handlers"
 	"github.com/tante-emma/tanteemma/middleware"
+	"github.com/tante-emma/tanteemma/services"
 	"github.com/tante-emma/tanteemma/ws"
 )
 
@@ -36,6 +37,8 @@ func main() {
 		log.Fatalf("open db: %v", err)
 	}
 	defer database.Close()
+
+	services.SetDB(database)
 
 	hub := ws.NewHub()
 	go hub.Run()

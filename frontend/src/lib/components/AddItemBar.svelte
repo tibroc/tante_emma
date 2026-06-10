@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { api } from '$lib/api';
+	import { api, ApiError } from '$lib/api';
+	import BarcodeScanner from './BarcodeScanner.svelte';
 
 	interface Suggestion {
 		product_id: string;
@@ -10,7 +11,7 @@
 
 	interface Props {
 		listId: string;
-		onAdd?: (name: string, productId?: string) => void;
+		onAdd?: (name: string, productId?: string, categoryId?: string) => void;
 	}
 	let { listId, onAdd }: Props = $props();
 
@@ -19,6 +20,8 @@
 	let focused = $state(false);
 	let debounceTimer: ReturnType<typeof setTimeout>;
 	let selectedIndex = $state(-1);
+	let showScanner = $state(false);
+	let scanLoading = $state(false);
 
 	function handleInput() {
 		clearTimeout(debounceTimer);
@@ -40,7 +43,7 @@
 	}
 
 	function selectSuggestion(s: Suggestion) {
-		onAdd?.(s.display_name, s.product_id);
+		onAdd?.(s.display_name, s.product_id, s.category?.id);
 		query = '';
 		suggestions = [];
 	}
@@ -73,6 +76,29 @@
 	}
 
 	const showDropdown = $derived(focused && (suggestions.length > 0 || query.trim().length > 0));
+
+	async function handleScan(barcode: string) {
+		showScanner = false;
+		scanLoading = true;
+		try {
+			const p = await api.get<{
+				id: string;
+				name_de?: string;
+				name_en?: string;
+				brand?: string;
+			}>(`/api/products/barcode/${encodeURIComponent(barcode)}`);
+			const displayName = p.name_de ?? p.name_en ?? barcode;
+			onAdd?.(displayName, p.id);
+		} catch (e) {
+			// 404 = unknown barcode → let the user type a name
+			if (!(e instanceof ApiError && e.status === 404)) {
+				console.error('barcode lookup:', e);
+			}
+			query = barcode;
+		} finally {
+			scanLoading = false;
+		}
+	}
 </script>
 
 <div class="add-bar-wrapper">
@@ -90,11 +116,21 @@
 			onblur={() => setTimeout(() => (focused = false), 150)}
 		/>
 		<button
+			class="scan-btn"
+			onclick={() => (showScanner = true)}
+			aria-label="Barcode scannen"
+			disabled={scanLoading}
+		>{scanLoading ? '…' : '▦'}</button>
+		<button
 			class="add-btn"
 			onclick={handleAdd}
 			aria-label="Hinzufügen"
 		>+</button>
 	</div>
+
+	{#if showScanner}
+		<BarcodeScanner onScan={handleScan} onClose={() => (showScanner = false)} />
+	{/if}
 
 	{#if showDropdown}
 		<ul class="suggestions" role="listbox" aria-label="Vorschläge">
@@ -159,6 +195,23 @@
 	}
 
 	input:focus { outline-color: var(--color-primary); }
+
+	.scan-btn {
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-overlay);
+		color: var(--text-secondary);
+		font-size: 18px;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+	}
+
+	.scan-btn:disabled { opacity: 0.5; }
 
 	.add-btn {
 		width: 40px;

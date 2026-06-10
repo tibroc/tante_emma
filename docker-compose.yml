@@ -7,7 +7,7 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./data:/data
+      - ./data:/data:Z
     environment:
       - DB_PATH=/data/tanteemma.db
       - SESSION_HASH_KEY=${SESSION_HASH_KEY}

@@ -41,4 +41,6 @@ type ListItem struct {
 	AddedAt      int64   `json:"added_at"`
 	SortOrder    int     `json:"sort_order"`
 	StoreID      *string `json:"store_id,omitempty"`
+	CategoryID   *string `json:"category_id,omitempty"`
+	DisplayName  string  `json:"display_name"`
 }

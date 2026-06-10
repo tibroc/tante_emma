@@ -18,11 +18,8 @@
 	>
 		{#if item.checked}✓{/if}
 	</button>
-	<div
-		class="category-line"
-		style:background-color={item.category?.color ?? 'var(--border-subtle)'}
-	></div>
-	<span class="name">{item.display_name ?? item.name_override ?? ''}</span>
+	<div class="category-line"></div>
+	<span class="name">{item.display_name}</span>
 	<button
 		class="delete-btn"
 		onclick={() => onDelete?.(item.id)}

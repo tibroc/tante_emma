@@ -12,11 +12,9 @@
 <button
 	class="tile"
 	class:checked={item.checked}
-	style:border-left-color={item.category?.color ?? 'var(--border-subtle)'}
 	onclick={() => onCheck?.(item.id, !item.checked)}
 >
-	<span class="icon">{item.category?.icon ?? '🛒'}</span>
-	<span class="name">{item.display_name ?? item.name_override ?? ''}</span>
+	<span class="name">{item.display_name}</span>
 </button>
 
 <style>
@@ -48,8 +46,6 @@
 	.tile.checked .name {
 		text-decoration: line-through;
 	}
-
-	.icon { font-size: 20px; }
 
 	.name {
 		font-size: 15px;

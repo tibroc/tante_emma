@@ -99,13 +99,14 @@ func (h *Stores) Delete(w http.ResponseWriter, r *http.Request) {
 
 func (h *Stores) GetShelfOrder(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	// Return ALL categories so the editor is populated even for a fresh store.
+	// Categories with no saved position sort to the bottom (9999).
 	rows, err := h.DB.QueryContext(r.Context(), `
-		SELECT s.id, s.store_id, s.category_id, s.position, s.auto_learned,
-		       c.name_de, c.icon, c.color
-		  FROM store_shelf_order s
-		  JOIN categories c ON c.id = s.category_id
-		 WHERE s.store_id = ?
-		 ORDER BY s.position ASC`, id)
+		SELECT c.id, COALESCE(s.position, 9999), COALESCE(s.auto_learned, 0),
+		       c.name_de, COALESCE(c.icon,''), COALESCE(c.color,'')
+		  FROM categories c
+		  LEFT JOIN store_shelf_order s ON s.category_id = c.id AND s.store_id = ?
+		 ORDER BY COALESCE(s.position, 9999) ASC, c.name_de ASC`, id)
 	if err != nil {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
@@ -113,21 +114,19 @@ func (h *Stores) GetShelfOrder(w http.ResponseWriter, r *http.Request) {
 	defer rows.Close()
 
 	type ShelfRow struct {
-		ID          string `json:"id"`
-		StoreID     string `json:"store_id"`
-		CategoryID  string `json:"category_id"`
-		Position    int    `json:"position"`
-		AutoLearned bool   `json:"auto_learned"`
+		CategoryID   string `json:"category_id"`
+		Position     int    `json:"position"`
+		AutoLearned  bool   `json:"auto_learned"`
 		CategoryName string `json:"category_name"`
-		Icon        string `json:"icon"`
-		Color       string `json:"color"`
+		Icon         string `json:"icon"`
+		Color        string `json:"color"`
 	}
 	result := make([]ShelfRow, 0)
 	for rows.Next() {
 		var s ShelfRow
 		var autoLearned int
-		if err := rows.Scan(&s.ID, &s.StoreID, &s.CategoryID, &s.Position,
-			&autoLearned, &s.CategoryName, &s.Icon, &s.Color); err != nil {
+		if err := rows.Scan(&s.CategoryID, &s.Position, &autoLearned,
+			&s.CategoryName, &s.Icon, &s.Color); err != nil {
 			continue
 		}
 		s.AutoLearned = autoLearned == 1

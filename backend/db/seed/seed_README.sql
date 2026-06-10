@@ -1,0 +1,40 @@
+-- TanteEmma – Master Seed File
+-- Run this after the schema migrations to populate the database.
+-- Execute in order: categories first, then products 1–4.
+--
+-- SQLite CLI:
+--   sqlite3 tanteemma.db < seed_categories.sql
+--   sqlite3 tanteemma.db < seed_products_1.sql
+--   sqlite3 tanteemma.db < seed_products_2.sql
+--   sqlite3 tanteemma.db < seed_products_3.sql
+--   sqlite3 tanteemma.db < seed_products_4.sql
+--
+-- Or as a Go embed in backend/db/migrations/002_seed.sql:
+--   Concatenate all files in order.
+--
+-- Product count by category:
+--   cat_01  Obst & Gemüse            60 products
+--   cat_02  Brot & Backwaren         20 products
+--   cat_03  Kühlregal                40 products
+--   cat_04  Käse                     20 products
+--   cat_05  Fleisch & Wurst          20 products
+--   cat_06  Fisch & Meeresfrüchte    10 products
+--   cat_07  Tiefkühl                 20 products
+--   cat_08  Nudeln & Reis            25 products
+--   cat_09  Konserven & Gläser       25 products
+--   cat_10  Gewürze & Saucen         30 products
+--   cat_11  Öle & Essig              10 products
+--   cat_12  Getränke                 30 products
+--   cat_13  Süßwaren & Snacks        30 products
+--   cat_14  Frühstück & Cerealien    13 products
+--   cat_15  Backen                   17 products
+--   cat_16  Hygiene & Pflege         25 products
+--   cat_17  Reinigung & Haushalt     21 products
+--   cat_18  Baby & Kind              10 products
+--   cat_19  Tier & Zoo                8 products
+--   cat_20  Sonstiges                 6 products
+--                               TOTAL: 440 products
+--
+-- Note: Additional products can be added via barcode scan
+-- (Open Food Facts) or manually by Admin users at runtime.
+-- The FTS5 index is rebuilt at the end of seed_products_4.sql.

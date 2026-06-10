@@ -18,6 +18,7 @@ type ItemAddedPayload struct {
 	ItemID       string   `json:"item_id"`
 	ProductID    *string  `json:"product_id,omitempty"`
 	NameOverride *string  `json:"name_override,omitempty"`
+	CategoryID   *string  `json:"category_id,omitempty"`
 	Quantity     *float64 `json:"quantity,omitempty"`
 	Unit         *string  `json:"unit,omitempty"`
 	Note         *string  `json:"note,omitempty"`
@@ -51,4 +52,7 @@ type ListCreatedPayload struct {
 	Type string `json:"type"`
 }
 
-type ListClearedPayload struct{}
+type ListClearedPayload struct {
+	StoreID      *string `json:"store_id,omitempty"`
+	SessionStart int64   `json:"session_start,omitempty"`
+}

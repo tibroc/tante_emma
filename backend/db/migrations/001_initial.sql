@@ -49,7 +49,6 @@ CREATE INDEX idx_products_category ON products(category_id);
 
 -- Full-text search index (FTS5)
 CREATE VIRTUAL TABLE products_fts USING fts5(
-  product_id UNINDEXED,
   name_de, name_en, name_pt, brand,
   content=products,
   content_rowid=rowid

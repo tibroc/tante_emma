@@ -26,7 +26,7 @@ func SearchProducts(db *sql.DB, query, locale, listID, userID string) ([]models.
 		       COALESCE(swf.frequency, 0),
 		       COALESCE(sw.frequency,  0)
 		  FROM products_fts
-		  JOIN products p ON p.id = products_fts.product_id
+		  JOIN products p ON p.rowid = products_fts.rowid
 		  LEFT JOIN categories c ON c.id = p.category_id
 		  LEFT JOIN suggestion_weights_family swf ON swf.product_id = p.id
 		  LEFT JOIN suggestion_weights sw ON sw.product_id = p.id AND sw.user_id = ?

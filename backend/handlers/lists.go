@@ -216,10 +216,15 @@ func (h *Lists) isOwnerOrAdmin(r *http.Request, sess *models.Session, listID str
 
 func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, error) {
 	rows, err := h.DB.QueryContext(r.Context(), `
-		SELECT id, list_id, product_id, name_override, quantity, unit, note,
-		       checked, checked_by, checked_at, added_by, added_at, sort_order, store_id
-		  FROM list_items WHERE list_id = ?
-		 ORDER BY checked ASC, sort_order ASC, added_at ASC`, listID)
+		SELECT li.id, li.list_id, li.product_id, li.name_override, li.quantity, li.unit, li.note,
+		       li.checked, li.checked_by, li.checked_at, li.added_by, li.added_at,
+		       li.sort_order, li.store_id,
+		       COALESCE(li.category_id, p.category_id),
+		       COALESCE(li.name_override, p.name_de, p.name_en, '') AS display_name
+		  FROM list_items li
+		  LEFT JOIN products p ON p.id = li.product_id
+		 WHERE li.list_id = ?
+		 ORDER BY li.checked ASC, li.sort_order ASC, li.added_at ASC`, listID)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +235,8 @@ func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, er
 		var it models.ListItem
 		if err := rows.Scan(&it.ID, &it.ListID, &it.ProductID, &it.NameOverride,
 			&it.Quantity, &it.Unit, &it.Note, &it.Checked, &it.CheckedBy, &it.CheckedAt,
-			&it.AddedBy, &it.AddedAt, &it.SortOrder, &it.StoreID); err != nil {
+			&it.AddedBy, &it.AddedAt, &it.SortOrder, &it.StoreID,
+			&it.CategoryID, &it.DisplayName); err != nil {
 			return nil, err
 		}
 		items = append(items, it)

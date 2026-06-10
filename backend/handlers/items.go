@@ -81,7 +81,7 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 
 		// Persist event.
 		payloadBytes, _ := json.Marshal(ev.Payload)
-		_, err := tx.ExecContext(r.Context(), `
+		res, err := tx.ExecContext(r.Context(), `
 			INSERT OR IGNORE INTO events (id, type, list_id, user_id, payload, client_ts, server_ts)
 			VALUES (?, ?, ?, ?, ?, ?, ?)`,
 			ev.ID, ev.Type, listID, sess.UserID, string(payloadBytes), ev.ClientTS, ev.ServerTS,
@@ -91,7 +91,15 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := services.ProcessEvent(tx, ev); err != nil {
+		// Idempotency: if this event id already existed (0 rows inserted), it has
+		// already been applied to the materialized view. Re-running ProcessEvent
+		// would double-insert (e.g. UNIQUE constraint on list_items.id), so skip
+		// it. This makes re-submitting a drained offline event a safe no-op.
+		if n, _ := res.RowsAffected(); n == 0 {
+			continue
+		}
+
+		if err := services.ProcessEvent(tx, &ev); err != nil {
 			respondErr(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}

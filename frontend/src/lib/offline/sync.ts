@@ -54,7 +54,7 @@ export function applyEventLocally(event: RawEvent): void {
 					added_by: '',
 					added_at: Date.now(),
 					sort_order: 0,
-					display_name: p.name_override
+					display_name: p.name_override ?? ''
 				};
 				return [newItem, ...current];
 			}

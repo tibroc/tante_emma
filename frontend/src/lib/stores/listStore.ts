@@ -15,10 +15,8 @@ export interface ListItem {
 	added_at: number;
 	sort_order: number;
 	store_id?: string;
-	// Joined fields for display
-	display_name?: string;
-	brand?: string;
-	category?: { id: string; name: string; icon: string; color: string };
+	category_id?: string;
+	display_name: string;
 }
 
 export interface List {

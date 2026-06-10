@@ -6,11 +6,14 @@
 	import { user } from '$lib/stores/userStore';
 	import { items, type ListItem } from '$lib/stores/listStore';
 	import { subscribe, unsubscribe, onMessage, onReconnect } from '$lib/ws';
-	import { enqueue } from '$lib/offline/eventQueue';
-	import { syncList } from '$lib/offline/sync';
+	import { enqueue, drainQueue, pendingCount } from '$lib/offline/eventQueue';
 	import { syncStatus } from '$lib/stores/syncStore';
 	import AddItemBar from '$lib/components/AddItemBar.svelte';
 	import ListItemRow from '$lib/components/ListItem.svelte';
+	import SortBar from '$lib/components/SortBar.svelte';
+
+	interface Store { id: string; name: string; icon: string; color: string; }
+	interface ShelfEntry { category_id: string; position: number; }
 
 	const listId = $derived(page.params.id ?? '');
 
@@ -19,27 +22,103 @@
 	let toastMessage = $state('');
 	let toastTimer: ReturnType<typeof setTimeout>;
 
+	// Sorting
+	let sortMode = $state<'category' | 'store' | 'date' | 'alpha'>('category');
+	let stores = $state<Store[]>([]);
+	let selectedStoreId = $state<string | null>(null);
+	let shelfOrder = $state<Map<string, number>>(new Map());
+
 	// Group items: unchecked first, then checked.
-	const unchecked = $derived($items.filter((i) => !i.checked));
-	const checked   = $derived($items.filter((i) => i.checked));
+	const unchecked = $derived(sortedItems($items.filter((i) => !i.checked)));
+	const checked   = $derived(sortedItems($items.filter((i) => i.checked)));
 	let showChecked = $state(false);
 
 	onMount(async () => {
-		try {
-			const data = await api.get<{ list: { name: string }; items: ListItem[] }>(
-				`/api/lists/${listId}`
-			);
-			listName = data.list.name;
-			items.set(data.items);
-		} finally {
-			loading = false;
-		}
-
+		await loadList();
+		loading = false;
 		subscribe(listId);
 	});
 
-	// Sync queued offline events whenever the WS reconnects.
-	const unsubReconnect = onReconnect(() => syncList(listId));
+	// Drain any pending offline events first so the server snapshot reflects
+	// them, then fetch the authoritative list state.
+	async function loadList() {
+		console.log('[list] loadList start, listId=', listId, 'online=', navigator.onLine);
+		try {
+			const n = await drainQueue(listId);
+			if (n > 0) syncStatus.set('online');
+		} catch (e) {
+			console.warn('[list] drainQueue failed (still offline?):', e);
+		}
+
+		// If events remain queued (drain failed), do NOT overwrite the local
+		// store with the server snapshot — that would visually discard them.
+		let remaining = 0;
+		try {
+			remaining = await pendingCount(listId);
+		} catch (e) {
+			console.warn('[list] pendingCount failed:', e);
+		}
+
+		try {
+			const [data, storeList] = await Promise.all([
+				api.get<{ list: { name: string }; items: ListItem[] }>(`/api/lists/${listId}`),
+				api.get<Store[]>('/api/stores').catch(() => [] as Store[])
+			]);
+			listName = data.list.name;
+			stores = storeList;
+			if (remaining === 0) {
+				items.set(data.items);
+				console.log('[list] snapshot applied,', data.items.length, 'items');
+			} else {
+				console.warn('[list] keeping optimistic state,', remaining, 'events still queued');
+			}
+		} catch (e) {
+			console.warn('[list] snapshot fetch failed (offline?):', e);
+		}
+	}
+
+	async function handleSortModeChange(mode: typeof sortMode) {
+		sortMode = mode;
+		if (mode === 'store' && stores.length > 0 && !selectedStoreId) {
+			selectedStoreId = stores[0].id;
+			await loadShelfOrder(stores[0].id);
+		}
+	}
+
+	async function handleStoreChange(storeId: string) {
+		selectedStoreId = storeId;
+		await loadShelfOrder(storeId);
+	}
+
+	async function loadShelfOrder(storeId: string) {
+		try {
+			const rows = await api.get<ShelfEntry[]>(`/api/stores/${storeId}/shelf-order`);
+			shelfOrder = new Map(rows.map((r) => [r.category_id, r.position]));
+		} catch {
+			shelfOrder = new Map();
+		}
+	}
+
+	function sortedItems(list: ListItem[]): ListItem[] {
+		return [...list].sort((a, b) => {
+			switch (sortMode) {
+				case 'alpha':
+					return (a.display_name ?? '').localeCompare(b.display_name ?? '', 'de');
+				case 'date':
+					return b.added_at - a.added_at;
+				case 'store': {
+					const posA = a.category_id ? (shelfOrder.get(a.category_id) ?? 999) : 999;
+					const posB = b.category_id ? (shelfOrder.get(b.category_id) ?? 999) : 999;
+					return posA - posB;
+				}
+				default:
+					return a.sort_order - b.sort_order;
+			}
+		});
+	}
+
+	// On WS (re)connect, drain the offline queue and reload the snapshot.
+	const unsubReconnect = onReconnect(() => loadList());
 
 	// Handle real-time events from other users.
 	const unsub = onMessage((msg) => {
@@ -58,7 +137,7 @@
 		items.update((current) => {
 			switch (ev.type) {
 				case 'item.added': {
-					const p = ev.payload as { item_id: string; name_override?: string; product_id?: string; quantity?: number; unit?: string };
+					const p = ev.payload as { item_id: string; name_override?: string; product_id?: string; category_id?: string; quantity?: number; unit?: string };
 					const exists = current.find((i) => i.id === p.item_id);
 					if (exists) return current;
 					const newItem: ListItem = {
@@ -72,7 +151,8 @@
 						added_by: '',
 						added_at: Date.now(),
 						sort_order: 0,
-						display_name: p.name_override
+						category_id: p.category_id,
+						display_name: p.name_override ?? ''
 					};
 					return [newItem, ...current];
 				}
@@ -96,11 +176,13 @@
 		});
 	}
 
+	interface ServerEvent { type: string; payload: Record<string, unknown> }
+
 	async function submitEvent(
 		eventId: string,
 		type: string,
 		payload: Record<string, unknown>
-	): Promise<void> {
+	): Promise<ServerEvent[] | undefined> {
 		const event = {
 			id: eventId,
 			type,
@@ -110,36 +192,60 @@
 			client_ts: Date.now()
 		};
 		if ($syncStatus === 'offline' || !navigator.onLine) {
+			console.log('[list] submitEvent offline-branch, enqueue', type);
 			await enqueue(event);
-			return;
+			return undefined;
 		}
 		try {
-			await api.post(`/api/lists/${listId}/events`, event);
-		} catch {
+			const res = await api.post<{ events: ServerEvent[] }>(`/api/lists/${listId}/events`, event);
+			console.log('[list] submitEvent posted', type);
+			return res.events;
+		} catch (e) {
+			console.warn('[list] submitEvent POST failed, enqueue', type, e);
 			await enqueue(event);
 			syncStatus.set('offline');
+			return undefined;
 		}
 	}
 
-	async function handleAdd(name: string) {
+	async function handleAdd(name: string, productId?: string, categoryId?: string) {
 		if (!$user) return;
 		const itemId = ulid();
 
-		// Optimistic update.
+		// Optimistic update — include product/category so store-sort works immediately.
 		const optimistic: ListItem = {
 			id: itemId,
 			list_id: listId,
-			name_override: name,
+			product_id: productId,
+			name_override: productId ? undefined : name,
 			checked: false,
 			added_by: $user.id,
 			added_at: Date.now(),
 			sort_order: 0,
+			category_id: categoryId,
 			display_name: name
 		};
 		items.update((ls) => [optimistic, ...ls]);
 
+		const payload: Record<string, unknown> = { item_id: itemId };
+		if (productId) {
+			payload.product_id = productId;
+		} else {
+			payload.name_override = name;
+		}
+		if (categoryId) payload.category_id = categoryId;
+
 		try {
-			await submitEvent(itemId, 'item.added', { item_id: itemId, name_override: name });
+			const serverEvents = await submitEvent(itemId, 'item.added', payload);
+			// The server resolves a category for typed items; patch it onto the
+			// optimistic row so store-sort works without waiting for a reload.
+			const resolved = serverEvents?.find(
+				(e) => e.type === 'item.added' && (e.payload as { item_id?: string }).item_id === itemId
+			);
+			const resolvedCat = resolved?.payload.category_id as string | undefined;
+			if (resolvedCat) {
+				items.update((ls) => ls.map((i) => (i.id === itemId ? { ...i, category_id: resolvedCat } : i)));
+			}
 		} catch {
 			items.update((ls) => ls.filter((i) => i.id !== itemId));
 			showToast('Konnte nicht synchronisiert werden');
@@ -204,6 +310,22 @@
 		<header class="list-header">
 			<h1 class="list-title">{listName}</h1>
 		</header>
+
+		<SortBar mode={sortMode} onModeChange={handleSortModeChange} />
+
+		{#if sortMode === 'store' && stores.length > 0}
+			<div class="store-picker">
+				<select
+					value={selectedStoreId ?? stores[0]?.id}
+					onchange={(e) => handleStoreChange((e.target as HTMLSelectElement).value)}
+					aria-label="Laden auswählen"
+				>
+					{#each stores as s (s.id)}
+						<option value={s.id}>{s.icon} {s.name}</option>
+					{/each}
+				</select>
+			</div>
+		{/if}
 
 		{#if unchecked.length === 0 && checked.length === 0}
 			<div class="empty">
@@ -352,6 +474,22 @@
 		color: var(--text-muted);
 		font-size: var(--text-sm);
 		margin: 0;
+	}
+
+	.store-picker {
+		padding: var(--space-2) var(--space-4);
+		background: var(--surface-base);
+		border-bottom: 1px solid var(--border-subtle);
+	}
+
+	.store-picker select {
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		padding: var(--space-1) var(--space-2);
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		background: var(--surface-overlay);
+		color: var(--text-primary);
 	}
 
 	.hint { color: var(--text-muted); text-align: center; padding: var(--space-8); }

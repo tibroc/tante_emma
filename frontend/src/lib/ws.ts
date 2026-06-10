@@ -10,42 +10,65 @@ type MessageHandler = (msg: WsMessage) => void;
 
 let socket: WebSocket | null = null;
 let reconnectDelay = 1000;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 const handlers = new Set<MessageHandler>();
 const reconnectHandlers = new Set<() => void>();
 // Tracks active subscriptions so they can be re-sent after reconnect.
 const activeSubscriptions = new Set<string>();
 
+function clearReconnectTimer() {
+	if (reconnectTimer !== null) {
+		clearTimeout(reconnectTimer);
+		reconnectTimer = null;
+	}
+}
+
+function scheduleReconnect() {
+	clearReconnectTimer();
+	const delay = Math.min(reconnectDelay, 30_000);
+	reconnectTimer = setTimeout(connect, delay);
+	reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
+}
+
 function connect() {
-	if (socket?.readyState === WebSocket.OPEN) return;
+	clearReconnectTimer();
+	// Don't open a second socket if one is already connecting or open.
+	if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+		return;
+	}
 
-	socket = new WebSocket(`${WS_BASE}/ws`);
+	const ws = new WebSocket(`${WS_BASE}/ws`);
+	socket = ws;
 
-	socket.addEventListener('open', () => {
+	ws.addEventListener('open', () => {
+		// Ignore if this socket has since been replaced.
+		if (socket !== ws) return;
+		console.log('[ws] open → re-subscribe', [...activeSubscriptions], 'fire', reconnectHandlers.size, 'handlers');
 		reconnectDelay = 1000;
-		// Re-subscribe to all rooms after (re)connect.
 		for (const listId of activeSubscriptions) {
-			socket?.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
+			ws.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
 		}
-		// Notify listeners so they can drain their offline queues.
 		for (const h of reconnectHandlers) h();
 	});
 
-	socket.addEventListener('message', (e: MessageEvent<string>) => {
+	ws.addEventListener('message', (e: MessageEvent<string>) => {
 		const msg = JSON.parse(e.data) as WsMessage;
 		if (msg.type === 'ping') {
-			socket?.send(JSON.stringify({ type: 'pong' }));
+			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'pong' }));
 			return;
 		}
 		for (const h of handlers) h(msg);
 	});
 
-	socket.addEventListener('close', () => {
+	ws.addEventListener('close', () => {
+		// Only react if this is still the current socket (avoid stale closes
+		// scheduling extra reconnects).
+		if (socket !== ws) return;
 		socket = null;
-		setTimeout(connect, Math.min(reconnectDelay, 30_000));
-		reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
+		scheduleReconnect();
 	});
 
-	socket.addEventListener('error', () => socket?.close());
+	ws.addEventListener('error', () => ws.close());
 }
 
 export function subscribe(listId: string) {
@@ -75,4 +98,28 @@ export function onReconnect(handler: () => void): () => void {
 
 export function startWs() {
 	connect();
+
+	if (typeof window !== 'undefined') {
+		// A dead WebSocket often does not fire `close` when the network drops
+		// (half-open socket). Drive reconnects explicitly from the browser's
+		// online/offline events so onReconnect handlers run reliably.
+		window.addEventListener('online', () => {
+			console.log('[ws] browser online → forcing reconnect');
+			reconnectDelay = 1000;
+			if (!socket || socket.readyState !== WebSocket.OPEN) {
+				// Detach the old socket so its close handler is a no-op, then connect.
+				const old = socket;
+				socket = null;
+				old?.close();
+				connect();
+			}
+		});
+		window.addEventListener('offline', () => {
+			console.log('[ws] browser offline → closing socket');
+			clearReconnectTimer();
+			const old = socket;
+			socket = null;
+			old?.close();
+		});
+	}
 }
