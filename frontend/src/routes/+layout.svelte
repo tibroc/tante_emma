@@ -10,12 +10,8 @@
 	import { startWs } from '$lib/ws';
 	import '$lib/i18n';
 	import { locale, _ } from 'svelte-i18n';
-
-	// Apply saved theme immediately so there's no flash of wrong theme.
-	if (browser) {
-		const theme = localStorage.getItem('theme') ?? 'light';
-		document.documentElement.setAttribute('data-theme', theme);
-	}
+	import { theme as themeStore } from '$lib/stores/themeStore';
+	// Importing themeStore triggers its subscribe, which sets data-theme from localStorage.
 
 	let { children } = $props();
 

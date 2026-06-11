@@ -73,7 +73,8 @@
 }
 
 /* === Semantic Tokens — Dark === */
-[data-theme="dark"] {
+/* html[data-theme] beats :root by specificity (0,2,0 vs 0,1,0) */
+html[data-theme="dark"] {
   --surface-base:    #0d0d10;
   --surface-raised:  #18181f;
   --surface-overlay: #222230;

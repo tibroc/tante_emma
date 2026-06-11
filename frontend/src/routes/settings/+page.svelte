@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { locale, _ } from 'svelte-i18n';
 	import { user } from '$lib/stores/userStore';
+	import { theme as themeStore } from '$lib/stores/themeStore';
 	import { api } from '$lib/api';
 	import { goto } from '$app/navigation';
 
@@ -11,18 +12,10 @@
 		{ code: 'pt-BR', label: 'Português (BR)' },
 	];
 
-	// Dark mode — read actual DOM value after hydration to avoid SSR mismatch.
-	let darkMode = $state(false);
-
-	onMount(() => {
-		darkMode = document.documentElement.getAttribute('data-theme') === 'dark';
-	});
+	const darkMode = $derived($themeStore === 'dark');
 
 	function toggleDark() {
-		darkMode = !darkMode;
-		const theme = darkMode ? 'dark' : 'light';
-		document.documentElement.setAttribute('data-theme', theme);
-		localStorage.setItem('theme', theme);
+		themeStore.set($themeStore === 'dark' ? 'light' : 'dark');
 	}
 
 	function setLocale(code: string) {
