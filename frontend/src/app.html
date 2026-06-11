@@ -20,9 +20,19 @@
 			href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,400&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
 			rel="stylesheet"
 		/>
+		<script>
+			// Apply saved theme to <html> before first paint to avoid a flash
+			// of the wrong theme. The bare [data-theme] attribute must live on
+			// <html> only — putting it on <body> makes [data-theme=light] match
+			// the body and override inherited dark tokens.
+			try {
+				var t = localStorage.getItem('theme') || 'light';
+				document.documentElement.setAttribute('data-theme', t);
+			} catch (e) {}
+		</script>
 		%sveltekit.head%
 	</head>
-	<body data-sveltekit-preload-data="hover" data-theme="light">
+	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
