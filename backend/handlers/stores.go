@@ -93,7 +93,33 @@ func (h *Stores) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := chi.URLParam(r, "id")
-	_, _ = h.DB.ExecContext(r.Context(), `DELETE FROM stores WHERE id=?`, id)
+
+	// FKs are ON with no cascade. Nullable references (list_items, purchase_history)
+	// are detached so those records survive; NOT NULL references (shelf order,
+	// product_stores) are removed. All in one transaction.
+	tx, err := h.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	for _, stmt := range []string{
+		`UPDATE list_items SET store_id=NULL WHERE store_id=?`,
+		`UPDATE purchase_history SET store_id=NULL WHERE store_id=?`,
+		`DELETE FROM store_shelf_order WHERE store_id=?`,
+		`DELETE FROM product_stores WHERE store_id=?`,
+		`DELETE FROM stores WHERE id=?`,
+	} {
+		if _, err := tx.ExecContext(r.Context(), stmt, id); err != nil {
+			respondErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		respondErr(w, http.StatusInternalServerError, "commit failed")
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

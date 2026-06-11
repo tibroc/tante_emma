@@ -20,6 +20,16 @@ type Items struct {
 	Hub *ws.Hub
 }
 
+// childAllowedEventTypes is the allowlist of event types a child role may submit.
+// Children participate in shopping (add items, tick them off) but cannot delete
+// items, clear the list, or edit item details. This is the server-side security
+// boundary; the UI hides the same actions but must not be relied on.
+var childAllowedEventTypes = map[string]bool{
+	"item.added":     true,
+	"item.checked":   true,
+	"item.unchecked": true,
+}
+
 // SubmitEvents accepts a batch of events, processes them, and broadcasts.
 func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())
@@ -52,6 +62,17 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		events = []models.Event{single}
+	}
+
+	// Enforce the child role allowlist up front so the whole batch is rejected
+	// atomically (nothing is persisted) if it contains a disallowed event type.
+	if sess.Role == models.RoleChild {
+		for _, ev := range events {
+			if !childAllowedEventTypes[ev.Type] {
+				respondErr(w, http.StatusForbidden, "forbidden")
+				return
+			}
+		}
 	}
 
 	serverNow := time.Now().UnixMilli()

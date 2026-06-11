@@ -9,13 +9,6 @@ import (
 	"github.com/tante-emma/tanteemma/models"
 )
 
-// db is needed by processListCleared for shelf-order learning.
-// We accept it alongside the tx so we can start a separate transaction.
-var globalDB *sql.DB
-
-// SetDB wires the package-level DB reference used for shelf-order learning.
-func SetDB(db *sql.DB) { globalDB = db }
-
 // ProcessEvent applies a single event to the list_items materialized view.
 // Must be called inside a transaction. The event may be enriched in place
 // (e.g. item.added gets its resolved category_id) so callers can propagate the
@@ -160,15 +153,44 @@ func processItemDeleted(tx *sql.Tx, ev models.Event) error {
 }
 
 func processListCleared(tx *sql.Tx, ev models.Event) error {
+	var p models.ListClearedPayload
+	hasStore := json.Unmarshal(ev.Payload, &p) == nil && p.StoreID != nil
+
+	// Capture the order categories were checked off in BEFORE deleting the items,
+	// so shelf-order learning has data to work with. (The old code deleted first
+	// and then queried the now-gone rows, so it never learned anything.)
+	var orderedCats []string
+	if hasStore {
+		rows, err := tx.Query(`
+			SELECT COALESCE(li.category_id, pr.category_id) AS cat
+			  FROM list_items li
+			  LEFT JOIN products pr ON pr.id = li.product_id
+			 WHERE li.list_id = ? AND li.checked = 1
+			   AND COALESCE(li.category_id, pr.category_id) IS NOT NULL
+			 ORDER BY li.checked_at ASC`, *ev.ListID)
+		if err != nil {
+			return fmt.Errorf("listCleared category scan: %w", err)
+		}
+		seen := make(map[string]bool)
+		for rows.Next() {
+			var cat string
+			if err := rows.Scan(&cat); err == nil && !seen[cat] {
+				seen[cat] = true
+				orderedCats = append(orderedCats, cat)
+			}
+		}
+		// Close before issuing further statements on the same single-conn tx.
+		rows.Close()
+	}
+
 	if _, err := tx.Exec(`DELETE FROM list_items WHERE list_id=? AND checked=1`, *ev.ListID); err != nil {
 		return err
 	}
-	// Fire-and-forget shelf-order learning if store context is present.
-	var p models.ListClearedPayload
-	if globalDB != nil && json.Unmarshal(ev.Payload, &p) == nil && p.StoreID != nil {
-		go func() {
-			_ = LearnShelfOrder(globalDB, *p.StoreID, *ev.ListID, p.SessionStart)
-		}()
+
+	if hasStore && len(orderedCats) > 0 {
+		if err := LearnShelfOrderTx(tx, *p.StoreID, orderedCats); err != nil {
+			return fmt.Errorf("listCleared learn: %w", err)
+		}
 	}
 	return nil
 }

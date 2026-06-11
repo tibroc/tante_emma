@@ -151,7 +151,34 @@ func (h *Lists) Delete(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusForbidden, "forbidden")
 		return
 	}
-	_, _ = h.DB.ExecContext(r.Context(), `DELETE FROM lists WHERE id = ?`, listID)
+
+	// Foreign keys are ON and no child table uses ON DELETE CASCADE, so the rows
+	// referencing this list must be removed first or the delete fails. Do it all
+	// in one transaction. Orphaned purchase_history would never surface anyway
+	// (the history query inner-joins lists), so it is removed too.
+	tx, err := h.DB.BeginTx(r.Context(), nil)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	for _, stmt := range []string{
+		`DELETE FROM list_items WHERE list_id = ?`,
+		`DELETE FROM list_shares WHERE list_id = ?`,
+		`DELETE FROM purchase_history WHERE list_id = ?`,
+		`DELETE FROM events WHERE list_id = ?`,
+		`DELETE FROM lists WHERE id = ?`,
+	} {
+		if _, err := tx.ExecContext(r.Context(), stmt, listID); err != nil {
+			respondErr(w, http.StatusInternalServerError, "db error")
+			return
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		respondErr(w, http.StatusInternalServerError, "commit failed")
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
