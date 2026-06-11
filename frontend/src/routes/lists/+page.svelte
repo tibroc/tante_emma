@@ -5,6 +5,7 @@
 	import { api } from '$lib/api';
 	import { ulid } from '$lib/ulid';
 	import { user } from '$lib/stores/userStore';
+	import { _ } from 'svelte-i18n';
 
 	let loading = $state(true);
 	let creating = $state(false);
@@ -38,7 +39,7 @@
 
 <main class="lists-page">
 	<header class="page-header">
-		<h1>Einkaufslisten</h1>
+		<h1>{$_('lists.title')}</h1>
 	</header>
 
 	{#if $user?.role !== 'child'}
@@ -46,21 +47,21 @@
 			<input
 				type="text"
 				bind:value={newName}
-				placeholder="Neue Liste…"
-				aria-label="Name der neuen Liste"
+				placeholder={$_('lists.new_name_ph')}
+				aria-label={$_('lists.new_name_label')}
 			/>
-			<button type="submit" disabled={creating || !newName.trim()} aria-label="Liste erstellen">
+			<button type="submit" disabled={creating || !newName.trim()} aria-label={$_('lists.create_label')}>
 				+
 			</button>
 		</form>
 	{/if}
 
 	{#if loading}
-		<p class="hint">Lade…</p>
+		<p class="hint">{$_('list.loading')}</p>
 	{:else if $lists.length === 0}
 		<div class="empty">
 			<span class="empty-icon">📋</span>
-			<p class="empty-heading">Noch keine Listen</p>
+			<p class="empty-heading">{$_('lists.empty')}</p>
 		</div>
 	{:else}
 		<ul class="list-cards">
@@ -70,7 +71,7 @@
 						<span class="list-icon">{list.icon || '🛒'}</span>
 						<span class="list-name">{list.name}</span>
 						{#if list.owner_id !== $user?.id}
-							<span class="shared-badge">geteilt</span>
+							<span class="shared-badge">{$_('lists.shared_badge')}</span>
 						{/if}
 					</a>
 				</li>

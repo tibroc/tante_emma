@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { PUBLIC_API_URL } from '$env/static/public';
+	import { _ } from 'svelte-i18n';
 	const API = PUBLIC_API_URL;
 </script>
 
@@ -7,8 +8,8 @@
 	<div class="logo">
 		<span class="logo-tante">Tante</span><span class="logo-emma">Emma</span>
 	</div>
-	<p class="tagline">Einkaufen. Einfach.</p>
-	<a href="{API}/auth/login" class="btn-login">Anmelden</a>
+	<p class="tagline">{$_('login.tagline')}</p>
+	<a href="{API}/auth/login" class="btn-login">{$_('login.sign_in')}</a>
 </main>
 
 <style>

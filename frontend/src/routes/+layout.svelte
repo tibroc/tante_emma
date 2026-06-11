@@ -59,22 +59,22 @@
 
 {#if $syncStatus === 'offline'}
 	<div class="offline-banner" role="status">
-		⚡ Offline
+		{$_('status.offline')}
 	</div>
 {/if}
 
 {#if showInstallBanner}
 	<div class="install-banner">
-		<span>TanteEmma als App installieren</span>
-		<button onclick={installApp}>Installieren</button>
-		<button class="dismiss" onclick={() => (showInstallBanner = false)} aria-label="Schließen">✕</button>
+		<span>{$_('pwa.install_prompt')}</span>
+		<button onclick={installApp}>{$_('pwa.install')}</button>
+		<button class="dismiss" onclick={() => (showInstallBanner = false)} aria-label={$_('pwa.dismiss')}>✕</button>
 	</div>
 {/if}
 
 {@render children()}
 
 {#if !isAuthPage}
-	<nav class="bottom-nav safe-bottom" aria-label="Hauptnavigation">
+	<nav class="bottom-nav safe-bottom" aria-label={$_('nav.aria_label')}>
 		{#each navItems as item}
 			{@const active = page.url.pathname.startsWith(item.href)}
 			<a href={item.href} class="nav-tab" class:active aria-current={active ? 'page' : undefined}>
