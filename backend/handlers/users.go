@@ -85,6 +85,32 @@ func (h *Users) UpdateRole(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusBadRequest, "invalid role")
 		return
 	}
+
+	// Prevent demoting the last admin, which would lock everyone out of admin
+	// functions (there is no UI to recover, and first-user-admin only fires on an
+	// empty users table).
+	if req.Role != models.RoleAdmin {
+		var curRole models.Role
+		if err := h.DB.QueryRowContext(r.Context(),
+			`SELECT role FROM users WHERE id=?`, uid).Scan(&curRole); err != nil {
+			respondErr(w, http.StatusNotFound, "user not found")
+			return
+		}
+		if curRole == models.RoleAdmin {
+			var otherAdmins int
+			if err := h.DB.QueryRowContext(r.Context(),
+				`SELECT COUNT(*) FROM users WHERE role='admin' AND id != ?`, uid,
+			).Scan(&otherAdmins); err != nil {
+				respondErr(w, http.StatusInternalServerError, "db error")
+				return
+			}
+			if otherAdmins == 0 {
+				respondErr(w, http.StatusConflict, "cannot remove the last admin")
+				return
+			}
+		}
+	}
+
 	_, err := h.DB.ExecContext(r.Context(), `UPDATE users SET role=? WHERE id=?`, req.Role, uid)
 	if err != nil {
 		respondErr(w, http.StatusInternalServerError, "db error")
