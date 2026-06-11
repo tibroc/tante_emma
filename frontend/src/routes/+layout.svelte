@@ -8,15 +8,8 @@
 	import { syncStatus } from '$lib/stores/syncStore';
 	import { api } from '$lib/api';
 	import { startWs } from '$lib/ws';
-	import { register, init, locale, _ } from 'svelte-i18n';
-
-	// Register locale bundles (lazy-loaded).
-	register('de',    () => import('$lib/i18n/de.json'));
-	register('en',    () => import('$lib/i18n/en.json'));
-	register('pt-BR', () => import('$lib/i18n/pt-BR.json'));
-
-	const savedLocale = browser ? (localStorage.getItem('locale') ?? 'de') : 'de';
-	init({ fallbackLocale: 'de', initialLocale: savedLocale });
+	import '$lib/i18n';
+	import { locale, _ } from 'svelte-i18n';
 
 	// Apply saved theme immediately so there's no flash of wrong theme.
 	if (browser) {
