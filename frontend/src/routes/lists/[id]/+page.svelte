@@ -5,8 +5,9 @@
 	import { ulid } from '$lib/ulid';
 	import { user } from '$lib/stores/userStore';
 	import { items, type ListItem } from '$lib/stores/listStore';
-	import { subscribe, unsubscribe, onMessage, onReconnect } from '$lib/ws';
+	import { subscribe, unsubscribe, onMessage, onReconnect, connHeaders } from '$lib/ws';
 	import { enqueue, drainQueue, pendingCount } from '$lib/offline/eventQueue';
+	import { applyEvent as reduceEvent } from '$lib/offline/applyEvent';
 	import { syncStatus } from '$lib/stores/syncStore';
 	import { browser, dev } from '$app/environment';
 	import AddItemBar from '$lib/components/AddItemBar.svelte';
@@ -197,7 +198,7 @@
 			return;
 		}
 		if (msg.type !== 'event') return;
-		const ev = (msg as { type: 'event'; event: { type: string; payload: Record<string, unknown> } }).event;
+		const ev = (msg as { type: 'event'; event: { type: string; list_id?: string; payload: Record<string, unknown> } }).event;
 		applyEvent(ev);
 	});
 
@@ -207,47 +208,11 @@
 		unsubReconnect();
 	});
 
-	function applyEvent(ev: { type: string; payload: Record<string, unknown> }) {
-		items.update((current) => {
-			switch (ev.type) {
-				case 'item.added': {
-					const p = ev.payload as { item_id: string; name_override?: string; product_id?: string; category_id?: string; quantity?: number; unit?: string };
-					const exists = current.find((i) => i.id === p.item_id);
-					if (exists) return current;
-					const newItem: ListItem = {
-						id: p.item_id,
-						list_id: listId,
-						product_id: p.product_id,
-						name_override: p.name_override,
-						quantity: p.quantity,
-						unit: p.unit,
-						checked: false,
-						added_by: '',
-						added_at: Date.now(),
-						sort_order: 0,
-						category_id: p.category_id,
-						display_name: p.name_override ?? ''
-					};
-					return [newItem, ...current];
-				}
-				case 'item.checked': {
-					const p = ev.payload as { item_id: string };
-					return current.map((i) => i.id === p.item_id ? { ...i, checked: true } : i);
-				}
-				case 'item.unchecked': {
-					const p = ev.payload as { item_id: string };
-					return current.map((i) => i.id === p.item_id ? { ...i, checked: false } : i);
-				}
-				case 'item.deleted': {
-					const p = ev.payload as { item_id: string };
-					return current.filter((i) => i.id !== p.item_id);
-				}
-				case 'list.cleared':
-					return current.filter((i) => !i.checked);
-				default:
-					return current;
-			}
-		});
+	// Thin wrapper over the shared reducer (see $lib/offline/applyEvent) so the
+	// real-time and offline-sync paths apply events identically. Falls back to
+	// the page's listId when the broadcast omits list_id.
+	function applyEvent(ev: { type: string; list_id?: string; payload: Record<string, unknown> }) {
+		items.update((current) => reduceEvent(current, { ...ev, list_id: ev.list_id ?? listId }));
 	}
 
 	interface ServerEvent { type: string; payload: Record<string, unknown> }
@@ -271,7 +236,7 @@
 			return undefined;
 		}
 		try {
-			const res = await api.post<{ events: ServerEvent[] }>(`/api/lists/${listId}/events`, event);
+			const res = await api.post<{ events: ServerEvent[] }>(`/api/lists/${listId}/events`, event, connHeaders());
 			if (dev) console.log('[list] submitEvent posted', type);
 			return res.events;
 		} catch (e) {

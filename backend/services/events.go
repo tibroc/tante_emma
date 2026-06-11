@@ -80,20 +80,24 @@ func processItemAdded(tx *sql.Tx, ev *models.Event) error {
 
 	if p.ProductID != nil {
 		now := time.Now().UnixMilli()
-		_, _ = tx.Exec(`
+		if _, err := tx.Exec(`
 			INSERT INTO suggestion_weights (product_id, user_id, frequency, last_used)
 			VALUES (?, ?, 1, ?)
 			ON CONFLICT(product_id, user_id) DO UPDATE
 			  SET frequency = frequency + 1, last_used = excluded.last_used`,
 			*p.ProductID, ev.UserID, now,
-		)
-		_, _ = tx.Exec(`
+		); err != nil {
+			return fmt.Errorf("itemAdded suggestion_weights: %w", err)
+		}
+		if _, err := tx.Exec(`
 			INSERT INTO suggestion_weights_family (product_id, frequency, last_used)
 			VALUES (?, 1, ?)
 			ON CONFLICT(product_id) DO UPDATE
 			  SET frequency = frequency + 1, last_used = excluded.last_used`,
 			*p.ProductID, now,
-		)
+		); err != nil {
+			return fmt.Errorf("itemAdded suggestion_weights_family: %w", err)
+		}
 	}
 	return nil
 }
@@ -125,12 +129,14 @@ func processItemChecked(tx *sql.Tx, ev models.Event) error {
 	// Use the event's own ULID so the same item can be checked multiple times
 	// (uncheck → re-check) and each purchase is recorded independently.
 	histID := ev.ID
-	_, _ = tx.Exec(`
+	if _, err := tx.Exec(`
 		INSERT OR IGNORE INTO purchase_history
 		  (id, list_id, product_id, name_snapshot, store_id, checked_by, checked_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		histID, *ev.ListID, productID, nameSnapshot, p.StoreID, ev.UserID, now,
-	)
+	); err != nil {
+		return fmt.Errorf("itemChecked purchase_history: %w", err)
+	}
 	return nil
 }
 

@@ -130,8 +130,12 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update list.updated_at.
-	_, _ = tx.ExecContext(r.Context(),
-		`UPDATE lists SET updated_at=? WHERE id=?`, serverNow, listID)
+	if _, err := tx.ExecContext(r.Context(),
+		`UPDATE lists SET updated_at=? WHERE id=?`, serverNow, listID); err != nil {
+		log.Printf("update list updated_at %s: %v", listID, err)
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
 
 	if err := tx.Commit(); err != nil {
 		respondErr(w, http.StatusInternalServerError, "commit failed")
