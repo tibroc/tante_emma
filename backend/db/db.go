@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"sort"
 	"strings"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -14,13 +15,36 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
+// maxOpenConns bounds the connection pool. Under WAL mode SQLite allows many
+// concurrent readers alongside a single writer, so a pool > 1 lets read-heavy
+// requests run in parallel. Writers still serialize at the SQLite level (see
+// _txlock=immediate below), so this is purely read concurrency.
+const maxOpenConns = 8
+
 func Open(path string) (*sql.DB, error) {
-	dsn := path + "?_journal_mode=WAL&_busy_timeout=5000&_foreign_keys=on"
+	// NOTE: modernc.org/sqlite (pure Go) does NOT understand the mattn/go-sqlite3
+	// DSN flags (_journal_mode=, _busy_timeout=, _foreign_keys=); it silently
+	// ignores them, leaving the DB in rollback-journal mode with no busy timeout
+	// and foreign keys OFF. Pragmas must be passed via _pragma=name(value).
+	//
+	// _txlock=immediate makes every write transaction grab the write lock at BEGIN
+	// rather than upgrading mid-transaction. That avoids the deadlock where two
+	// connections each hold a read lock and then both try to write — which the
+	// busy_timeout cannot resolve and surfaces as an immediate SQLITE_BUSY.
+	dsn := path + "?" + strings.Join([]string{
+		"_pragma=journal_mode(WAL)",
+		"_pragma=busy_timeout(5000)",
+		"_pragma=foreign_keys(on)",
+		"_pragma=synchronous(NORMAL)",
+		"_txlock=immediate",
+	}, "&")
 	database, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("db.Open: %w", err)
 	}
-	database.SetMaxOpenConns(1) // SQLite WAL: single writer
+	database.SetMaxOpenConns(maxOpenConns)
+	database.SetMaxIdleConns(maxOpenConns)
+	database.SetConnMaxIdleTime(5 * time.Minute)
 	if err := database.Ping(); err != nil {
 		return nil, fmt.Errorf("db.Ping: %w", err)
 	}
