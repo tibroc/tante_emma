@@ -122,7 +122,9 @@ func processItemChecked(tx *sql.Tx, ev models.Event) error {
 		), '') FROM list_items WHERE id=?`, p.ItemID,
 	).Scan(&productID, &nameSnapshot)
 
-	histID := fmt.Sprintf("%s_ph", p.ItemID)
+	// Use the event's own ULID so the same item can be checked multiple times
+	// (uncheck → re-check) and each purchase is recorded independently.
+	histID := ev.ID
 	_, _ = tx.Exec(`
 		INSERT OR IGNORE INTO purchase_history
 		  (id, list_id, product_id, name_snapshot, store_id, checked_by, checked_at)

@@ -207,5 +207,3 @@ func (h *Stores) UpdateShelfOrder(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// keep sql import used
-var _ = sql.ErrNoRows

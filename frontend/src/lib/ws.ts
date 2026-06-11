@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import { PUBLIC_WS_URL } from '$env/static/public';
 const WS_BASE = PUBLIC_WS_URL;
 
@@ -43,7 +44,7 @@ function connect() {
 	ws.addEventListener('open', () => {
 		// Ignore if this socket has since been replaced.
 		if (socket !== ws) return;
-		console.log('[ws] open → re-subscribe', [...activeSubscriptions], 'fire', reconnectHandlers.size, 'handlers');
+		if (dev) console.log('[ws] open → re-subscribe', [...activeSubscriptions], 'fire', reconnectHandlers.size, 'handlers');
 		reconnectDelay = 1000;
 		for (const listId of activeSubscriptions) {
 			ws.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
@@ -52,7 +53,12 @@ function connect() {
 	});
 
 	ws.addEventListener('message', (e: MessageEvent<string>) => {
-		const msg = JSON.parse(e.data) as WsMessage;
+		let msg: WsMessage;
+		try {
+			msg = JSON.parse(e.data) as WsMessage;
+		} catch {
+			return;
+		}
 		if (msg.type === 'ping') {
 			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'pong' }));
 			return;
@@ -104,7 +110,7 @@ export function startWs() {
 		// (half-open socket). Drive reconnects explicitly from the browser's
 		// online/offline events so onReconnect handlers run reliably.
 		window.addEventListener('online', () => {
-			console.log('[ws] browser online → forcing reconnect');
+			if (dev) console.log('[ws] browser online → forcing reconnect');
 			reconnectDelay = 1000;
 			if (!socket || socket.readyState !== WebSocket.OPEN) {
 				// Detach the old socket so its close handler is a no-op, then connect.
@@ -115,7 +121,7 @@ export function startWs() {
 			}
 		});
 		window.addEventListener('offline', () => {
-			console.log('[ws] browser offline → closing socket');
+			if (dev) console.log('[ws] browser offline → closing socket');
 			clearReconnectTimer();
 			const old = socket;
 			socket = null;

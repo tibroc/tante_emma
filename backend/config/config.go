@@ -9,7 +9,6 @@ import (
 type Config struct {
 	DBPath           string
 	Port             string
-	LogLevel         string
 	SessionHashKey   string
 	SessionBlockKey  string
 	OIDCIssuerURL    string
@@ -17,7 +16,6 @@ type Config struct {
 	OIDCClientSecret string
 	OIDCRedirectURL  string
 	FrontendURL      string
-	MaxUploadSize    int64
 	LitestreamURL    string
 	SecureCookies    bool // set Secure flag on auth cookies (auto: true when serving over HTTPS)
 }
@@ -31,11 +29,9 @@ func Load() *Config {
 		OIDCClientID:     require("OIDC_CLIENT_ID"),
 		OIDCClientSecret: require("OIDC_CLIENT_SECRET"),
 		OIDCRedirectURL:  require("OIDC_REDIRECT_URL"),
-		Port:             getenv("PORT", "8080"),
-		LogLevel:         getenv("LOG_LEVEL", "info"),
-		FrontendURL:      getenv("FRONTEND_URL", "http://localhost:5173"),
-		MaxUploadSize:    5 << 20, // 5MB
-		LitestreamURL:    os.Getenv("LITESTREAM_REPLICA_URL"),
+		Port:          getenv("PORT", "8080"),
+		FrontendURL:   getenv("FRONTEND_URL", "http://localhost:5173"),
+		LitestreamURL: os.Getenv("LITESTREAM_REPLICA_URL"),
 	}
 	// Auto-detect: cookies must be Secure when the public redirect URL is HTTPS.
 	// Explicit SECURE_COOKIES=true|false overrides the heuristic.
