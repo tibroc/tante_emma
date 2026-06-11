@@ -86,9 +86,10 @@
 				name_de?: string;
 				name_en?: string;
 				brand?: string;
+				category_id?: string;
 			}>(`/api/products/barcode/${encodeURIComponent(barcode)}`);
 			const displayName = p.name_de ?? p.name_en ?? barcode;
-			onAdd?.(displayName, p.id);
+			onAdd?.(displayName, p.id, p.category_id);
 		} catch (e) {
 			// 404 = unknown barcode → let the user type a name
 			if (!(e instanceof ApiError && e.status === 404)) {

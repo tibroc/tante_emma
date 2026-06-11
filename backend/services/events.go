@@ -215,22 +215,29 @@ func lookupProductCategory(tx *sql.Tx, productID string) *string {
 	return nil
 }
 
+// rowQuerier is satisfied by both *sql.DB and *sql.Tx, so name→category
+// resolution works whether the caller holds a transaction (event processing) or
+// a plain pool handle (importing an Open Food Facts product).
+type rowQuerier interface {
+	QueryRow(query string, args ...any) *sql.Row
+}
+
 // resolveCategoryByName finds the category of the best FTS product match for a
 // typed item name, so free-text items can still be grouped by store shelf order.
-func resolveCategoryByName(tx *sql.Tx, name string) *string {
-	q := ftsEscape(name)
-	if q == "" {
+func resolveCategoryByName(q rowQuerier, name string) *string {
+	fts := ftsEscape(name)
+	if fts == "" {
 		return nil
 	}
 	var cat sql.NullString
-	err := tx.QueryRow(`
+	err := q.QueryRow(`
 		SELECT p.category_id
 		  FROM products_fts
 		  JOIN products p ON p.rowid = products_fts.rowid
 		 WHERE products_fts MATCH ?
 		   AND p.category_id IS NOT NULL
 		 ORDER BY bm25(products_fts) ASC
-		 LIMIT 1`, q+"*").Scan(&cat)
+		 LIMIT 1`, fts+"*").Scan(&cat)
 	if err != nil {
 		return nil
 	}
@@ -238,6 +245,12 @@ func resolveCategoryByName(tx *sql.Tx, name string) *string {
 		return &cat.String
 	}
 	return nil
+}
+
+// ResolveCategoryByName is the exported, *sql.DB-based entry point for callers
+// outside event processing (e.g. tagging a freshly-imported OFF product).
+func ResolveCategoryByName(db *sql.DB, name string) *string {
+	return resolveCategoryByName(db, name)
 }
 
 func processItemUpdated(tx *sql.Tx, ev models.Event) error {
