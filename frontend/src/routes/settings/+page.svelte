@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	import { locale, _ } from 'svelte-i18n';
 	import { user } from '$lib/stores/userStore';
 	import { api } from '$lib/api';
@@ -11,10 +11,12 @@
 		{ code: 'pt-BR', label: 'Português (BR)' },
 	];
 
-	// Dark mode
-	let darkMode = $state(
-		browser ? document.documentElement.getAttribute('data-theme') === 'dark' : false
-	);
+	// Dark mode — read actual DOM value after hydration to avoid SSR mismatch.
+	let darkMode = $state(false);
+
+	onMount(() => {
+		darkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+	});
 
 	function toggleDark() {
 		darkMode = !darkMode;

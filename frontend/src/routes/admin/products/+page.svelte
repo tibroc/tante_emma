@@ -5,6 +5,13 @@
 	import { api } from '$lib/api';
 	import { _ } from 'svelte-i18n';
 
+	interface SearchResult {
+		product_id: string;
+		display_name: string;
+		brand?: string;
+		category?: { id: string; name_de: string; icon: string; };
+	}
+
 	interface Product {
 		id: string;
 		name_de?: string;
@@ -17,7 +24,7 @@
 	interface Category { id: string; name_de: string; icon: string; }
 
 	let query = $state('');
-	let products = $state<Product[]>([]);
+	let results = $state<SearchResult[]>([]);
 	let categories = $state<Category[]>([]);
 	let loading = $state(false);
 	let dialogOpen = $state(false);
@@ -29,9 +36,8 @@
 	onMount(async () => {
 		if ($user?.role !== 'admin') { goto('/lists'); return; }
 		try {
-			const rows = await api.get<Category[]>('/api/categories');
-			categories = rows;
-		} catch { /* no categories endpoint yet, graceful */ }
+			categories = await api.get<Category[]>('/api/categories');
+		} catch { /* graceful */ }
 	});
 
 	function handleQueryInput() {
@@ -40,10 +46,10 @@
 	}
 
 	async function search() {
-		if (query.trim().length < 1) { products = []; return; }
+		if (query.trim().length < 1) { results = []; return; }
 		loading = true;
 		try {
-			products = await api.get<Product[]>(`/api/products/search?q=${encodeURIComponent(query)}`);
+			results = await api.get<SearchResult[]>(`/api/products/search?q=${encodeURIComponent(query)}`);
 		} finally {
 			loading = false;
 		}
@@ -55,16 +61,21 @@
 		dialogOpen = true;
 	}
 
-	function openEdit(p: Product) {
-		editTarget = p;
-		form = {
-			name_de: p.name_de ?? '',
-			name_en: p.name_en ?? '',
-			brand: p.brand ?? '',
-			barcode: p.barcode ?? '',
-			category_id: p.category_id ?? ''
-		};
+	async function openEdit(productId: string) {
 		dialogOpen = true;
+		editTarget = null;
+		form = { name_de: '', name_en: '', brand: '', barcode: '', category_id: '' };
+		try {
+			const p = await api.get<Product>(`/api/products/${productId}`);
+			editTarget = p;
+			form = {
+				name_de: p.name_de ?? '',
+				name_en: p.name_en ?? '',
+				brand: p.brand ?? '',
+				barcode: p.barcode ?? '',
+				category_id: p.category_id ?? ''
+			};
+		} catch { dialogOpen = false; }
 	}
 
 	async function saveProduct() {
@@ -73,10 +84,15 @@
 		try {
 			if (editTarget) {
 				await api.put(`/api/products/${editTarget.id}`, form);
-				products = products.map((p) => p.id === editTarget!.id ? { ...p, ...form } : p);
+				// Refresh display name in results list
+				results = results.map(r =>
+					r.product_id === editTarget!.id
+						? { ...r, display_name: form.name_de || form.name_en, brand: form.brand }
+						: r
+				);
 			} else {
-				const created = await api.post<Product>('/api/products', form);
-				products = [created, ...products];
+				await api.post<Product>('/api/products', form);
+				await search();
 			}
 			dialogOpen = false;
 		} finally {
@@ -106,13 +122,14 @@
 		<p class="hint">Lade…</p>
 	{:else}
 		<ul class="product-list">
-			{#each products as p (p.id)}
+			{#each results as r (r.product_id)}
 				<li class="product-row">
 					<div class="product-info">
-						<span class="product-name">{p.name_de ?? p.name_en}</span>
-						{#if p.brand}<span class="product-brand">{p.brand}</span>{/if}
+						<span class="product-name">{r.display_name}</span>
+						{#if r.brand}<span class="product-brand">{r.brand}</span>{/if}
+						{#if r.category}<span class="product-brand">{r.category.icon} {r.category.name_de}</span>{/if}
 					</div>
-					<button class="icon-btn" onclick={() => openEdit(p)} aria-label="Bearbeiten">✎</button>
+					<button class="icon-btn" onclick={() => openEdit(r.product_id)} aria-label="Bearbeiten">✎</button>
 				</li>
 			{/each}
 		</ul>

@@ -47,6 +47,42 @@ func (h *Products) GetCategories(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, cats)
 }
 
+// GetByID returns a single product by its ULID.
+func (h *Products) GetByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var p models.Product
+	var nameDe, nameEn, namePt, brand, barcode, catID, offID, thumbURL sql.NullString
+	err := h.DB.QueryRowContext(r.Context(), `
+		SELECT id, name_de, name_en, name_pt, brand, barcode, category_id,
+		       source, off_id, thumbnail_url, created_at, updated_at
+		  FROM products WHERE id=?`, id,
+	).Scan(&p.ID, &nameDe, &nameEn, &namePt, &brand, &barcode, &catID,
+		&p.Source, &offID, &thumbURL, &p.CreatedAt, &p.UpdatedAt)
+	if err == sql.ErrNoRows {
+		respondErr(w, http.StatusNotFound, "not found")
+		return
+	}
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	nullToPtr := func(ns sql.NullString) *string {
+		if ns.Valid {
+			return &ns.String
+		}
+		return nil
+	}
+	p.NameDe = nullToPtr(nameDe)
+	p.NameEn = nullToPtr(nameEn)
+	p.NamePt = nullToPtr(namePt)
+	p.Brand = nullToPtr(brand)
+	p.Barcode = nullToPtr(barcode)
+	p.CategoryID = nullToPtr(catID)
+	p.OFFID = nullToPtr(offID)
+	p.ThumbnailURL = nullToPtr(thumbURL)
+	respond(w, http.StatusOK, p)
+}
+
 // Search runs FTS5 search with suggestion scoring.
 func (h *Products) Search(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())

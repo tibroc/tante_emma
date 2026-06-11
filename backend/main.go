@@ -98,6 +98,7 @@ func main() {
 		r.Get("/api/categories", products.GetCategories)
 		r.Get("/api/products/search", products.Search)
 		r.Get("/api/products/barcode/{code}", products.GetByBarcode)
+		r.Get("/api/products/{id}", products.GetByID)
 		r.Post("/api/products", products.Create)
 		r.Put("/api/products/{id}", products.Update)
 
