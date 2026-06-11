@@ -71,7 +71,7 @@
     "title":       "Verlauf",
     "search_ph":   "Suchen…",
     "empty":       "Noch nichts eingekauft.",
-    "no_results":  "Keine Ergebnisse für „{q}".",
+    "no_results":  "Keine Ergebnisse für \"{q}\".",
     "load_error":  "Verlauf konnte nicht geladen werden"
   },
   "settings": {

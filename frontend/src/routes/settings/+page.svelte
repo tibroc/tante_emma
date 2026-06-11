@@ -59,6 +59,7 @@
 				onclick={toggleDark}
 				role="switch"
 				aria-checked={darkMode}
+				aria-label={$_('settings.dark_mode')}
 			>
 				<span class="toggle-thumb"></span>
 			</button>

@@ -27,15 +27,16 @@
 	let toastMessage = $state('');
 	let toastTimer: ReturnType<typeof setTimeout>;
 
-	// View mode — persisted in localStorage per list
-	const viewModeKey = $derived(`view-mode-${listId}`);
+	// View mode — persisted in localStorage per list.
+	// Use page.params.id directly (not the derived listId) to avoid the
+	// "reference only captures initial value" Svelte warning.
 	let viewMode = $state<'list' | 'tile'>(
-		browser ? ((localStorage.getItem(`view-mode-${listId}`) as 'list' | 'tile') ?? 'list') : 'list'
+		browser ? ((localStorage.getItem(`view-mode-${page.params.id}`) as 'list' | 'tile') ?? 'list') : 'list'
 	);
 
 	function toggleViewMode() {
 		viewMode = viewMode === 'list' ? 'tile' : 'list';
-		if (browser) localStorage.setItem(viewModeKey, viewMode);
+		if (browser) localStorage.setItem(`view-mode-${listId}`, viewMode);
 	}
 
 	// Sorting
