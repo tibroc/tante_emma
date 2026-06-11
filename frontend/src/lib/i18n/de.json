@@ -1,21 +1,36 @@
 {
   "nav": {
-    "lists":   "Listen",
-    "stores":  "Läden",
-    "history": "Verlauf",
-    "settings": "Einstellungen"
+    "lists":     "Listen",
+    "stores":    "Läden",
+    "history":   "Verlauf",
+    "settings":  "Einstellungen",
+    "aria_label": "Hauptnavigation"
+  },
+  "login": {
+    "tagline": "Einkaufen. Einfach.",
+    "sign_in": "Anmelden"
+  },
+  "lists": {
+    "title":          "Einkaufslisten",
+    "new_name_ph":    "Neue Liste…",
+    "new_name_label": "Name der neuen Liste",
+    "create_label":   "Liste erstellen",
+    "empty":          "Noch keine Listen",
+    "shared_badge":   "geteilt"
   },
   "list": {
-    "empty_heading": "Liste ist leer",
-    "empty_body":    "Tippe oben, um etwas hinzuzufügen.",
-    "loading":       "Lade…",
-    "checked_count": "{n} erledigt",
-    "clear_checked": "Alle löschen",
-    "tile_view":     "Kachelansicht",
-    "list_view":     "Listenansicht",
-    "share":         "Teilen",
-    "active_store":  "Einkauf bei:",
-    "no_store":      "– kein Laden –"
+    "empty_heading":       "Liste ist leer",
+    "empty_body":          "Tippe oben, um etwas hinzuzufügen.",
+    "loading":             "Lade…",
+    "checked_count":       "{n} erledigt",
+    "clear_checked":       "Alle löschen",
+    "tile_view":           "Kachelansicht",
+    "list_view":           "Listenansicht",
+    "share":               "Teilen",
+    "active_store":        "Einkauf bei:",
+    "active_store_label":  "Aktiver Laden für diesen Einkauf",
+    "select_store":        "Laden auswählen",
+    "no_store":            "– kein Laden –"
   },
   "add_item": {
     "placeholder": "Hinzufügen…",
@@ -32,28 +47,44 @@
   "item": {
     "check":   "Als erledigt markieren",
     "uncheck": "Als unerledigt markieren",
-    "delete":  "Artikel entfernen"
+    "delete":  "Artikel entfernen",
+    "removed": "Entfernt"
   },
   "share_sheet": {
-    "title":  "Liste teilen",
-    "shared": "✓ Geteilt",
-    "share":  "Teilen"
+    "title":     "Liste teilen",
+    "aria_label": "Liste teilen",
+    "shared":    "✓ Geteilt",
+    "share":     "Teilen"
+  },
+  "scanner": {
+    "aria_label":         "Barcode scannen",
+    "cancel":             "Abbrechen",
+    "scanning":           "Barcode scannen…",
+    "camera_unavailable": "Kamera nicht verfügbar"
+  },
+  "pwa": {
+    "install_prompt": "TanteEmma als App installieren",
+    "install":        "Installieren",
+    "dismiss":        "Schließen"
+  },
+  "status": {
+    "offline": "⚡ Offline"
   },
   "stores": {
-    "title":         "Läden",
-    "add":           "+ Laden",
-    "empty":         "Noch keine Läden angelegt.",
-    "create_first":  "Ersten Laden anlegen",
-    "no_categories": "Keine Kategorien gespeichert. Kaufe Artikel ein, um die Reihenfolge automatisch zu lernen.",
-    "shelf_hint":    "Ziehen zum Sortieren – Reihenfolge = Ladengang-Abfolge.",
-    "edit":          "Bearbeiten",
-    "delete":        "Löschen",
-    "shelf_order":   "Regalreihenfolge",
+    "title":          "Läden",
+    "add":            "+ Laden",
+    "empty":          "Noch keine Läden angelegt.",
+    "create_first":   "Ersten Laden anlegen",
+    "no_categories":  "Keine Kategorien gespeichert. Kaufe Artikel ein, um die Reihenfolge automatisch zu lernen.",
+    "shelf_hint":     "Ziehen zum Sortieren – Reihenfolge = Ladengang-Abfolge.",
+    "edit":           "Bearbeiten",
+    "delete":         "Löschen",
+    "shelf_order":    "Regalreihenfolge",
     "confirm_delete": "Laden wirklich löschen?",
-    "save_error":    "Speichern fehlgeschlagen",
-    "delete_error":  "Löschen fehlgeschlagen",
-    "load_error":    "Läden konnten nicht geladen werden",
-    "shelf_error":   "Regalreihenfolge konnte nicht gespeichert werden",
+    "save_error":     "Speichern fehlgeschlagen",
+    "delete_error":   "Löschen fehlgeschlagen",
+    "load_error":     "Läden konnten nicht geladen werden",
+    "shelf_error":    "Regalreihenfolge konnte nicht gespeichert werden",
     "form": {
       "name":       "Name",
       "name_ph":    "z.B. Rewe Hauptstraße",
@@ -68,26 +99,39 @@
     }
   },
   "history": {
-    "title":       "Verlauf",
-    "search_ph":   "Suchen…",
-    "empty":       "Noch nichts eingekauft.",
-    "no_results":  "Keine Ergebnisse für \"{q}\".",
-    "load_error":  "Verlauf konnte nicht geladen werden"
+    "title":        "Verlauf",
+    "search_ph":    "Suchen…",
+    "search_label": "Verlauf durchsuchen",
+    "empty":        "Noch nichts eingekauft.",
+    "no_results":   "Keine Ergebnisse für \"{q}\".",
+    "load_error":   "Verlauf konnte nicht geladen werden"
   },
   "settings": {
-    "title":       "Einstellungen",
-    "language":    "Sprache",
-    "dark_mode":   "Dunkles Design",
-    "logout":      "Abmelden",
-    "version":     "Version"
+    "title":     "Einstellungen",
+    "language":  "Sprache",
+    "dark_mode": "Dunkles Design",
+    "logout":    "Abmelden",
+    "version":   "Version"
   },
   "admin": {
-    "users_title":    "Benutzerverwaltung",
-    "products_title": "Produktverwaltung",
-    "role_admin":     "Admin",
-    "role_member":    "Mitglied",
-    "role_child":     "Kind",
-    "save_role":      "Rolle speichern"
+    "users_title":         "Benutzerverwaltung",
+    "products_title":      "Produktverwaltung",
+    "role_admin":          "Admin",
+    "role_member":         "Mitglied",
+    "role_child":          "Kind",
+    "save_role":           "Rolle speichern",
+    "last_seen":           "Zuletzt: {date}",
+    "role_for":            "Rolle für {name}",
+    "product_search_ph":   "Produkt suchen…",
+    "product_search_label":"Produkt suchen",
+    "product_edit":        "Produkt bearbeiten",
+    "product_create":      "Produkt anlegen",
+    "field_name_de":       "Name (DE)",
+    "field_name_en":       "Name (EN)",
+    "field_brand":         "Marke",
+    "field_barcode":       "Barcode",
+    "field_category":      "Kategorie",
+    "no_category":         "– keine –"
   },
   "errors": {
     "sync": "Konnte nicht synchronisiert werden"

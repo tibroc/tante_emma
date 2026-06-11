@@ -10,6 +10,7 @@
 	import { applyEvent as reduceEvent } from '$lib/offline/applyEvent';
 	import { syncStatus } from '$lib/stores/syncStore';
 	import { browser, dev } from '$app/environment';
+	import { _ } from 'svelte-i18n';
 	import AddItemBar from '$lib/components/AddItemBar.svelte';
 	import ListItemRow from '$lib/components/ListItem.svelte';
 	import TileItem from '$lib/components/TileItem.svelte';
@@ -287,7 +288,7 @@
 			}
 		} catch {
 			items.update((ls) => ls.filter((i) => i.id !== itemId));
-			showToast('Konnte nicht synchronisiert werden');
+			showToast($_('errors.sync'));
 		}
 	}
 
@@ -302,7 +303,7 @@
 			await submitEvent(ulid(), type, { item_id: itemId });
 		} catch {
 			items.update((ls) => ls.map((i) => (i.id === itemId ? { ...i, checked: !checked } : i)));
-			showToast('Konnte nicht synchronisiert werden');
+			showToast($_('errors.sync'));
 		}
 	}
 
@@ -313,10 +314,10 @@
 
 		try {
 			await submitEvent(ulid(), 'item.deleted', { item_id: itemId });
-			showToast('Entfernt');
+			showToast($_('item.removed'));
 		} catch {
 			if (snapshot) items.update((ls) => [...ls, snapshot]);
-			showToast('Konnte nicht synchronisiert werden');
+			showToast($_('errors.sync'));
 		}
 	}
 
@@ -336,7 +337,7 @@
 			sessionStart = Date.now();
 		} catch {
 			items.set(snapshot);
-			showToast('Konnte nicht synchronisiert werden');
+			showToast($_('errors.sync'));
 		}
 	}
 
@@ -351,7 +352,7 @@
 	<AddItemBar {listId} onAdd={handleAdd} />
 
 	{#if loading}
-		<p class="hint">Lade…</p>
+		<p class="hint">{$_('list.loading')}</p>
 	{:else}
 		<header class="list-header">
 			<h1 class="list-title">{listName}</h1>
@@ -359,12 +360,12 @@
 				<PresenceAvatars users={activeUsers} />
 			{/if}
 			{#if $user?.role !== 'child'}
-				<button class="header-btn" onclick={openShare} aria-label="Liste teilen">⎘</button>
+				<button class="header-btn" onclick={openShare} aria-label={$_('list.share')}>⎘</button>
 			{/if}
 			<button
 				class="header-btn"
 				onclick={toggleViewMode}
-				aria-label={viewMode === 'list' ? 'Kachelansicht' : 'Listenansicht'}
+				aria-label={viewMode === 'list' ? $_('list.tile_view') : $_('list.list_view')}
 			>{viewMode === 'list' ? '⊞' : '☰'}</button>
 		</header>
 
@@ -375,7 +376,7 @@
 				<select
 					value={selectedStoreId ?? stores[0]?.id}
 					onchange={(e) => handleStoreChange((e.target as HTMLSelectElement).value)}
-					aria-label="Laden auswählen"
+					aria-label={$_('list.select_store')}
 				>
 					{#each stores as s (s.id)}
 						<option value={s.id}>{s.icon} {s.name}</option>
@@ -386,16 +387,16 @@
 
 		{#if stores.length > 0}
 			<div class="active-store-bar">
-				<span class="active-store-label">Einkauf bei:</span>
+				<span class="active-store-label">{$_('list.active_store')}</span>
 				<select
 					value={activeStoreId ?? ''}
 					onchange={(e) => {
 						activeStoreId = (e.target as HTMLSelectElement).value || null;
 						sessionStart = Date.now();
 					}}
-					aria-label="Aktiver Laden für diesen Einkauf"
+					aria-label={$_('list.active_store_label')}
 				>
-					<option value="">– kein Laden –</option>
+					<option value="">{$_('list.no_store')}</option>
 					{#each stores as s (s.id)}
 						<option value={s.id}>{s.icon} {s.name}</option>
 					{/each}
@@ -406,8 +407,8 @@
 		{#if unchecked.length === 0 && checked.length === 0}
 			<div class="empty">
 				<span class="empty-icon">🛒</span>
-				<p class="empty-heading">Liste ist leer</p>
-				<p class="empty-body">Tippe oben, um etwas hinzuzufügen.</p>
+				<p class="empty-heading">{$_('list.empty_heading')}</p>
+				<p class="empty-body">{$_('list.empty_body')}</p>
 			</div>
 		{:else}
 			{#if viewMode === 'tile'}
@@ -434,11 +435,11 @@
 							onclick={() => (showChecked = !showChecked)}
 							aria-expanded={showChecked}
 						>
-							<span>✓ {checked.length} erledigt</span>
+							<span>✓ {$_('list.checked_count', { values: { n: checked.length } })}</span>
 							<span class="chevron" class:rotated={showChecked}>›</span>
 						</button>
 						{#if $user?.role !== 'child'}
-							<button class="clear-btn" onclick={clearChecked}>Alle löschen</button>
+							<button class="clear-btn" onclick={clearChecked}>{$_('list.clear_checked')}</button>
 						{/if}
 					</div>
 
@@ -472,11 +473,11 @@
 {#if shareOpen}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="backdrop" role="presentation" onclick={() => (shareOpen = false)}></div>
-	<div class="share-sheet" role="dialog" aria-modal="true" aria-label="Liste teilen">
+	<div class="share-sheet" role="dialog" aria-modal="true" aria-label={$_('share_sheet.aria_label')}>
 		<div class="sheet-handle"></div>
-		<h2 class="sheet-title">Liste teilen</h2>
+		<h2 class="sheet-title">{$_('share_sheet.title')}</h2>
 		{#if shareLoading}
-			<p class="hint">Lade…</p>
+			<p class="hint">{$_('list.loading')}</p>
 		{:else}
 			<ul class="member-list">
 				{#each members.filter(m => m.id !== $user?.id) as m (m.id)}
@@ -489,7 +490,7 @@
 							onclick={() => toggleShare(m.id)}
 							aria-pressed={isShared(m.id)}
 						>
-							{isShared(m.id) ? '✓ Geteilt' : 'Teilen'}
+							{isShared(m.id) ? $_('share_sheet.shared') : $_('share_sheet.share')}
 						</button>
 					</li>
 				{/each}
