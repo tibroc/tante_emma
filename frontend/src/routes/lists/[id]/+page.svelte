@@ -8,7 +8,7 @@
 	import { subscribe, unsubscribe, onMessage, onReconnect } from '$lib/ws';
 	import { enqueue, drainQueue, pendingCount } from '$lib/offline/eventQueue';
 	import { syncStatus } from '$lib/stores/syncStore';
-	import { browser } from '$app/environment';
+	import { browser, dev } from '$app/environment';
 	import AddItemBar from '$lib/components/AddItemBar.svelte';
 	import ListItemRow from '$lib/components/ListItem.svelte';
 	import TileItem from '$lib/components/TileItem.svelte';
@@ -101,12 +101,12 @@
 	// Drain any pending offline events first so the server snapshot reflects
 	// them, then fetch the authoritative list state.
 	async function loadList() {
-		console.log('[list] loadList start, listId=', listId, 'online=', navigator.onLine);
+		if (dev) console.log('[list] loadList start, listId=', listId, 'online=', navigator.onLine);
 		try {
 			const n = await drainQueue(listId);
 			if (n > 0) syncStatus.set('online');
 		} catch (e) {
-			console.warn('[list] drainQueue failed (still offline?):', e);
+			if (dev) console.warn('[list] drainQueue failed (still offline?):', e);
 		}
 
 		// If events remain queued (drain failed), do NOT overwrite the local
@@ -115,7 +115,7 @@
 		try {
 			remaining = await pendingCount(listId);
 		} catch (e) {
-			console.warn('[list] pendingCount failed:', e);
+			if (dev) console.warn('[list] pendingCount failed:', e);
 		}
 
 		try {
@@ -129,12 +129,12 @@
 			stores = storeList;
 			if (remaining === 0) {
 				items.set(data.items);
-				console.log('[list] snapshot applied,', data.items.length, 'items');
+				if (dev) console.log('[list] snapshot applied,', data.items.length, 'items');
 			} else {
-				console.warn('[list] keeping optimistic state,', remaining, 'events still queued');
+				if (dev) console.warn('[list] keeping optimistic state,', remaining, 'events still queued');
 			}
 		} catch (e) {
-			console.warn('[list] snapshot fetch failed (offline?):', e);
+			if (dev) console.warn('[list] snapshot fetch failed (offline?):', e);
 		}
 	}
 
@@ -266,16 +266,16 @@
 			client_ts: Date.now()
 		};
 		if ($syncStatus === 'offline' || !navigator.onLine) {
-			console.log('[list] submitEvent offline-branch, enqueue', type);
+			if (dev) console.log('[list] submitEvent offline-branch, enqueue', type);
 			await enqueue(event);
 			return undefined;
 		}
 		try {
 			const res = await api.post<{ events: ServerEvent[] }>(`/api/lists/${listId}/events`, event);
-			console.log('[list] submitEvent posted', type);
+			if (dev) console.log('[list] submitEvent posted', type);
 			return res.events;
 		} catch (e) {
-			console.warn('[list] submitEvent POST failed, enqueue', type, e);
+			if (dev) console.warn('[list] submitEvent POST failed, enqueue', type, e);
 			await enqueue(event);
 			syncStatus.set('offline');
 			return undefined;

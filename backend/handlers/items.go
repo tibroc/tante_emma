@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -121,7 +122,8 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := services.ProcessEvent(tx, &ev); err != nil {
-			respondErr(w, http.StatusUnprocessableEntity, err.Error())
+			log.Printf("processEvent %s %s: %v", ev.Type, ev.ID, err)
+			respondErr(w, http.StatusUnprocessableEntity, "event processing failed")
 			return
 		}
 		processed = append(processed, ev)

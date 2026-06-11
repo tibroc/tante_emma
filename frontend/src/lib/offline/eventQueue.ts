@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import { getDB } from './db';
 import { api } from '$lib/api';
 
@@ -13,7 +14,7 @@ export interface LocalEvent {
 export async function enqueue(event: LocalEvent): Promise<void> {
 	const db = await getDB();
 	await db.add('events_queue', event);
-	console.log('[offline] enqueued', event.type, event.id);
+	if (dev) console.log('[offline] enqueued', event.type, event.id);
 }
 
 export async function pendingCount(listId: string): Promise<number> {
@@ -41,7 +42,7 @@ async function doDrain(listId: string): Promise<number> {
 	const pending = await db.getAllFromIndex('events_queue', 'list_id', listId);
 	if (pending.length === 0) return 0;
 
-	console.log('[offline] draining', pending.length, 'events for', listId);
+	if (dev) console.log('[offline] draining', pending.length, 'events for', listId);
 	await api.post(`/api/lists/${listId}/events`, { events: pending });
 
 	// Delete each in its own short-lived transaction to avoid the transaction
@@ -49,6 +50,6 @@ async function doDrain(listId: string): Promise<number> {
 	for (const e of pending) {
 		await db.delete('events_queue', (e as LocalEvent).id);
 	}
-	console.log('[offline] drained', pending.length, 'events');
+	if (dev) console.log('[offline] drained', pending.length, 'events');
 	return pending.length;
 }

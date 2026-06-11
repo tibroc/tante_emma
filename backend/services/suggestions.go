@@ -60,6 +60,8 @@ func SearchProducts(db *sql.DB, query, locale, listID, userID string) ([]models.
 			switch locale {
 			case "en":
 				s.Category.NameEn = catName
+			case "pt", "pt-BR":
+				s.Category.NamePt = catName
 			default:
 				s.Category.NameDe = catName
 			}
