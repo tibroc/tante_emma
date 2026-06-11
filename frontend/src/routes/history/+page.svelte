@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { _ } from 'svelte-i18n';
 
 	interface HistoryEntry {
 		id: string;
@@ -44,7 +45,7 @@
 			const data = await api.get<{ history: HistoryEntry[] }>('/api/history');
 			entries = data.history;
 		} catch {
-			error = 'Verlauf konnte nicht geladen werden';
+			error = $_('history.load_error');
 		} finally {
 			loading = false;
 		}
@@ -53,29 +54,29 @@
 
 <div class="page">
 	<header class="page-header">
-		<h1>Verlauf</h1>
+		<h1>{$_('history.title')}</h1>
 	</header>
 
 	<div class="search-wrap">
 		<input
 			type="search"
 			bind:value={search}
-			placeholder="Suchen…"
-			aria-label="Verlauf durchsuchen"
+			placeholder={$_('history.search_ph')}
+			aria-label={$_('history.search_label')}
 		/>
 	</div>
 
 	{#if loading}
-		<p class="hint">Lade…</p>
+		<p class="hint">{$_('list.loading')}</p>
 	{:else if error}
 		<p class="error">{error}</p>
 	{:else if entries.length === 0}
 		<div class="empty">
 			<span class="empty-icon">📋</span>
-			<p>Noch nichts eingekauft.</p>
+			<p>{$_('history.empty')}</p>
 		</div>
 	{:else if filtered.length === 0}
-		<p class="hint">Keine Ergebnisse für „{search}".</p>
+		<p class="hint">{$_('history.no_results', { values: { q: search } })}</p>
 	{:else}
 		{#each grouped() as [day, items] (day)}
 			<section class="day-group">

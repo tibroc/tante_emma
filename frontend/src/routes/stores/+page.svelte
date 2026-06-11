@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
+	import { _ } from 'svelte-i18n';
 
 	interface Store {
 		id: string;
@@ -42,7 +43,7 @@
 		try {
 			stores = await api.get<Store[]>('/api/stores');
 		} catch {
-			errorMsg = 'Läden konnten nicht geladen werden';
+			errorMsg = $_('stores.load_error');
 		} finally {
 			loading = false;
 		}
@@ -73,20 +74,20 @@
 			}
 			dialogOpen = false;
 		} catch {
-			errorMsg = 'Speichern fehlgeschlagen';
+			errorMsg = $_('stores.save_error');
 		} finally {
 			saving = false;
 		}
 	}
 
 	async function deleteStore(id: string) {
-		if (!confirm('Laden wirklich löschen?')) return;
+		if (!confirm($_('stores.confirm_delete'))) return;
 		try {
 			await api.delete(`/api/stores/${id}`);
 			stores = stores.filter((s) => s.id !== id);
 			if (shelfStoreId === id) shelfStoreId = null;
 		} catch {
-			errorMsg = 'Löschen fehlgeschlagen';
+			errorMsg = $_('stores.delete_error');
 		}
 	}
 
@@ -122,15 +123,15 @@
 		try {
 			await api.put(`/api/stores/${shelfStoreId}/shelf-order`, payload);
 		} catch {
-			errorMsg = 'Regalreihenfolge konnte nicht gespeichert werden';
+			errorMsg = $_('stores.shelf_error');
 		}
 	}
 </script>
 
 <div class="page">
 	<header class="page-header">
-		<h1>Läden</h1>
-		<button class="btn-primary" onclick={openCreate}>+ Laden</button>
+		<h1>{$_('stores.title')}</h1>
+		<button class="btn-primary" onclick={openCreate}>{$_('stores.add')}</button>
 	</header>
 
 	{#if errorMsg}
@@ -138,12 +139,12 @@
 	{/if}
 
 	{#if loading}
-		<p class="hint">Lade…</p>
+		<p class="hint">{$_('list.loading')}</p>
 	{:else if stores.length === 0}
 		<div class="empty">
 			<span class="empty-icon">🏪</span>
-			<p>Noch keine Läden angelegt.</p>
-			<button class="btn-primary" onclick={openCreate}>Ersten Laden anlegen</button>
+			<p>{$_('stores.empty')}</p>
+			<button class="btn-primary" onclick={openCreate}>{$_('stores.create_first')}</button>
 		</div>
 	{:else}
 		<ul class="store-list">
@@ -155,22 +156,22 @@
 						{#if s.address}<span class="store-addr">{s.address}</span>{/if}
 					</div>
 					<div class="store-actions">
-						<button class="icon-btn" onclick={() => toggleShelf(s.id)} aria-label="Regalreihenfolge">
+						<button class="icon-btn" onclick={() => toggleShelf(s.id)} aria-label={$_('stores.shelf_order')}>
 							{shelfStoreId === s.id ? '▲' : '☰'}
 						</button>
-						<button class="icon-btn" onclick={() => openEdit(s)} aria-label="Bearbeiten">✎</button>
-						<button class="icon-btn danger" onclick={() => deleteStore(s.id)} aria-label="Löschen">✕</button>
+						<button class="icon-btn" onclick={() => openEdit(s)} aria-label={$_('stores.edit')}>✎</button>
+						<button class="icon-btn danger" onclick={() => deleteStore(s.id)} aria-label={$_('stores.delete')}>✕</button>
 					</div>
 				</li>
 
 				{#if shelfStoreId === s.id}
 					<li class="shelf-panel">
 						{#if shelfLoading}
-							<p class="hint">Lade…</p>
+							<p class="hint">{$_('list.loading')}</p>
 						{:else if shelfRows.length === 0}
-							<p class="hint">Keine Kategorien gespeichert. Kaufe Artikel ein, um die Reihenfolge automatisch zu lernen.</p>
+							<p class="hint">{$_('stores.no_categories')}</p>
 						{:else}
-							<p class="shelf-hint">Ziehen zum Sortieren – Reihenfolge = Ladengang-Abfolge.</p>
+							<p class="shelf-hint">{$_('stores.shelf_hint')}</p>
 							<ul class="shelf-list">
 								{#each shelfRows as row, i (row.category_id)}
 									<li
@@ -203,29 +204,29 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="backdrop" role="presentation" onclick={() => (dialogOpen = false)}></div>
 	<div class="dialog" role="dialog" aria-modal="true">
-		<h2>{editTarget ? 'Laden bearbeiten' : 'Laden anlegen'}</h2>
+		<h2>{editTarget ? $_('stores.form.edit') : $_('stores.form.create')}</h2>
 		<label>
-			Name
-			<input type="text" bind:value={form.name} placeholder="z.B. Rewe Hauptstraße" />
+			{$_('stores.form.name')}
+			<input type="text" bind:value={form.name} placeholder={$_('stores.form.name_ph')} />
 		</label>
 		<div class="row">
 			<label>
-				Emoji
+				{$_('stores.form.emoji')}
 				<input type="text" bind:value={form.icon} maxlength="2" class="emoji-input" />
 			</label>
 			<label>
-				Farbe
+				{$_('stores.form.color')}
 				<input type="color" bind:value={form.color} class="color-input" />
 			</label>
 		</div>
 		<label>
-			Adresse (optional)
-			<input type="text" bind:value={form.address} placeholder="Musterstraße 1" />
+			{$_('stores.form.address')}
+			<input type="text" bind:value={form.address} placeholder={$_('stores.form.address_ph')} />
 		</label>
 		<div class="dialog-actions">
-			<button class="btn-ghost" onclick={() => (dialogOpen = false)}>Abbrechen</button>
+			<button class="btn-ghost" onclick={() => (dialogOpen = false)}>{$_('stores.form.cancel')}</button>
 			<button class="btn-primary" onclick={saveStore} disabled={saving || !form.name.trim()}>
-				{saving ? '…' : 'Speichern'}
+				{saving ? '…' : $_('stores.form.save')}
 			</button>
 		</div>
 	</div>

@@ -113,13 +113,13 @@
 			type="search"
 			bind:value={query}
 			oninput={handleQueryInput}
-			placeholder="Produkt suchen…"
-			aria-label="Produkt suchen"
+			placeholder={$_('admin.product_search_ph')}
+			aria-label={$_('admin.product_search_label')}
 		/>
 	</div>
 
 	{#if loading}
-		<p class="hint">Lade…</p>
+		<p class="hint">{$_('list.loading')}</p>
 	{:else}
 		<ul class="product-list">
 			{#each results as r (r.product_id)}
@@ -129,7 +129,7 @@
 						{#if r.brand}<span class="product-brand">{r.brand}</span>{/if}
 						{#if r.category}<span class="product-brand">{r.category.icon} {r.category.name_de}</span>{/if}
 					</div>
-					<button class="icon-btn" onclick={() => openEdit(r.product_id)} aria-label="Bearbeiten">✎</button>
+					<button class="icon-btn" onclick={() => openEdit(r.product_id)} aria-label={$_('admin.product_edit')}>✎</button>
 				</li>
 			{/each}
 		</ul>
@@ -140,15 +140,15 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="backdrop" role="presentation" onclick={() => (dialogOpen = false)}></div>
 	<div class="dialog" role="dialog" aria-modal="true">
-		<h2>{editTarget ? 'Produkt bearbeiten' : 'Produkt anlegen'}</h2>
-		<label>Name (DE)<input type="text" bind:value={form.name_de} placeholder="z.B. Äpfel" /></label>
-		<label>Name (EN)<input type="text" bind:value={form.name_en} placeholder="e.g. Apples" /></label>
-		<label>Marke<input type="text" bind:value={form.brand} placeholder="optional" /></label>
-		<label>Barcode<input type="text" bind:value={form.barcode} placeholder="EAN-13" /></label>
+		<h2>{editTarget ? $_('admin.product_edit') : $_('admin.product_create')}</h2>
+		<label>{$_('admin.field_name_de')}<input type="text" bind:value={form.name_de} placeholder="z.B. Äpfel" /></label>
+		<label>{$_('admin.field_name_en')}<input type="text" bind:value={form.name_en} placeholder="e.g. Apples" /></label>
+		<label>{$_('admin.field_brand')}<input type="text" bind:value={form.brand} placeholder="optional" /></label>
+		<label>{$_('admin.field_barcode')}<input type="text" bind:value={form.barcode} placeholder="EAN-13" /></label>
 		{#if categories.length > 0}
-			<label>Kategorie
+			<label>{$_('admin.field_category')}
 				<select bind:value={form.category_id}>
-					<option value="">– keine –</option>
+					<option value="">{$_('admin.no_category')}</option>
 					{#each categories as c (c.id)}
 						<option value={c.id}>{c.icon} {c.name_de}</option>
 					{/each}
@@ -156,9 +156,9 @@
 			</label>
 		{/if}
 		<div class="dialog-actions">
-			<button class="btn-ghost" onclick={() => (dialogOpen = false)}>Abbrechen</button>
+			<button class="btn-ghost" onclick={() => (dialogOpen = false)}>{$_('stores.form.cancel')}</button>
 			<button class="btn-primary" onclick={saveProduct} disabled={saving}>
-				{saving ? '…' : 'Speichern'}
+				{saving ? '…' : $_('stores.form.save')}
 			</button>
 		</div>
 	</div>

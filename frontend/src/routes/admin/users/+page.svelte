@@ -51,7 +51,7 @@
 	</header>
 
 	{#if loading}
-		<p class="hint">Lade…</p>
+		<p class="hint">{$_('list.loading')}</p>
 	{:else}
 		<ul class="user-list">
 			{#each users as u (u.id)}
@@ -60,13 +60,13 @@
 					<div class="user-info">
 						<p class="user-name">{u.name}</p>
 						<p class="user-email">{u.email}</p>
-						<p class="user-seen">Zuletzt: {lastSeen(u.last_seen)}</p>
+						<p class="user-seen">{$_('admin.last_seen', { values: { date: lastSeen(u.last_seen) } })}</p>
 					</div>
 					<select
 						value={u.role}
 						onchange={(e) => setRole(u.id, (e.target as HTMLSelectElement).value)}
 						disabled={saving === u.id || u.id === $user?.id}
-						aria-label="Rolle für {u.name}"
+						aria-label={$_('admin.role_for', { values: { name: u.name } })}
 					>
 						<option value="admin">{$_('admin.role_admin')}</option>
 						<option value="member">{$_('admin.role_member')}</option>

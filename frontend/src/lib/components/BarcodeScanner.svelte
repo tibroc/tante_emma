@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
+	import { _ } from 'svelte-i18n';
 
 	interface Props {
 		onScan?: (barcode: string) => void;
@@ -36,7 +37,7 @@
 				}
 			});
 		} catch (e) {
-			error = 'Kamera nicht verfügbar';
+			error = $_('scanner.camera_unavailable');
 			console.error('barcode scanner init:', e);
 		}
 	});
@@ -46,15 +47,15 @@
 	});
 </script>
 
-<div class="scanner-overlay" role="dialog" aria-modal="true" aria-label="Barcode scannen">
-	<button class="cancel" onclick={onClose}>Abbrechen</button>
+<div class="scanner-overlay" role="dialog" aria-modal="true" aria-label={$_('scanner.aria_label')}>
+	<button class="cancel" onclick={onClose}>{$_('scanner.cancel')}</button>
 	<!-- svelte-ignore element_invalid_self_closing_tag -->
 	<video bind:this={videoEl} autoplay playsinline muted></video>
 	{#if error}
 		<p class="error-msg">{error}</p>
 	{:else}
 		<div class="scan-window" aria-hidden="true"></div>
-		<p class="hint">Barcode scannen…</p>
+		<p class="hint">{$_('scanner.scanning')}</p>
 	{/if}
 </div>
 
