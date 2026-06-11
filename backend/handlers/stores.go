@@ -17,6 +17,11 @@ type Stores struct {
 	DB *sql.DB
 }
 
+// unsortedShelfPosition is the sentinel sort position for categories that have no
+// saved shelf order; it must exceed any real position so they sort to the bottom.
+// The frontend mirrors this value in UNSORTED_SHELF_POSITION (lists/[id]/+page.svelte).
+const unsortedShelfPosition = 9999
+
 func (h *Stores) GetAll(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.QueryContext(r.Context(),
 		`SELECT id, name, COALESCE(icon,''), COALESCE(color,''), COALESCE(address,''), created_at
@@ -126,13 +131,14 @@ func (h *Stores) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *Stores) GetShelfOrder(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	// Return ALL categories so the editor is populated even for a fresh store.
-	// Categories with no saved position sort to the bottom (9999).
+	// Categories with no saved position sort to the bottom (unsortedShelfPosition).
 	rows, err := h.DB.QueryContext(r.Context(), `
-		SELECT c.id, COALESCE(s.position, 9999), COALESCE(s.auto_learned, 0),
+		SELECT c.id, COALESCE(s.position, ?), COALESCE(s.auto_learned, 0),
 		       c.name_de, COALESCE(c.icon,''), COALESCE(c.color,'')
 		  FROM categories c
 		  LEFT JOIN store_shelf_order s ON s.category_id = c.id AND s.store_id = ?
-		 ORDER BY COALESCE(s.position, 9999) ASC, c.name_de ASC`, id)
+		 ORDER BY COALESCE(s.position, ?) ASC, c.name_de ASC`,
+		unsortedShelfPosition, id, unsortedShelfPosition)
 	if err != nil {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return

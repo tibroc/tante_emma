@@ -47,6 +47,10 @@
 	let selectedStoreId = $state<string | null>(null);
 	let shelfOrder = $state<Map<string, number>>(new Map());
 
+	// Sentinel sort position for categories with no saved shelf order; must mirror
+	// the backend's unsortedShelfPosition (handlers/stores.go) so both sides agree.
+	const UNSORTED_SHELF_POSITION = 9999;
+
 	// Active shopping store — used when clearing to trigger shelf-order learning.
 	let activeStoreId = $state<string | null>(null);
 	let sessionStart = $state<number>(Date.now());
@@ -170,8 +174,8 @@
 				case 'date':
 					return b.added_at - a.added_at;
 				case 'store': {
-					const posA = a.category_id ? (shelfOrder.get(a.category_id) ?? 999) : 999;
-					const posB = b.category_id ? (shelfOrder.get(b.category_id) ?? 999) : 999;
+					const posA = a.category_id ? (shelfOrder.get(a.category_id) ?? UNSORTED_SHELF_POSITION) : UNSORTED_SHELF_POSITION;
+					const posB = b.category_id ? (shelfOrder.get(b.category_id) ?? UNSORTED_SHELF_POSITION) : UNSORTED_SHELF_POSITION;
 					return posA - posB;
 				}
 				default:
