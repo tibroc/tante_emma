@@ -11,11 +11,16 @@ class ApiError extends Error {
 	}
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function request<T>(
+	method: string,
+	path: string,
+	body?: unknown,
+	extraHeaders?: Record<string, string>
+): Promise<T> {
 	const resp = await fetch(`${BASE}${path}`, {
 		method,
 		credentials: 'include',
-		headers: body ? { 'Content-Type': 'application/json' } : {},
+		headers: { ...(body ? { 'Content-Type': 'application/json' } : {}), ...extraHeaders },
 		body: body ? JSON.stringify(body) : undefined
 	});
 
@@ -29,10 +34,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 }
 
 export const api = {
-	get:    <T>(path: string)                   => request<T>('GET',    path),
-	post:   <T>(path: string, body: unknown)    => request<T>('POST',   path, body),
-	put:    <T>(path: string, body: unknown)    => request<T>('PUT',    path, body),
-	delete: <T>(path: string)                   => request<T>('DELETE', path)
+	get:    <T>(path: string)                                                  => request<T>('GET',    path),
+	post:   <T>(path: string, body: unknown, headers?: Record<string, string>) => request<T>('POST',   path, body, headers),
+	put:    <T>(path: string, body: unknown)                                   => request<T>('PUT',    path, body),
+	delete: <T>(path: string)                                                  => request<T>('DELETE', path)
 };
 
 export { ApiError };

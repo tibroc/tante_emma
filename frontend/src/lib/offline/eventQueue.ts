@@ -1,6 +1,7 @@
 import { dev } from '$app/environment';
 import { getDB } from './db';
 import { api } from '$lib/api';
+import { connHeaders } from '$lib/ws';
 
 export interface LocalEvent {
 	id: string;           // ULID
@@ -43,7 +44,7 @@ async function doDrain(listId: string): Promise<number> {
 	if (pending.length === 0) return 0;
 
 	if (dev) console.log('[offline] draining', pending.length, 'events for', listId);
-	await api.post(`/api/lists/${listId}/events`, { events: pending });
+	await api.post(`/api/lists/${listId}/events`, { events: pending }, connHeaders());
 
 	// Delete each in its own short-lived transaction to avoid the transaction
 	// going inactive across awaits ("object is no longer usable").

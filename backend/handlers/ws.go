@@ -71,6 +71,13 @@ func (h *WS) ServeWS(w http.ResponseWriter, r *http.Request) {
 	}
 	h.Hub.Register <- client
 
+	// Tell the client its connection id so it can echo it back as X-Conn-ID on
+	// event POSTs; the hub then excludes the originating connection from the
+	// broadcast (no self-echo). Queued before any broadcast can be enqueued.
+	if hello, err := json.Marshal(map[string]string{"type": "hello", "conn_id": client.ID}); err == nil {
+		client.Send <- hello
+	}
+
 	// Write pump.
 	go func() {
 		defer conn.Close()

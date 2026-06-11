@@ -5,11 +5,20 @@ const WS_BASE = PUBLIC_WS_URL;
 type WsMessage =
 	| { type: 'event';    event: unknown }
 	| { type: 'presence'; user_id: string; list_id: string; active: boolean }
+	| { type: 'hello';    conn_id: string }
 	| { type: 'ping' };
 
 type MessageHandler = (msg: WsMessage) => void;
 
 let socket: WebSocket | null = null;
+// Server-assigned id for this WebSocket connection (from the 'hello' frame).
+// Echoed as X-Conn-ID on event POSTs so the hub skips our own broadcast.
+let connId: string | null = null;
+
+/** Header map identifying this connection, or empty if not yet known. */
+export function connHeaders(): Record<string, string> {
+	return connId ? { 'X-Conn-ID': connId } : {};
+}
 let reconnectDelay = 1000;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 const handlers = new Set<MessageHandler>();
@@ -61,6 +70,10 @@ function connect() {
 		}
 		if (msg.type === 'ping') {
 			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'pong' }));
+			return;
+		}
+		if (msg.type === 'hello') {
+			connId = msg.conn_id;
 			return;
 		}
 		for (const h of handlers) h(msg);
