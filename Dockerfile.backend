@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── TLS certs + timezone data (copied to scratch) ────────────────────────────
-FROM alpine:3.21 AS certs
+FROM alpine:3.24 AS certs
 RUN apk add --no-cache ca-certificates tzdata
 
 # ── Builder ───────────────────────────────────────────────────────────────────
