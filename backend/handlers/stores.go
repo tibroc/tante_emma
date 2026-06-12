@@ -30,7 +30,7 @@ func (h *Stores) GetAll(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	stores := make([]models.Store, 0)
 	for rows.Next() {
@@ -143,7 +143,7 @@ func (h *Stores) GetShelfOrder(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	type ShelfRow struct {
 		CategoryID   string `json:"category_id"`

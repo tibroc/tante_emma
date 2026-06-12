@@ -35,7 +35,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("open db: %v", err)
 	}
-	defer database.Close()
+	defer database.Close() //nolint:errcheck
 
 	hub := ws.NewHub()
 	go hub.Run()
@@ -140,10 +140,10 @@ func main() {
 
 func health(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"}) //nolint:errcheck
 }
 
 func version(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"version": "1.0.0"})
+	json.NewEncoder(w).Encode(map[string]string{"version": "1.0.0"}) //nolint:errcheck
 }

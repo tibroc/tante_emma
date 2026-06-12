@@ -80,7 +80,7 @@ func (h *WS) ServeWS(w http.ResponseWriter, r *http.Request) {
 
 	// Write pump.
 	go func() {
-		defer conn.Close()
+		defer conn.Close() //nolint:errcheck
 		pingTicker := time.NewTicker(30 * time.Second)
 		defer pingTicker.Stop()
 		for {

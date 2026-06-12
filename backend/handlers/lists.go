@@ -32,7 +32,7 @@ func (h *Lists) GetAll(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	result := make([]models.List, 0)
 	for rows.Next() {
@@ -200,7 +200,7 @@ func (h *Lists) GetShares(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 	type Share struct {
 		UserID     string `json:"user_id"`
 		Name       string `json:"name"`
@@ -287,7 +287,7 @@ func (h *Lists) GetHistory(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	type HistoryEntry struct {
 		ID            string `json:"id"`
@@ -346,7 +346,7 @@ func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, er
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	items := make([]models.ListItem, 0)
 	for rows.Next() {

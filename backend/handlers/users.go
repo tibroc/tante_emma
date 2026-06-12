@@ -31,7 +31,7 @@ func (h *Users) GetMembers(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 	type Member struct {
 		ID        string `json:"id"`
 		Name      string `json:"name"`
@@ -60,7 +60,7 @@ func (h *Users) GetAll(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	users := make([]models.User, 0)
 	for rows.Next() {

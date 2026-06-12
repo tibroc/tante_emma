@@ -43,7 +43,7 @@ func SearchProducts(db *sql.DB, query, locale, listID, userID string) ([]models.
 	if err != nil {
 		return nil, fmt.Errorf("SearchProducts: %w", err)
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	suggestions := make([]models.Suggestion, 0, 6)
 	for rows.Next() {

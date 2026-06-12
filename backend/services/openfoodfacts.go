@@ -32,7 +32,7 @@ func LookupBarcode(ctx context.Context, barcode string) (*models.Product, error)
 	if err != nil {
 		return nil, fmt.Errorf("openfoodfacts: request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil

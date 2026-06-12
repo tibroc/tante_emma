@@ -182,7 +182,7 @@ func (h *Items) GetEvents(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 
 	events := make([]models.Event, 0)
 	for rows.Next() {

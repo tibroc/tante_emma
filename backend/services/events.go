@@ -188,7 +188,7 @@ func processListCleared(tx *sql.Tx, ev models.Event) error {
 			}
 		}
 		// Close before issuing further statements on the same single-conn tx.
-		rows.Close()
+		rows.Close() //nolint:errcheck
 	}
 
 	if _, err := tx.Exec(`DELETE FROM list_items WHERE list_id=? AND checked=1`, *ev.ListID); err != nil {

@@ -69,7 +69,7 @@ func (h *Products) GetCategories(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 	type Category struct {
 		ID     string `json:"id"`
 		NameDe string `json:"name_de"`
@@ -118,7 +118,7 @@ func (h *Products) preferredStoreIDs(ctx context.Context, productID string) ([]s
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer rows.Close() //nolint:errcheck
 	ids := make([]string, 0)
 	for rows.Next() {
 		var id string
