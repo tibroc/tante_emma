@@ -105,9 +105,13 @@ func main() {
 		r.Get("/api/categories", products.GetCategories)
 		r.Get("/api/products/search", products.Search)
 		r.With(barcodeLimit).Get("/api/products/barcode/{code}", products.GetByBarcode)
+		// Bulk store-by-category assignment — register the static path before the
+		// {id} param route so it isn't shadowed.
+		r.Put("/api/products/by-category/stores", products.SetStoresByCategory)
 		r.Get("/api/products/{id}", products.GetByID)
 		r.Post("/api/products", products.Create)
 		r.Put("/api/products/{id}", products.Update)
+		r.Put("/api/products/{id}/stores", products.SetStores)
 
 		// Stores
 		r.Get("/api/stores", stores.GetAll)

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { api } from '$lib/api';
 	import { _ } from 'svelte-i18n';
+	import { user } from '$lib/stores/userStore';
 
 	interface Store {
 		id: string;
@@ -20,9 +21,35 @@
 		color: string;
 	}
 
+	interface Category { id: string; name_de: string; icon: string; }
+
 	let stores = $state<Store[]>([]);
 	let loading = $state(true);
 	let errorMsg = $state('');
+
+	// Bulk "assign category → store" tool (admin only).
+	let categories = $state<Category[]>([]);
+	let bulkCategory = $state('');
+	let bulkStore = $state('');
+	let bulkBusy = $state(false);
+	let bulkMessage = $state('');
+
+	async function assignByCategory() {
+		if (!bulkCategory || !bulkStore) return;
+		bulkBusy = true;
+		bulkMessage = '';
+		try {
+			const res = await api.put<{ assigned: number }>('/api/products/by-category/stores', {
+				category_id: bulkCategory,
+				store_id: bulkStore
+			});
+			bulkMessage = $_('stores.bulk_done', { values: { n: res.assigned } });
+		} catch {
+			bulkMessage = $_('stores.bulk_error');
+		} finally {
+			bulkBusy = false;
+		}
+	}
 
 	// Edit / create dialog
 	let dialogOpen = $state(false);
@@ -42,6 +69,9 @@
 		loading = true;
 		try {
 			stores = await api.get<Store[]>('/api/stores');
+			if ($user?.role === 'admin') {
+				categories = await api.get<Category[]>('/api/categories').catch(() => [] as Category[]);
+			}
 		} catch {
 			errorMsg = $_('stores.load_error');
 		} finally {
@@ -197,6 +227,34 @@
 				{/if}
 			{/each}
 		</ul>
+	{/if}
+
+	{#if $user?.role === 'admin' && stores.length > 0 && categories.length > 0}
+		<section class="bulk-tool">
+			<h2 class="bulk-title">{$_('stores.bulk_title')}</h2>
+			<p class="bulk-hint">{$_('stores.bulk_hint')}</p>
+			<div class="bulk-row">
+				<select bind:value={bulkCategory} aria-label={$_('stores.bulk_category')}>
+					<option value="">{$_('stores.bulk_category')}</option>
+					{#each categories as c (c.id)}
+						<option value={c.id}>{c.icon} {c.name_de}</option>
+					{/each}
+				</select>
+				<span class="bulk-arrow" aria-hidden="true">→</span>
+				<select bind:value={bulkStore} aria-label={$_('stores.bulk_store')}>
+					<option value="">{$_('stores.bulk_store')}</option>
+					{#each stores as s (s.id)}
+						<option value={s.id}>{s.icon} {s.name}</option>
+					{/each}
+				</select>
+				<button
+					class="btn-primary"
+					onclick={assignByCategory}
+					disabled={bulkBusy || !bulkCategory || !bulkStore}
+				>{bulkBusy ? '…' : $_('stores.bulk_assign')}</button>
+			</div>
+			{#if bulkMessage}<p class="bulk-message">{bulkMessage}</p>{/if}
+		</section>
 	{/if}
 </div>
 
@@ -457,5 +515,51 @@
 		padding: var(--space-3);
 		font-size: var(--text-sm);
 		margin-bottom: var(--space-3);
+	}
+
+	.bulk-tool {
+		margin-top: var(--space-6);
+		padding: var(--space-4);
+		background: var(--surface-raised);
+		border-radius: 12px;
+	}
+
+	.bulk-title {
+		font-family: var(--font-display);
+		font-size: var(--text-lg);
+		margin: 0 0 var(--space-1);
+	}
+
+	.bulk-hint {
+		font-size: var(--text-xs);
+		color: var(--text-muted);
+		margin: 0 0 var(--space-3);
+	}
+
+	.bulk-row {
+		display: flex;
+		align-items: center;
+		gap: var(--space-2);
+		flex-wrap: wrap;
+	}
+
+	.bulk-row select {
+		flex: 1;
+		min-width: 120px;
+		font-family: var(--font-body);
+		font-size: var(--text-sm);
+		padding: var(--space-2) var(--space-3);
+		border: 1px solid var(--border-subtle);
+		border-radius: 10px;
+		background: var(--surface-overlay);
+		color: var(--text-primary);
+	}
+
+	.bulk-arrow { color: var(--text-muted); }
+
+	.bulk-message {
+		font-size: var(--text-sm);
+		color: var(--text-secondary);
+		margin: var(--space-3) 0 0;
 	}
 </style>

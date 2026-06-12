@@ -45,4 +45,8 @@ type ListItem struct {
 	CategoryColor *string `json:"category_color,omitempty"`
 	CategoryIcon  *string `json:"category_icon,omitempty"`
 	DisplayName   string  `json:"display_name"`
+	// PreferredStoreIDs are the product's admin-assigned preferred stores
+	// (product_stores.is_preferred=1). Used to filter the list by store even when
+	// the item itself has no explicit store_id set.
+	PreferredStoreIDs []string `json:"preferred_store_ids,omitempty"`
 }

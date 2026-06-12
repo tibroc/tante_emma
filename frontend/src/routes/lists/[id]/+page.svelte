@@ -15,6 +15,7 @@
 	import ListItemRow from '$lib/components/ListItem.svelte';
 	import TileItem from '$lib/components/TileItem.svelte';
 	import SortBar from '$lib/components/SortBar.svelte';
+	import ItemDetailSheet from '$lib/components/ItemDetailSheet.svelte';
 	import PresenceAvatars from '$lib/components/PresenceAvatars.svelte';
 
 	interface Store { id: string; name: string; icon: string; color: string; }
@@ -41,10 +42,10 @@
 		if (browser) localStorage.setItem(`view-mode-${listId}`, viewMode);
 	}
 
-	// Sorting
-	let sortMode = $state<'category' | 'store' | 'date' | 'alpha'>('category');
+	// Sorting & store filter
+	let sortMode = $state<'category' | 'date' | 'alpha'>('category');
 	let stores = $state<Store[]>([]);
-	let selectedStoreId = $state<string | null>(null);
+	let activeFilterStoreId = $state<string | null>(null); // active store-filter pill
 	let shelfOrder = $state<Map<string, number>>(new Map());
 
 	// Sentinel sort position for categories with no saved shelf order; must mirror
@@ -93,10 +94,34 @@
 		}
 	}
 
+	// An item belongs to a store if it has that store set explicitly, or the
+	// product lists it as a preferred store.
+	function itemMatchesStore(i: ListItem, storeId: string): boolean {
+		return i.store_id === storeId || (i.preferred_store_ids?.includes(storeId) ?? false);
+	}
+
+	// Store-filter pills: only stores referenced by at least one item in the list.
+	const storesWithItems = $derived(
+		stores.filter((s) => $items.some((i) => itemMatchesStore(i, s.id)))
+	);
+
+	// Apply the active store filter (if any) before grouping/sorting.
+	const visibleItems = $derived(
+		activeFilterStoreId
+			? $items.filter((i) => itemMatchesStore(i, activeFilterStoreId!))
+			: $items
+	);
+
 	// Group items: unchecked first, then checked.
-	const unchecked = $derived(sortedItems($items.filter((i) => !i.checked)));
-	const checked   = $derived(sortedItems($items.filter((i) => i.checked)));
+	const unchecked = $derived(sortedItems(visibleItems.filter((i) => !i.checked)));
+	const checked   = $derived(sortedItems(visibleItems.filter((i) => i.checked)));
 	let showChecked = $state(false);
+
+	// Item detail bottom sheet.
+	let detailItemId = $state<string | null>(null);
+	const detailItem = $derived($items.find((i) => i.id === detailItemId) ?? null);
+	function openDetail(id: string) { detailItemId = id; }
+	function closeDetail() { detailItemId = null; }
 
 	onMount(async () => {
 		await loadList();
@@ -144,17 +169,15 @@
 		}
 	}
 
-	async function handleSortModeChange(mode: typeof sortMode) {
+	function handleSortModeChange(mode: typeof sortMode) {
 		sortMode = mode;
-		if (mode === 'store' && stores.length > 0 && !selectedStoreId) {
-			selectedStoreId = stores[0].id;
-			await loadShelfOrder(stores[0].id);
-		}
 	}
 
-	async function handleStoreChange(storeId: string) {
-		selectedStoreId = storeId;
-		await loadShelfOrder(storeId);
+	// Selecting a store pill filters the list to that store and sorts by its shelf
+	// order; deselecting (null) returns to the plain sort mode.
+	async function handleStoreFilter(storeId: string | null) {
+		activeFilterStoreId = storeId;
+		if (storeId) await loadShelfOrder(storeId);
 	}
 
 	async function loadShelfOrder(storeId: string) {
@@ -166,18 +189,21 @@
 		}
 	}
 
+	function shelfPos(i: ListItem): number {
+		return i.category_id ? (shelfOrder.get(i.category_id) ?? UNSORTED_SHELF_POSITION) : UNSORTED_SHELF_POSITION;
+	}
+
 	function sortedItems(list: ListItem[]): ListItem[] {
+		// An active store filter implies shelf-order sorting for that store.
+		if (activeFilterStoreId) {
+			return [...list].sort((a, b) => shelfPos(a) - shelfPos(b));
+		}
 		return [...list].sort((a, b) => {
 			switch (sortMode) {
 				case 'alpha':
 					return (a.display_name ?? '').localeCompare(b.display_name ?? '', 'de');
 				case 'date':
 					return b.added_at - a.added_at;
-				case 'store': {
-					const posA = a.category_id ? (shelfOrder.get(a.category_id) ?? UNSORTED_SHELF_POSITION) : UNSORTED_SHELF_POSITION;
-					const posB = b.category_id ? (shelfOrder.get(b.category_id) ?? UNSORTED_SHELF_POSITION) : UNSORTED_SHELF_POSITION;
-					return posA - posB;
-				}
 				default:
 					return a.sort_order - b.sort_order;
 			}
@@ -325,6 +351,42 @@
 		}
 	}
 
+	async function handleItemUpdate(
+		itemId: string,
+		patch: { quantity?: number | null; unit?: string; note?: string; store_id?: string }
+	) {
+		if (!$user) return;
+
+		// Optimistic local update. store_id '' clears it; quantity null is treated
+		// as "no change" (the event reducer/backend can't distinguish null from
+		// absent, so we don't attempt to clear quantity).
+		items.update((ls) =>
+			ls.map((i) =>
+				i.id === itemId
+					? {
+							...i,
+							quantity: patch.quantity == null ? i.quantity : patch.quantity,
+							unit: patch.unit ?? i.unit,
+							note: patch.note ?? i.note,
+							store_id: patch.store_id === '' ? undefined : (patch.store_id ?? i.store_id)
+						}
+					: i
+			)
+		);
+
+		const payload: Record<string, unknown> = { item_id: itemId };
+		if (patch.quantity != null) payload.quantity = patch.quantity;
+		if (patch.unit !== undefined) payload.unit = patch.unit;
+		if (patch.note !== undefined) payload.note = patch.note;
+		if (patch.store_id !== undefined) payload.store_id = patch.store_id;
+
+		try {
+			await submitEvent(ulid(), 'item.updated', payload);
+		} catch {
+			showToast($_('errors.sync'));
+		}
+	}
+
 	async function clearChecked() {
 		if (!$user || checked.length === 0) return;
 		const snapshot = $items;
@@ -373,21 +435,13 @@
 			>{viewMode === 'list' ? '⊞' : '☰'}</button>
 		</header>
 
-		<SortBar mode={sortMode} onModeChange={handleSortModeChange} />
-
-		{#if sortMode === 'store' && stores.length > 0}
-			<div class="store-picker">
-				<select
-					value={selectedStoreId ?? stores[0]?.id}
-					onchange={(e) => handleStoreChange((e.target as HTMLSelectElement).value)}
-					aria-label={$_('list.select_store')}
-				>
-					{#each stores as s (s.id)}
-						<option value={s.id}>{s.icon} {s.name}</option>
-					{/each}
-				</select>
-			</div>
-		{/if}
+		<SortBar
+			mode={sortMode}
+			onModeChange={handleSortModeChange}
+			stores={storesWithItems}
+			activeStoreId={activeFilterStoreId}
+			onStoreFilter={handleStoreFilter}
+		/>
 
 		{#if stores.length > 0}
 			<div class="active-store-bar">
@@ -418,14 +472,14 @@
 			{#if viewMode === 'tile'}
 				<div class="tile-grid">
 					{#each unchecked as item (item.id)}
-						<TileItem {item} onCheck={handleCheck} onDelete={handleDelete} />
+						<TileItem {item} onCheck={handleCheck} onDelete={handleDelete} onOpen={openDetail} />
 					{/each}
 				</div>
 			{:else}
 				<ul class="item-list">
 					{#each unchecked as item (item.id)}
 						<li>
-							<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} />
+							<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} onOpen={openDetail} />
 						</li>
 					{/each}
 				</ul>
@@ -451,14 +505,14 @@
 						{#if viewMode === 'tile'}
 							<div class="tile-grid tile-grid--checked">
 								{#each checked as item (item.id)}
-									<TileItem {item} onCheck={handleCheck} onDelete={handleDelete} />
+									<TileItem {item} onCheck={handleCheck} onDelete={handleDelete} onOpen={openDetail} />
 								{/each}
 							</div>
 						{:else}
 							<ul class="item-list">
 								{#each checked as item (item.id)}
 									<li>
-										<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} />
+										<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} onOpen={openDetail} />
 									</li>
 								{/each}
 							</ul>
@@ -472,6 +526,19 @@
 
 {#if toastMessage}
 	<div class="toast" role="status">{toastMessage}</div>
+{/if}
+
+{#if detailItem}
+	{#key detailItemId}
+		<ItemDetailSheet
+			item={detailItem}
+			{stores}
+			isAdmin={$user?.role === 'admin'}
+			onUpdate={handleItemUpdate}
+			onDelete={(id) => { closeDetail(); handleDelete(id); }}
+			onClose={closeDetail}
+		/>
+	{/key}
 {/if}
 
 {#if shareOpen}
@@ -722,12 +789,6 @@
 		margin: 0;
 	}
 
-	.store-picker {
-		padding: var(--space-2) var(--space-4);
-		background: var(--surface-base);
-		border-bottom: 1px solid var(--border-subtle);
-	}
-
 	.active-store-bar {
 		display: flex;
 		align-items: center;
@@ -744,16 +805,6 @@
 	}
 
 	.active-store-bar select {
-		font-family: var(--font-body);
-		font-size: var(--text-sm);
-		padding: var(--space-1) var(--space-2);
-		border: 1px solid var(--border-subtle);
-		border-radius: 8px;
-		background: var(--surface-overlay);
-		color: var(--text-primary);
-	}
-
-	.store-picker select {
 		font-family: var(--font-body);
 		font-size: var(--text-sm);
 		padding: var(--space-1) var(--space-2);

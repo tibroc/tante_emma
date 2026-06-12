@@ -32,6 +32,10 @@ type Product struct {
 	CreatedBy    *string       `json:"created_by,omitempty"`
 	CreatedAt    int64         `json:"created_at"`
 	UpdatedAt    int64         `json:"updated_at"`
+	// PreferredStoreIDs are the admin-assigned preferred stores for this product
+	// (product_stores.is_preferred=1). Populated by GetByID for the product editor;
+	// nil/omitted elsewhere.
+	PreferredStoreIDs []string `json:"preferred_store_ids,omitempty"`
 }
 
 type Store struct {

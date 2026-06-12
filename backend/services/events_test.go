@@ -118,6 +118,53 @@ func TestProcessListCleared_DeletesOnlyChecked(t *testing.T) {
 	}
 }
 
+// item.updated store_id semantics: a value sets it, an explicit empty string
+// clears it (revert to the product's preferred store for filtering), and a nil
+// pointer (field absent) leaves it unchanged.
+func TestProcessItemUpdated_StoreSetAndClear(t *testing.T) {
+	d := newTestDB(t)
+	listID := "list1"
+	exec(t, d, `INSERT INTO users (id, oidc_sub, name, role, locale, created_at) VALUES ('u1','sub1','U','member','de',0)`)
+	exec(t, d, `INSERT INTO lists (id, name, type, owner_id, created_at, updated_at) VALUES (?,?,'group','u1',0,0)`, listID, "L")
+	exec(t, d, `INSERT INTO stores (id, name, created_at) VALUES ('store1','S',0)`)
+	exec(t, d, `INSERT INTO list_items (id, list_id, name_override, checked, added_by, added_at) VALUES ('i1',?,?,0,'u1',0)`, listID, "milk")
+
+	storeID := func(s string) *string { return &s }
+	updEvent := func(p models.ItemUpdatedPayload) *models.Event {
+		b, _ := json.Marshal(p)
+		return &models.Event{Type: "item.updated", ListID: &listID, UserID: "u1", Payload: b}
+	}
+	currentStore := func() *string {
+		var s sql.NullString
+		if err := d.QueryRow(`SELECT store_id FROM list_items WHERE id='i1'`).Scan(&s); err != nil {
+			t.Fatalf("read store_id: %v", err)
+		}
+		if s.Valid {
+			return &s.String
+		}
+		return nil
+	}
+
+	// Set the store.
+	processInTx(t, d, updEvent(models.ItemUpdatedPayload{ItemID: "i1", StoreID: storeID("store1")}))
+	if got := currentStore(); got == nil || *got != "store1" {
+		t.Fatalf("after set: store_id = %v, want store1", got)
+	}
+
+	// Absent store_id (note-only update) must leave the store intact.
+	note := "ripe ones"
+	processInTx(t, d, updEvent(models.ItemUpdatedPayload{ItemID: "i1", Note: &note}))
+	if got := currentStore(); got == nil || *got != "store1" {
+		t.Fatalf("after note update: store_id = %v, want store1 (unchanged)", got)
+	}
+
+	// Explicit empty string clears it.
+	processInTx(t, d, updEvent(models.ItemUpdatedPayload{ItemID: "i1", StoreID: storeID("")}))
+	if got := currentStore(); got != nil {
+		t.Fatalf("after clear: store_id = %v, want nil", got)
+	}
+}
+
 // A manually-set position (auto_learned=0) must never be overwritten by learning.
 func TestProcessListCleared_RespectsManualOrder(t *testing.T) {
 	d := newTestDB(t)

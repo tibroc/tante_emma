@@ -1,12 +1,14 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import type { ListItem } from '$lib/stores/listStore';
 
 	interface Props {
 		item: ListItem;
 		onCheck?: (id: string, checked: boolean) => void;
 		onDelete?: (id: string) => void;
+		onOpen?: (id: string) => void;
 	}
-	let { item, onCheck, onDelete }: Props = $props();
+	let { item, onCheck, onDelete, onOpen }: Props = $props();
 
 	const accent = $derived(item.category_color ?? 'var(--border-subtle)');
 </script>
@@ -17,21 +19,26 @@
 			<span class="cat-icon">{item.category_icon}</span>
 		{/if}
 		<button
+			class="edit-btn"
+			onclick={(e) => { e.stopPropagation(); onOpen?.(item.id); }}
+			aria-label={$_('item_sheet.open')}
+		>⋯</button>
+		<button
 			class="delete-btn"
 			onclick={(e) => { e.stopPropagation(); onDelete?.(item.id); }}
-			aria-label="Artikel entfernen"
+			aria-label={$_('item.delete')}
 		>✕</button>
 	</div>
 
 	<button
 		class="check-area"
 		onclick={() => onCheck?.(item.id, !item.checked)}
-		aria-label={item.checked ? 'Als unerledigt markieren' : 'Als erledigt markieren'}
+		aria-label={item.checked ? $_('item.uncheck') : $_('item.check')}
 		aria-pressed={item.checked}
 	>
 		<span class="name">{item.display_name}</span>
 		{#if item.quantity}
-			<span class="qty">{item.quantity}{item.unit ? ' ' + item.unit : ''}</span>
+			<span class="qty">{item.quantity}{item.unit ? ' ' + $_('units.' + item.unit, { default: item.unit }) : ''}</span>
 		{/if}
 	</button>
 
@@ -73,6 +80,7 @@
 		line-height: 1;
 	}
 
+	.edit-btn,
 	.delete-btn {
 		width: 28px;
 		height: 28px;
@@ -86,13 +94,22 @@
 		justify-content: center;
 		border-radius: 6px;
 		padding: 0;
-		margin-left: auto;
 		transition: background 100ms, color 100ms;
+	}
+
+	.edit-btn {
+		margin-left: auto;
+		font-size: 16px;
 	}
 
 	.delete-btn:hover {
 		background: color-mix(in srgb, var(--color-danger) 12%, transparent);
 		color: var(--color-danger);
+	}
+
+	.edit-btn:hover {
+		background: var(--surface-overlay);
+		color: var(--text-secondary);
 	}
 
 	.check-area {
