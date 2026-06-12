@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -15,6 +16,12 @@ import (
 	"github.com/tante-emma/tanteemma/models"
 	"github.com/tante-emma/tanteemma/services"
 )
+
+// barcodePattern matches plausible EAN/UPC/GTIN barcodes (8–14 digits, with a
+// little slack at the low end). Validating before the Open Food Facts lookup
+// keeps an untrusted path parameter from being interpolated into the outbound
+// request URL.
+var barcodePattern = regexp.MustCompile(`^[0-9]{6,14}$`)
 
 type Products struct {
 	DB *sql.DB
@@ -125,6 +132,10 @@ func (h *Products) Search(w http.ResponseWriter, r *http.Request) {
 // served from the DB on the next scan instead of re-hitting the network.
 func (h *Products) GetByBarcode(w http.ResponseWriter, r *http.Request) {
 	code := chi.URLParam(r, "code")
+	if !barcodePattern.MatchString(code) {
+		respondErr(w, http.StatusBadRequest, "invalid barcode")
+		return
+	}
 
 	p, err := h.productByBarcode(r.Context(), code)
 	if err != nil {
