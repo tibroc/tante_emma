@@ -165,7 +165,206 @@ func TestProcessItemUpdated_StoreSetAndClear(t *testing.T) {
 	}
 }
 
-// A manually-set position (auto_learned=0) must never be overwritten by learning.
+// ── item.added ─────────────────────────────────────────────────────────────
+
+func seedListUser(t *testing.T, d *sql.DB) (listID, userID string) {
+	t.Helper()
+	listID, userID = "list1", "u1"
+	exec(t, d, `INSERT INTO users (id, oidc_sub, name, role, locale, created_at) VALUES ('u1','sub1','U','member','de',0)`)
+	exec(t, d, `INSERT INTO lists (id, name, type, owner_id, created_at, updated_at) VALUES (?,?,'group','u1',0,0)`, listID, "L")
+	return
+}
+
+func addEvent(t *testing.T, listID, userID, itemID string, productID *string, name string) *models.Event {
+	t.Helper()
+	payload, _ := json.Marshal(models.ItemAddedPayload{
+		ItemID:       itemID,
+		ProductID:    productID,
+		NameOverride: &name,
+	})
+	return &models.Event{Type: "item.added", ListID: &listID, UserID: userID, Payload: payload}
+}
+
+func TestProcessItemAdded_InsertsItem(t *testing.T) {
+	d := newTestDB(t)
+	listID, userID := seedListUser(t, d)
+	processInTx(t, d, addEvent(t, listID, userID, "i1", nil, "Apples"))
+
+	var name string
+	if err := d.QueryRow(`SELECT name_override FROM list_items WHERE id='i1'`).Scan(&name); err != nil {
+		t.Fatalf("item not found: %v", err)
+	}
+	if name != "Apples" {
+		t.Errorf("name_override = %q, want Apples", name)
+	}
+}
+
+func TestProcessItemAdded_WithProductUpdatesWeights(t *testing.T) {
+	d := newTestDB(t)
+	listID, userID := seedListUser(t, d)
+	exec(t, d, `INSERT INTO categories (id, name_de, name_en, name_pt, icon, color) VALUES ('c1','A','A','A','🧪','#aaa')`)
+	exec(t, d, `INSERT INTO products (id, name_de, name_en, name_pt, category_id, source, created_at, updated_at)
+		VALUES ('p1','Milch','Milk','Leite','c1','builtin',0,0)`)
+
+	pid := "p1"
+	processInTx(t, d, addEvent(t, listID, userID, "i1", &pid, "Milch"))
+
+	var famFreq, userFreq int
+	if err := d.QueryRow(`SELECT frequency FROM suggestion_weights_family WHERE product_id='p1'`).Scan(&famFreq); err != nil {
+		t.Fatalf("family weight not recorded: %v", err)
+	}
+	if err := d.QueryRow(`SELECT frequency FROM suggestion_weights WHERE product_id='p1' AND user_id='u1'`).Scan(&userFreq); err != nil {
+		t.Fatalf("user weight not recorded: %v", err)
+	}
+	if famFreq != 1 || userFreq != 1 {
+		t.Errorf("weights = fam:%d user:%d, want both 1", famFreq, userFreq)
+	}
+}
+
+func TestProcessItemAdded_DuplicateProductIgnored(t *testing.T) {
+	d := newTestDB(t)
+	listID, userID := seedListUser(t, d)
+	exec(t, d, `INSERT INTO categories (id, name_de, name_en, name_pt, icon, color) VALUES ('c1','A','A','A','🧪','#aaa')`)
+	exec(t, d, `INSERT INTO products (id, name_de, name_en, name_pt, category_id, source, created_at, updated_at)
+		VALUES ('p1','Milch','Milk','Leite','c1','builtin',0,0)`)
+
+	pid := "p1"
+	ev := addEvent(t, listID, userID, "i1", &pid, "Milch")
+	processInTx(t, d, ev)
+	// Second add of the same product in the same list must be silently ignored (upsert ON CONFLICT DO NOTHING).
+	processInTx(t, d, addEvent(t, listID, userID, "i2", &pid, "Milch again"))
+
+	var count int
+	if err := d.QueryRow(`SELECT COUNT(*) FROM list_items WHERE list_id=?`, listID).Scan(&count); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("list_items count = %d, want 1 (duplicate product ignored)", count)
+	}
+}
+
+func TestProcessItemAdded_ResolvesCategory(t *testing.T) {
+	d := newTestDB(t)
+	listID, userID := seedListUser(t, d)
+	exec(t, d, `INSERT INTO categories (id, name_de, name_en, name_pt, icon, color) VALUES ('c1','Milchprodukte','Dairy','Laticínios','🥛','#fff')`)
+	exec(t, d, `INSERT INTO products (id, name_de, name_en, name_pt, category_id, source, created_at, updated_at)
+		VALUES ('p1','Vollmilch','Whole milk','Leite','c1','builtin',0,0)`)
+
+	pid := "p1"
+	processInTx(t, d, addEvent(t, listID, userID, "i1", &pid, "Vollmilch"))
+
+	var catID string
+	if err := d.QueryRow(`SELECT COALESCE(category_id,'') FROM list_items WHERE id='i1'`).Scan(&catID); err != nil {
+		t.Fatalf("read category_id: %v", err)
+	}
+	if catID != "c1" {
+		t.Errorf("category_id = %q, want c1 (resolved from product)", catID)
+	}
+}
+
+// ── item.checked / item.unchecked ──────────────────────────────────────────
+
+func TestProcessItemChecked_MarksCheckedAndRecordsPurchaseHistory(t *testing.T) {
+	d := newTestDB(t)
+	listID, userID := seedListUser(t, d)
+	exec(t, d, `INSERT INTO stores (id, name, created_at) VALUES ('s1','TestStore',0)`)
+	exec(t, d, `INSERT INTO list_items (id, list_id, name_override, checked, added_by, added_at) VALUES ('i1',?,'Eggs',0,'u1',0)`, listID)
+
+	storeID := "s1"
+	payload, _ := json.Marshal(models.ItemCheckedPayload{ItemID: "i1", StoreID: &storeID})
+	ev := &models.Event{ID: "evt1", Type: "item.checked", ListID: &listID, UserID: userID, Payload: payload}
+	processInTx(t, d, ev)
+
+	var checked int
+	if err := d.QueryRow(`SELECT checked FROM list_items WHERE id='i1'`).Scan(&checked); err != nil {
+		t.Fatalf("read checked: %v", err)
+	}
+	if checked != 1 {
+		t.Errorf("checked = %d, want 1", checked)
+	}
+
+	var histCount int
+	if err := d.QueryRow(`SELECT COUNT(*) FROM purchase_history WHERE id='evt1'`).Scan(&histCount); err != nil {
+		t.Fatalf("read purchase_history: %v", err)
+	}
+	if histCount != 1 {
+		t.Errorf("purchase_history rows = %d, want 1", histCount)
+	}
+}
+
+func TestProcessItemUnchecked_ClearsChecked(t *testing.T) {
+	d := newTestDB(t)
+	listID, userID := seedListUser(t, d)
+	exec(t, d, `INSERT INTO list_items (id, list_id, name_override, checked, added_by, added_at) VALUES ('i1',?,'Eggs',1,'u1',0)`, listID)
+
+	payload, _ := json.Marshal(models.ItemUncheckedPayload{ItemID: "i1"})
+	ev := &models.Event{Type: "item.unchecked", ListID: &listID, UserID: userID, Payload: payload}
+	processInTx(t, d, ev)
+
+	var checked int
+	if err := d.QueryRow(`SELECT checked FROM list_items WHERE id='i1'`).Scan(&checked); err != nil {
+		t.Fatalf("read checked: %v", err)
+	}
+	if checked != 0 {
+		t.Errorf("checked = %d, want 0", checked)
+	}
+}
+
+// ── item.deleted ───────────────────────────────────────────────────────────
+
+func TestProcessItemDeleted_RemovesItem(t *testing.T) {
+	d := newTestDB(t)
+	listID, userID := seedListUser(t, d)
+	exec(t, d, `INSERT INTO list_items (id, list_id, name_override, checked, added_by, added_at) VALUES ('i1',?,'Apples',0,'u1',0)`, listID)
+
+	payload, _ := json.Marshal(models.ItemDeletedPayload{ItemID: "i1"})
+	ev := &models.Event{Type: "item.deleted", ListID: &listID, UserID: userID, Payload: payload}
+	processInTx(t, d, ev)
+
+	var count int
+	if err := d.QueryRow(`SELECT COUNT(*) FROM list_items WHERE id='i1'`).Scan(&count); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("list_items count = %d after delete, want 0", count)
+	}
+}
+
+// ── unknown / no-op event types ────────────────────────────────────────────
+
+func TestProcessEvent_UnknownTypeErrors(t *testing.T) {
+	d := newTestDB(t)
+	tx, _ := d.Begin()
+	listID := "l1"
+	ev := &models.Event{Type: "event.unknown", ListID: &listID, UserID: "u1", Payload: json.RawMessage(`{}`)}
+	err := ProcessEvent(tx, ev)
+	tx.Rollback() //nolint:errcheck
+	if err == nil {
+		t.Error("ProcessEvent with unknown type should return an error")
+	}
+}
+
+func TestProcessEvent_KnownNoopTypesDoNotError(t *testing.T) {
+	noopTypes := []string{
+		"list.created", "list.renamed", "list.deleted",
+		"list.shared", "list.unshared",
+		"store.created", "store.updated",
+		"shelf_order.updated", "shelf_order.learned",
+		"product.created", "product.updated",
+	}
+	d := newTestDB(t)
+	listID := "l1"
+	for _, typ := range noopTypes {
+		tx, _ := d.Begin()
+		ev := &models.Event{Type: typ, ListID: &listID, UserID: "u1", Payload: json.RawMessage(`{}`)}
+		if err := ProcessEvent(tx, ev); err != nil {
+			t.Errorf("ProcessEvent(%q) should be a no-op (no error), got: %v", typ, err)
+		}
+		tx.Rollback() //nolint:errcheck
+	}
+}
+
+// ── A manually-set position (auto_learned=0) must never be overwritten by learning.
 func TestProcessListCleared_RespectsManualOrder(t *testing.T) {
 	d := newTestDB(t)
 	listID, storeID, _, catB := seedClearScenario(t, d)
