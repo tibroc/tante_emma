@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { PUBLIC_API_URL } from '$env/static/public';
+	import { env } from '$env/dynamic/public';
 	import { _ } from 'svelte-i18n';
-	const API = PUBLIC_API_URL;
+	const API = env.PUBLIC_API_URL ?? '';
 </script>
 
 <main class="login-screen">

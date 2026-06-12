@@ -1,5 +1,7 @@
-import { PUBLIC_API_URL } from '$env/static/public';
-const BASE = PUBLIC_API_URL;
+import { env } from '$env/dynamic/public';
+// Read at runtime so the same Docker image works across environments.
+// Empty fallback → same-origin relative requests.
+const BASE = env.PUBLIC_API_URL ?? '';
 
 class ApiError extends Error {
 	constructor(

@@ -1,6 +1,7 @@
 import { dev } from '$app/environment';
-import { PUBLIC_WS_URL } from '$env/static/public';
-const WS_BASE = PUBLIC_WS_URL;
+import { env } from '$env/dynamic/public';
+// Read at runtime so the same Docker image works across environments.
+const WS_BASE = env.PUBLIC_WS_URL ?? '';
 
 type WsMessage =
 	| { type: 'event'; event: unknown }
