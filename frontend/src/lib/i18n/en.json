@@ -39,16 +39,37 @@
     "aria_input":  "Add item"
   },
   "sort": {
-    "category": "Category",
-    "store":    "Store",
-    "date":     "Date",
-    "alpha":    "A–Z"
+    "category":   "Category",
+    "store":      "Store",
+    "date":       "Date",
+    "alpha":      "A–Z",
+    "aria_label": "Sort & filter"
   },
   "item": {
     "check":   "Mark as done",
     "uncheck": "Mark as not done",
     "delete":  "Remove item",
     "removed": "Removed"
+  },
+  "item_sheet": {
+    "open":         "Open details",
+    "close":        "Close",
+    "quantity":     "Quantity",
+    "unit":         "Unit",
+    "no_unit":      "– unit –",
+    "store":        "Store",
+    "note":         "Note",
+    "note_ph":      "e.g. the large pack",
+    "preferred":    "Preferred store",
+    "edit_product": "Edit product"
+  },
+  "units": {
+    "pcs": "pc",
+    "g":   "g",
+    "kg":  "kg",
+    "ml":  "ml",
+    "l":   "l",
+    "pkg": "pkg"
   },
   "share_sheet": {
     "title":      "Share list",
@@ -85,6 +106,13 @@
     "delete_error":   "Delete failed",
     "load_error":     "Could not load stores",
     "shelf_error":    "Could not save shelf order",
+    "bulk_title":     "Assign stores by category",
+    "bulk_hint":      "Assign a preferred store to every product in a category.",
+    "bulk_category":  "Choose category",
+    "bulk_store":     "Choose store",
+    "bulk_assign":    "Assign",
+    "bulk_done":      "Assigned {n} products",
+    "bulk_error":     "Assignment failed",
     "form": {
       "name":       "Name",
       "name_ph":    "e.g. Tesco High Street",
@@ -131,6 +159,7 @@
     "field_brand":          "Brand",
     "field_barcode":        "Barcode",
     "field_category":       "Category",
+    "field_preferred_stores": "Preferred stores",
     "no_category":          "– none –"
   },
   "errors": {

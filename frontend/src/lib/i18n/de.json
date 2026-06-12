@@ -39,16 +39,37 @@
     "aria_input":  "Artikel hinzufügen"
   },
   "sort": {
-    "category": "Kategorie",
-    "store":    "Laden",
-    "date":     "Datum",
-    "alpha":    "A–Z"
+    "category":   "Kategorie",
+    "store":      "Laden",
+    "date":       "Datum",
+    "alpha":      "A–Z",
+    "aria_label": "Sortierung & Filter"
   },
   "item": {
     "check":   "Als erledigt markieren",
     "uncheck": "Als unerledigt markieren",
     "delete":  "Artikel entfernen",
     "removed": "Entfernt"
+  },
+  "item_sheet": {
+    "open":         "Details öffnen",
+    "close":        "Schließen",
+    "quantity":     "Menge",
+    "unit":         "Einheit",
+    "no_unit":      "– Einheit –",
+    "store":        "Laden",
+    "note":         "Notiz",
+    "note_ph":      "z.B. die große Packung",
+    "preferred":    "Bevorzugter Laden",
+    "edit_product": "Produkt bearbeiten"
+  },
+  "units": {
+    "pcs": "Stk.",
+    "g":   "g",
+    "kg":  "kg",
+    "ml":  "ml",
+    "l":   "l",
+    "pkg": "Pkg."
   },
   "share_sheet": {
     "title":     "Liste teilen",
@@ -85,6 +106,13 @@
     "delete_error":   "Löschen fehlgeschlagen",
     "load_error":     "Läden konnten nicht geladen werden",
     "shelf_error":    "Regalreihenfolge konnte nicht gespeichert werden",
+    "bulk_title":     "Läden nach Kategorie zuweisen",
+    "bulk_hint":      "Weise allen Produkten einer Kategorie einen bevorzugten Laden zu.",
+    "bulk_category":  "Kategorie wählen",
+    "bulk_store":     "Laden wählen",
+    "bulk_assign":    "Zuweisen",
+    "bulk_done":      "{n} Produkte zugewiesen",
+    "bulk_error":     "Zuweisung fehlgeschlagen",
     "form": {
       "name":       "Name",
       "name_ph":    "z.B. Rewe Hauptstraße",
@@ -131,6 +159,7 @@
     "field_brand":         "Marke",
     "field_barcode":       "Barcode",
     "field_category":      "Kategorie",
+    "field_preferred_stores": "Bevorzugte Läden",
     "no_category":         "– keine –"
   },
   "errors": {

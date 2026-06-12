@@ -39,16 +39,37 @@
     "aria_input":  "Adicionar item"
   },
   "sort": {
-    "category": "Categoria",
-    "store":    "Loja",
-    "date":     "Data",
-    "alpha":    "A–Z"
+    "category":   "Categoria",
+    "store":      "Loja",
+    "date":       "Data",
+    "alpha":      "A–Z",
+    "aria_label": "Ordenar e filtrar"
   },
   "item": {
     "check":   "Marcar como feito",
     "uncheck": "Marcar como não feito",
     "delete":  "Remover item",
     "removed": "Removido"
+  },
+  "item_sheet": {
+    "open":         "Abrir detalhes",
+    "close":        "Fechar",
+    "quantity":     "Quantidade",
+    "unit":         "Unidade",
+    "no_unit":      "– unidade –",
+    "store":        "Loja",
+    "note":         "Observação",
+    "note_ph":      "ex. a embalagem grande",
+    "preferred":    "Loja preferida",
+    "edit_product": "Editar produto"
+  },
+  "units": {
+    "pcs": "un",
+    "g":   "g",
+    "kg":  "kg",
+    "ml":  "ml",
+    "l":   "l",
+    "pkg": "pct"
   },
   "share_sheet": {
     "title":      "Compartilhar lista",
@@ -85,6 +106,13 @@
     "delete_error":   "Falha ao excluir",
     "load_error":     "Não foi possível carregar lojas",
     "shelf_error":    "Não foi possível salvar ordem das prateleiras",
+    "bulk_title":     "Atribuir lojas por categoria",
+    "bulk_hint":      "Atribua uma loja preferida a todos os produtos de uma categoria.",
+    "bulk_category":  "Escolher categoria",
+    "bulk_store":     "Escolher loja",
+    "bulk_assign":    "Atribuir",
+    "bulk_done":      "{n} produtos atribuídos",
+    "bulk_error":     "Falha na atribuição",
     "form": {
       "name":       "Nome",
       "name_ph":    "ex. Supermercado Central",
@@ -131,6 +159,7 @@
     "field_brand":          "Marca",
     "field_barcode":        "Código de barras",
     "field_category":       "Categoria",
+    "field_preferred_stores": "Lojas preferidas",
     "no_category":          "– nenhuma –"
   },
   "errors": {

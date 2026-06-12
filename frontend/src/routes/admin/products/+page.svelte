@@ -19,26 +19,39 @@
 		brand?: string;
 		barcode?: string;
 		category_id?: string;
+		preferred_store_ids?: string[];
 	}
 
 	interface Category { id: string; name_de: string; icon: string; }
+	interface Store { id: string; name: string; icon: string; color: string; }
 
 	let query = $state('');
 	let results = $state<SearchResult[]>([]);
 	let categories = $state<Category[]>([]);
+	let stores = $state<Store[]>([]);
 	let loading = $state(false);
 	let dialogOpen = $state(false);
 	let editTarget = $state<Product | null>(null);
 	let saving = $state(false);
 	let form = $state({ name_de: '', name_en: '', brand: '', barcode: '', category_id: '' });
+	let selectedStores = $state<Set<string>>(new Set());
 	let debounce: ReturnType<typeof setTimeout>;
 
 	onMount(async () => {
 		if ($user?.role !== 'admin') { goto('/lists'); return; }
 		try {
-			categories = await api.get<Category[]>('/api/categories');
+			[categories, stores] = await Promise.all([
+				api.get<Category[]>('/api/categories'),
+				api.get<Store[]>('/api/stores')
+			]);
 		} catch { /* graceful */ }
 	});
+
+	function toggleStore(id: string) {
+		const next = new Set(selectedStores);
+		if (next.has(id)) next.delete(id); else next.add(id);
+		selectedStores = next;
+	}
 
 	function handleQueryInput() {
 		clearTimeout(debounce);
@@ -58,6 +71,7 @@
 	function openCreate() {
 		editTarget = null;
 		form = { name_de: '', name_en: '', brand: '', barcode: '', category_id: '' };
+		selectedStores = new Set();
 		dialogOpen = true;
 	}
 
@@ -65,6 +79,7 @@
 		dialogOpen = true;
 		editTarget = null;
 		form = { name_de: '', name_en: '', brand: '', barcode: '', category_id: '' };
+		selectedStores = new Set();
 		try {
 			const p = await api.get<Product>(`/api/products/${productId}`);
 			editTarget = p;
@@ -75,6 +90,7 @@
 				barcode: p.barcode ?? '',
 				category_id: p.category_id ?? ''
 			};
+			selectedStores = new Set(p.preferred_store_ids ?? []);
 		} catch { dialogOpen = false; }
 	}
 
@@ -82,8 +98,10 @@
 		if (!form.name_de.trim() && !form.name_en.trim()) return;
 		saving = true;
 		try {
+			let productId: string;
 			if (editTarget) {
 				await api.put(`/api/products/${editTarget.id}`, form);
+				productId = editTarget.id;
 				// Refresh display name in results list
 				results = results.map(r =>
 					r.product_id === editTarget!.id
@@ -91,9 +109,12 @@
 						: r
 				);
 			} else {
-				await api.post<Product>('/api/products', form);
-				await search();
+				const created = await api.post<Product>('/api/products', form);
+				productId = created.id;
 			}
+			// Persist preferred-store assignments (replaces the existing set).
+			await api.put(`/api/products/${productId}/stores`, { store_ids: [...selectedStores] });
+			if (!editTarget) await search();
 			dialogOpen = false;
 		} finally {
 			saving = false;
@@ -155,6 +176,24 @@
 				</select>
 			</label>
 		{/if}
+		{#if stores.length > 0}
+			<div class="store-field">
+				<span class="store-field-label">{$_('admin.field_preferred_stores')}</span>
+				<div class="store-chips">
+					{#each stores as s (s.id)}
+						<button
+							type="button"
+							class="chip"
+							class:active={selectedStores.has(s.id)}
+							onclick={() => toggleStore(s.id)}
+							aria-pressed={selectedStores.has(s.id)}
+						>
+							<span aria-hidden="true">{s.icon}</span> {s.name}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
 		<div class="dialog-actions">
 			<button class="btn-ghost" onclick={() => (dialogOpen = false)}>{$_('stores.form.cancel')}</button>
 			<button class="btn-primary" onclick={saveProduct} disabled={saving}>
@@ -212,6 +251,17 @@
 		outline: 2px solid transparent; transition: outline-color 150ms;
 	}
 	label input:focus, label select:focus { outline-color: var(--color-primary); }
+	.store-field { display: flex; flex-direction: column; gap: var(--space-2); }
+	.store-field-label { font-size: var(--text-sm); color: var(--text-secondary); }
+	.store-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+	.chip {
+		height: 36px; padding: 0 var(--space-3); border-radius: 20px;
+		border: 1px solid transparent; background: var(--surface-overlay);
+		color: var(--text-secondary); font-family: var(--font-body); font-size: 14px;
+		font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+		transition: background 150ms, color 150ms, border-color 150ms;
+	}
+	.chip.active { background: var(--color-primary-light); color: var(--color-primary); border-color: var(--color-primary); }
 	.dialog-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
 	.btn-primary {
 		height: 44px; padding: 0 var(--space-4); border-radius: 10px; border: none;

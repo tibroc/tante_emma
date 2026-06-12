@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -333,7 +334,10 @@ func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, er
 		       li.sort_order, li.store_id,
 		       COALESCE(li.category_id, p.category_id),
 		       c.color, c.icon,
-		       COALESCE(li.name_override, p.name_de, p.name_en, '') AS display_name
+		       COALESCE(li.name_override, p.name_de, p.name_en, '') AS display_name,
+		       (SELECT group_concat(ps.store_id)
+		          FROM product_stores ps
+		         WHERE ps.product_id = li.product_id AND ps.is_preferred = 1) AS preferred_store_ids
 		  FROM list_items li
 		  LEFT JOIN products p ON p.id = li.product_id
 		  LEFT JOIN categories c ON c.id = COALESCE(li.category_id, p.category_id)
@@ -347,11 +351,16 @@ func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, er
 	items := make([]models.ListItem, 0)
 	for rows.Next() {
 		var it models.ListItem
+		var preferred sql.NullString
 		if err := rows.Scan(&it.ID, &it.ListID, &it.ProductID, &it.NameOverride,
 			&it.Quantity, &it.Unit, &it.Note, &it.Checked, &it.CheckedBy, &it.CheckedAt,
 			&it.AddedBy, &it.AddedAt, &it.SortOrder, &it.StoreID,
-			&it.CategoryID, &it.CategoryColor, &it.CategoryIcon, &it.DisplayName); err != nil {
+			&it.CategoryID, &it.CategoryColor, &it.CategoryIcon, &it.DisplayName,
+			&preferred); err != nil {
 			return nil, err
+		}
+		if preferred.Valid && preferred.String != "" {
+			it.PreferredStoreIDs = strings.Split(preferred.String, ",")
 		}
 		items = append(items, it)
 	}

@@ -19,6 +19,9 @@ export interface ListItem {
 	category_color?: string;
 	category_icon?: string;
 	display_name: string;
+	// Product's admin-assigned preferred stores (product_stores.is_preferred=1).
+	// Used to filter the list by store even when store_id is unset.
+	preferred_store_ids?: string[];
 }
 
 export interface List {

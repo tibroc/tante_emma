@@ -88,7 +88,8 @@ func (h *Products) GetCategories(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, cats)
 }
 
-// GetByID returns a single product by its ULID.
+// GetByID returns a single product by its ULID, including its preferred stores
+// so the admin editor can pre-select them.
 func (h *Products) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	p, err := scanProduct(h.DB.QueryRowContext(r.Context(),
@@ -101,7 +102,120 @@ func (h *Products) GetByID(w http.ResponseWriter, r *http.Request) {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
+	storeIDs, err := h.preferredStoreIDs(r.Context(), id)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	p.PreferredStoreIDs = storeIDs
 	respond(w, http.StatusOK, p)
+}
+
+// preferredStoreIDs returns the store ids marked preferred for a product.
+func (h *Products) preferredStoreIDs(ctx context.Context, productID string) ([]string, error) {
+	rows, err := h.DB.QueryContext(ctx,
+		`SELECT store_id FROM product_stores WHERE product_id=? AND is_preferred=1 ORDER BY store_id`, productID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	ids := make([]string, 0)
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+// SetStores replaces a product's preferred-store set (admin only). The request
+// body is {"store_ids": [...]}; an empty list clears all assignments.
+func (h *Products) SetStores(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.SessionFromContext(r.Context())
+	if sess.Role != models.RoleAdmin {
+		respondErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	productID := chi.URLParam(r, "id")
+	var req struct {
+		StoreIDs []string `json:"store_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondErr(w, http.StatusBadRequest, "bad request")
+		return
+	}
+
+	if err := h.setProductStores(r.Context(), productID, req.StoreIDs); err != nil {
+		respondErr(w, http.StatusBadRequest, "invalid store_id")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// setProductStores replaces a product's preferred-store set in one transaction.
+func (h *Products) setProductStores(ctx context.Context, productID string, storeIDs []string) error {
+	tx, err := h.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	if _, err := tx.ExecContext(ctx,
+		`DELETE FROM product_stores WHERE product_id=?`, productID); err != nil {
+		return err
+	}
+	for _, sid := range storeIDs {
+		// A bad store_id (FK violation) or duplicate fails the whole set.
+		if _, err := tx.ExecContext(ctx,
+			`INSERT INTO product_stores (product_id, store_id, is_preferred) VALUES (?, ?, 1)`,
+			productID, sid); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// SetStoresByCategory assigns one store as preferred to every product in a
+// category (admin only) — the bulk tool that makes per-family store setup quick.
+// Body: {"category_id": "...", "store_id": "..."}. Existing assignments for that
+// store are left intact (idempotent upsert); other stores are untouched.
+func (h *Products) SetStoresByCategory(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.SessionFromContext(r.Context())
+	if sess.Role != models.RoleAdmin {
+		respondErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	var req struct {
+		CategoryID string `json:"category_id"`
+		StoreID    string `json:"store_id"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.CategoryID == "" || req.StoreID == "" {
+		respondErr(w, http.StatusBadRequest, "category_id and store_id required")
+		return
+	}
+
+	n, err := h.assignStoresByCategory(r.Context(), req.CategoryID, req.StoreID)
+	if err != nil {
+		respondErr(w, http.StatusBadRequest, "invalid category_id or store_id")
+		return
+	}
+	respond(w, http.StatusOK, map[string]any{"assigned": n})
+}
+
+// assignStoresByCategory marks one store as preferred for every product in a
+// category, returning the number of rows affected.
+func (h *Products) assignStoresByCategory(ctx context.Context, categoryID, storeID string) (int64, error) {
+	res, err := h.DB.ExecContext(ctx, `
+		INSERT INTO product_stores (product_id, store_id, is_preferred)
+		SELECT p.id, ?, 1 FROM products p WHERE p.category_id = ?
+		ON CONFLICT(product_id, store_id) DO UPDATE SET is_preferred=1`,
+		storeID, categoryID)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // Search runs FTS5 search with suggestion scoring.

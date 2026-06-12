@@ -258,15 +258,24 @@ func processItemUpdated(tx *sql.Tx, ev models.Event) error {
 	if err := json.Unmarshal(ev.Payload, &p); err != nil {
 		return fmt.Errorf("itemUpdated unmarshal: %w", err)
 	}
+	// store_id is special: COALESCE can only set, never clear. An explicit empty
+	// string means "remove the store" (revert to the product's preferred store
+	// for filtering); a nil pointer means "leave unchanged".
+	storeProvided := p.StoreID != nil
+	var storeVal *string
+	if storeProvided && *p.StoreID != "" {
+		storeVal = p.StoreID
+	}
 	_, err := tx.Exec(`
 		UPDATE list_items
 		   SET name_override=COALESCE(?, name_override),
 		       quantity=COALESCE(?, quantity),
 		       unit=COALESCE(?, unit),
 		       note=COALESCE(?, note),
-		       store_id=COALESCE(?, store_id)
+		       store_id=CASE WHEN ? THEN ? ELSE store_id END
 		 WHERE id=? AND list_id=?`,
-		p.NameOverride, p.Quantity, p.Unit, p.Note, p.StoreID,
+		p.NameOverride, p.Quantity, p.Unit, p.Note,
+		storeProvided, storeVal,
 		p.ItemID, *ev.ListID,
 	)
 	return err

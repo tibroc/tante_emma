@@ -1,12 +1,14 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import type { ListItem } from '$lib/stores/listStore';
 
 	interface Props {
 		item: ListItem;
 		onCheck?: (id: string, checked: boolean) => void;
 		onDelete?: (id: string) => void;
+		onOpen?: (id: string) => void;
 	}
-	let { item, onCheck, onDelete }: Props = $props();
+	let { item, onCheck, onDelete, onOpen }: Props = $props();
 </script>
 
 <div class="list-item" class:checked={item.checked}>
@@ -19,11 +21,16 @@
 		{#if item.checked}✓{/if}
 	</button>
 	<div class="category-line" style:background-color={item.category_color ?? 'var(--border-subtle)'}></div>
-	<span class="name">{item.display_name}</span>
+	<button class="name" onclick={() => onOpen?.(item.id)} aria-label={$_('item_sheet.open')}>
+		<span class="name-text">{item.display_name}</span>
+		{#if item.quantity}
+			<span class="qty">{item.quantity}{item.unit ? ' ' + $_('units.' + item.unit, { default: item.unit }) : ''}</span>
+		{/if}
+	</button>
 	<button
 		class="delete-btn"
 		onclick={() => onDelete?.(item.id)}
-		aria-label="Artikel entfernen"
+		aria-label={$_('item.delete')}
 	>✕</button>
 </div>
 
@@ -77,9 +84,29 @@
 	}
 
 	.name {
+		flex: 1;
+		display: flex;
+		align-items: baseline;
+		gap: var(--space-2);
+		min-height: 56px;
+		border: none;
+		background: transparent;
+		cursor: pointer;
+		text-align: left;
+		font-family: var(--font-body);
 		font-size: var(--text-base);
 		color: var(--text-primary);
+		padding: 0;
+	}
+
+	.name-text {
 		flex: 1;
+	}
+
+	.qty {
+		font-size: var(--text-sm);
+		color: var(--text-muted);
+		flex-shrink: 0;
 	}
 
 	.delete-btn {
