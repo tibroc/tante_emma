@@ -27,24 +27,24 @@ type ListShare struct {
 }
 
 type ListItem struct {
-	ID           string  `json:"id"`
-	ListID       string  `json:"list_id"`
-	ProductID    *string `json:"product_id,omitempty"`
-	NameOverride *string `json:"name_override,omitempty"`
-	Quantity     *float64 `json:"quantity,omitempty"`
-	Unit         *string `json:"unit,omitempty"`
-	Note         *string `json:"note,omitempty"`
-	Checked      bool    `json:"checked"`
-	CheckedBy    *string `json:"checked_by,omitempty"`
-	CheckedAt    *int64  `json:"checked_at,omitempty"`
-	AddedBy      string  `json:"added_by"`
-	AddedAt      int64   `json:"added_at"`
-	SortOrder    int     `json:"sort_order"`
-	StoreID      *string `json:"store_id,omitempty"`
-	CategoryID    *string `json:"category_id,omitempty"`
-	CategoryColor *string `json:"category_color,omitempty"`
-	CategoryIcon  *string `json:"category_icon,omitempty"`
-	DisplayName   string  `json:"display_name"`
+	ID            string   `json:"id"`
+	ListID        string   `json:"list_id"`
+	ProductID     *string  `json:"product_id,omitempty"`
+	NameOverride  *string  `json:"name_override,omitempty"`
+	Quantity      *float64 `json:"quantity,omitempty"`
+	Unit          *string  `json:"unit,omitempty"`
+	Note          *string  `json:"note,omitempty"`
+	Checked       bool     `json:"checked"`
+	CheckedBy     *string  `json:"checked_by,omitempty"`
+	CheckedAt     *int64   `json:"checked_at,omitempty"`
+	AddedBy       string   `json:"added_by"`
+	AddedAt       int64    `json:"added_at"`
+	SortOrder     int      `json:"sort_order"`
+	StoreID       *string  `json:"store_id,omitempty"`
+	CategoryID    *string  `json:"category_id,omitempty"`
+	CategoryColor *string  `json:"category_color,omitempty"`
+	CategoryIcon  *string  `json:"category_icon,omitempty"`
+	DisplayName   string   `json:"display_name"`
 	// PreferredStoreIDs are the product's admin-assigned preferred stores
 	// (product_stores.is_preferred=1). Used to filter the list by store even when
 	// the item itself has no explicit store_id set.

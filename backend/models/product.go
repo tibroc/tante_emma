@@ -48,10 +48,10 @@ type Store struct {
 }
 
 type Suggestion struct {
-	ProductID     string    `json:"product_id"`
-	DisplayName   string    `json:"display_name"`
-	Brand         string    `json:"brand,omitempty"`
-	Category      *Category `json:"category,omitempty"`
-	PreferredStore *Store   `json:"preferred_store,omitempty"`
-	Score         float64   `json:"score"`
+	ProductID      string    `json:"product_id"`
+	DisplayName    string    `json:"display_name"`
+	Brand          string    `json:"brand,omitempty"`
+	Category       *Category `json:"category,omitempty"`
+	PreferredStore *Store    `json:"preferred_store,omitempty"`
+	Score          float64   `json:"score"`
 }

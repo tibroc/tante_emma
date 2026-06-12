@@ -29,9 +29,9 @@ func Load() *Config {
 		OIDCClientID:     require("OIDC_CLIENT_ID"),
 		OIDCClientSecret: require("OIDC_CLIENT_SECRET"),
 		OIDCRedirectURL:  require("OIDC_REDIRECT_URL"),
-		Port:          getenv("PORT", "8080"),
-		FrontendURL:   getenv("FRONTEND_URL", "http://localhost:5173"),
-		LitestreamURL: os.Getenv("LITESTREAM_REPLICA_URL"),
+		Port:             getenv("PORT", "8080"),
+		FrontendURL:      getenv("FRONTEND_URL", "http://localhost:5173"),
+		LitestreamURL:    os.Getenv("LITESTREAM_REPLICA_URL"),
 	}
 	// Auto-detect: cookies must be Secure when the public redirect URL is HTTPS.
 	// Explicit SECURE_COOKIES=true|false overrides the heuristic.

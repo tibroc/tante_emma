@@ -3,7 +3,7 @@ package models
 import "encoding/json"
 
 type Event struct {
-	ID       string          `json:"id"`        // ULID
+	ID       string          `json:"id"` // ULID
 	Type     string          `json:"type"`
 	ListID   *string         `json:"list_id,omitempty"`
 	UserID   string          `json:"user_id"`
@@ -26,7 +26,7 @@ type ItemAddedPayload struct {
 }
 
 type ItemCheckedPayload struct {
-	ItemID  string `json:"item_id"`
+	ItemID  string  `json:"item_id"`
 	StoreID *string `json:"store_id,omitempty"`
 }
 
