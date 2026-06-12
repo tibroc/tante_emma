@@ -59,7 +59,7 @@ JSON body.
 **Fix:** Return a generic message to the client; log the detailed error
 server-side. **Effort: S**
 
-### SEC-4 🟡 Barcode path parameter is not validated before OFF lookup
+### SEC-4 ✅ ~~Barcode path parameter is not validated before OFF lookup~~ RESOLVED (Milestone D)
 **Where:** `backend/handlers/products.go` `GetByBarcode` →
 `services.LookupBarcode` builds `fmt.Sprintf("%s/%s.json", base, barcode)`.
 **What:** `barcode` comes straight from the URL path into an outbound URL with no
@@ -69,7 +69,7 @@ crafted value could append query params or path segments to the OFF request.
 **Fix:** Reject `barcode` that isn't `^[0-9]{6,14}$` before the lookup.
 **Effort: S**
 
-### SEC-5 🟡 No rate limiting / request body size cap
+### SEC-5 ✅ ~~No rate limiting / request body size cap~~ RESOLVED (Milestone D)
 **Where:** `backend/main.go` (router), `config.MaxUploadSize` (defined, unused).
 **What:** No `http.MaxBytesReader` on JSON bodies and no rate limiting on auth or
 the OFF proxy. `MaxUploadSize` is read from config but never applied.
@@ -80,7 +80,7 @@ unthrottled outbound requester.
 (e.g. `golang.org/x/time/rate`) on `/auth/*` and `/api/products/barcode/*`.
 **Effort: M**
 
-### SEC-6 🟡 Member directory exposed to all roles
+### SEC-6 ✅ ~~Member directory exposed to all roles~~ RESOLVED (Milestone D — restricted to non-child)
 **Where:** `backend/handlers/users.go` `GetMembers`.
 **What:** Any authenticated user (including child) can list every user's id, name
 and avatar. (Email is not exposed here — `GetAll` which includes email is
@@ -306,11 +306,11 @@ sense.
 11. ✅ **BUG-7** repeat-purchase history — 🟡. *(S)* *(landed in quick-win PR)*
 12. ✅ **TD-1** i18n string sweep — 🟠 (large but mechanical). *(L)*
 
-### Milestone D — security & infra hardening — 🔲 OPEN
+### ✅ Milestone D — security & infra hardening — COMPLETE
 13. ✅ **SEC-3** stop leaking internal error strings — 🟡. *(S)* *(landed in quick-win PR)*
-14. 🔲 **SEC-4** validate barcode input — 🟡. *(S)*
-15. 🔲 **SEC-5** body size cap + basic rate limiting — 🟡. *(M)*
-16. 🔲 **SEC-6** decide member-directory visibility — 🟡. *(S)*
+14. ✅ **SEC-4** validate barcode input — 🟡. *(S)*
+15. ✅ **SEC-5** body size cap + basic rate limiting — 🟡. *(M)*
+16. ✅ **SEC-6** restrict member-directory to non-child — 🟡. *(S)*
 
 ### ✅ Milestone E — maintainability — COMPLETE
 17. ✅ **TD-3** DB connection pooling + fixed modernc DSN pragma syntax. *(M)*
@@ -333,9 +333,9 @@ a single low-risk cleanup PR.
 | SEC-1 | 🔴 | Security | Child role not enforced on events endpoint | M | ✅ Milestone A |
 | SEC-2 | 🟠 | Security | Last-admin can be demoted → lockout | S | ✅ Milestone A |
 | SEC-3 | 🟠 | Security | Internal error text leaked to client | S | ✅ Quick-win PR |
-| SEC-4 | 🟡 | Security | Barcode param unvalidated into outbound URL | S | 🔲 Open |
-| SEC-5 | 🟡 | Security | No body-size cap / rate limiting | M | 🔲 Open |
-| SEC-6 | 🟡 | Security | Member directory visible to all roles | S | 🔲 Open |
+| SEC-4 | 🟡 | Security | Barcode param unvalidated into outbound URL | S | ✅ Milestone D |
+| SEC-5 | 🟡 | Security | No body-size cap / rate limiting | M | ✅ Milestone D |
+| SEC-6 | 🟡 | Security | Member directory visible to all roles | S | ✅ Milestone D |
 | BUG-1 | 🔴 | Bug | Auto shelf-order learning never works | M | ✅ Milestone A |
 | BUG-2 | 🔴 | Bug | List/store delete fails silently (FK, swallowed error) | M | ✅ Milestone A |
 | BUG-3 | 🟠 | Bug | X-Conn-ID echo-exclusion is dead code | M | ✅ Milestone B |
