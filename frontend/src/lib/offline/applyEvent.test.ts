@@ -60,7 +60,10 @@ describe('applyEvent — item.added', () => {
 
 	it('is idempotent: ignores a second add with the same item_id', () => {
 		const initial = [item({ id: 'i1', display_name: 'Apples' })];
-		const result = applyEvent(initial, event('item.added', { item_id: 'i1', name_override: 'Apples again' }));
+		const result = applyEvent(
+			initial,
+			event('item.added', { item_id: 'i1', name_override: 'Apples again' })
+		);
 		expect(result).toHaveLength(1);
 		expect(result[0].display_name).toBe('Apples'); // unchanged
 	});
@@ -114,7 +117,9 @@ describe('applyEvent — item.deleted', () => {
 
 describe('applyEvent — item.updated', () => {
 	it('updates only the provided fields', () => {
-		const items = [item({ id: 'i1', display_name: 'Apples', quantity: 1, unit: 'kg', note: 'old note' })];
+		const items = [
+			item({ id: 'i1', display_name: 'Apples', quantity: 1, unit: 'kg', note: 'old note' })
+		];
 		const result = applyEvent(items, event('item.updated', { item_id: 'i1', note: 'new note' }));
 		expect(result[0].note).toBe('new note');
 		expect(result[0].quantity).toBe(1); // unchanged
@@ -123,7 +128,10 @@ describe('applyEvent — item.updated', () => {
 
 	it('updates display_name when name_override is provided', () => {
 		const items = [item({ id: 'i1', display_name: 'Old Name' })];
-		const result = applyEvent(items, event('item.updated', { item_id: 'i1', name_override: 'New Name' }));
+		const result = applyEvent(
+			items,
+			event('item.updated', { item_id: 'i1', name_override: 'New Name' })
+		);
 		expect(result[0].name_override).toBe('New Name');
 		expect(result[0].display_name).toBe('New Name');
 	});

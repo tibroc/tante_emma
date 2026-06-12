@@ -25,7 +25,7 @@ func okHandler() http.Handler {
 
 func TestNewRequireRole_AllowsExactRole(t *testing.T) {
 	tests := []struct {
-		minRole  models.Role
+		minRole   models.Role
 		actorRole models.Role
 		wantCode  int
 	}{
