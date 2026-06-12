@@ -1,0 +1,34 @@
+# Version control
+.git
+.gitignore
+
+# Data / secrets
+data/
+.env*
+*.env
+
+# Docs and plans
+*.md
+docs/
+.claude/
+
+# CI
+.github/
+
+# Frontend build artifacts (built inside Docker, not from host)
+frontend/node_modules
+frontend/.svelte-kit
+frontend/build
+
+# Backend build artifacts
+backend/coverage.out
+backend/coverage.html
+backend/tanteemma
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

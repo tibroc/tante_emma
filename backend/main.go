@@ -74,6 +74,10 @@ func main() {
 		r.Post("/auth/logout", auth.Logout)
 	})
 
+	// Health/version — unauthenticated so container probes and uptime monitors work
+	r.Get("/api/health", health)
+	r.Get("/api/version", version)
+
 	// WebSocket (self-authenticates via cookie)
 	r.Get("/ws", wsHandler.ServeWS)
 
@@ -82,8 +86,6 @@ func main() {
 		r.Use(requireAuth)
 		r.Use(middleware.MaxBytes(maxRequestBody))
 
-		r.Get("/api/health", health)
-		r.Get("/api/version", version)
 		r.Get("/api/auth/me", auth.Me)
 
 		// Lists

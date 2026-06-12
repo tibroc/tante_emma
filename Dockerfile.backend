@@ -1,14 +1,37 @@
-# Build stage
-FROM golang:1.26-alpine AS builder
-WORKDIR /app
-COPY backend/go.mod backend/go.sum ./
-RUN go mod download
-COPY backend/ .
-RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -o /tanteemma ./main.go
+# syntax=docker/dockerfile:1
 
-# Runtime stage
-FROM alpine:3.19
+# ── TLS certs + timezone data (copied to scratch) ────────────────────────────
+FROM alpine:3.21 AS certs
 RUN apk add --no-cache ca-certificates tzdata
+
+# ── Builder ───────────────────────────────────────────────────────────────────
+FROM golang:1.26-alpine AS builder
+
+ARG VERSION=dev
+WORKDIR /app
+
+COPY backend/go.mod backend/go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+COPY backend/ .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux go build \
+      -trimpath \
+      -ldflags="-s -w -X main.version=${VERSION}" \
+      -o /tanteemma \
+      ./main.go
+
+# ── Runtime (scratch — smallest possible attack surface) ─────────────────────
+FROM scratch
+
+COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=certs /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /tanteemma /tanteemma
+
+# Non-root: numeric UID/GID only (scratch has no /etc/passwd)
+USER 65532:65532
+
 EXPOSE 8080
 ENTRYPOINT ["/tanteemma"]

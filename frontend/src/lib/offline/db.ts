@@ -34,13 +34,11 @@ export async function getDB(): Promise<IDBPDatabase<TanteEmmaDB>> {
 
 	_db = await openDB<TanteEmmaDB>('tanteemma', 1, {
 		upgrade(db) {
-			db.createObjectStore('events_queue', { keyPath: 'id' })
-				.createIndex('list_id', 'list_id');
+			db.createObjectStore('events_queue', { keyPath: 'id' }).createIndex('list_id', 'list_id');
 
 			db.createObjectStore('lists', { keyPath: 'id' });
 
-			db.createObjectStore('list_items', { keyPath: 'id' })
-				.createIndex('list_id', 'list_id');
+			db.createObjectStore('list_items', { keyPath: 'id' }).createIndex('list_id', 'list_id');
 
 			db.createObjectStore('products', { keyPath: 'id' });
 

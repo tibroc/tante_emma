@@ -3,9 +3,9 @@ import { PUBLIC_WS_URL } from '$env/static/public';
 const WS_BASE = PUBLIC_WS_URL;
 
 type WsMessage =
-	| { type: 'event';    event: unknown }
+	| { type: 'event'; event: unknown }
 	| { type: 'presence'; user_id: string; list_id: string; active: boolean }
-	| { type: 'hello';    conn_id: string }
+	| { type: 'hello'; conn_id: string }
 	| { type: 'ping' };
 
 type MessageHandler = (msg: WsMessage) => void;
@@ -43,7 +43,10 @@ function scheduleReconnect() {
 function connect() {
 	clearReconnectTimer();
 	// Don't open a second socket if one is already connecting or open.
-	if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+	if (
+		socket &&
+		(socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)
+	) {
 		return;
 	}
 
@@ -53,7 +56,14 @@ function connect() {
 	ws.addEventListener('open', () => {
 		// Ignore if this socket has since been replaced.
 		if (socket !== ws) return;
-		if (dev) console.log('[ws] open → re-subscribe', [...activeSubscriptions], 'fire', reconnectHandlers.size, 'handlers');
+		if (dev)
+			console.log(
+				'[ws] open → re-subscribe',
+				[...activeSubscriptions],
+				'fire',
+				reconnectHandlers.size,
+				'handlers'
+			);
 		reconnectDelay = 1000;
 		for (const listId of activeSubscriptions) {
 			ws.send(JSON.stringify({ type: 'subscribe', list_id: listId }));

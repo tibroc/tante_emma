@@ -4,7 +4,7 @@ import { api } from '$lib/api';
 import { connHeaders } from '$lib/ws';
 
 export interface LocalEvent {
-	id: string;           // ULID
+	id: string; // ULID
 	type: string;
 	list_id: string;
 	user_id: string;

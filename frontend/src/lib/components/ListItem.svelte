@@ -20,18 +20,23 @@
 	>
 		{#if item.checked}✓{/if}
 	</button>
-	<div class="category-line" style:background-color={item.category_color ?? 'var(--border-subtle)'}></div>
+	<div
+		class="category-line"
+		style:background-color={item.category_color ?? 'var(--border-subtle)'}
+	></div>
 	<button class="name" onclick={() => onOpen?.(item.id)} aria-label={$_('item_sheet.open')}>
 		<span class="name-text">{item.display_name}</span>
 		{#if item.quantity}
-			<span class="qty">{item.quantity}{item.unit ? ' ' + $_('units.' + item.unit, { default: item.unit }) : ''}</span>
+			<span class="qty"
+				>{item.quantity}{item.unit
+					? ' ' + $_('units.' + item.unit, { default: item.unit })
+					: ''}</span
+			>
 		{/if}
 	</button>
-	<button
-		class="delete-btn"
-		onclick={() => onDelete?.(item.id)}
-		aria-label={$_('item.delete')}
-	>✕</button>
+	<button class="delete-btn" onclick={() => onDelete?.(item.id)} aria-label={$_('item.delete')}
+		>✕</button
+	>
 </div>
 
 <style>
@@ -68,7 +73,9 @@
 		flex-shrink: 0;
 		color: white;
 		font-size: 14px;
-		transition: background 120ms, border-color 120ms;
+		transition:
+			background 120ms,
+			border-color 120ms;
 	}
 
 	.list-item.checked .checkbox {
@@ -122,7 +129,9 @@
 		justify-content: center;
 		flex-shrink: 0;
 		border-radius: 8px;
-		transition: background 100ms, color 100ms;
+		transition:
+			background 100ms,
+			color 100ms;
 	}
 
 	.delete-btn:hover {

@@ -66,19 +66,35 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<div class="backdrop" role="presentation" onclick={() => { flush(); onClose?.(); }}></div>
+<div
+	class="backdrop"
+	role="presentation"
+	onclick={() => {
+		flush();
+		onClose?.();
+	}}
+></div>
 <div class="sheet" role="dialog" aria-modal="true" aria-label={item.display_name}>
 	<div class="handle" aria-hidden="true"></div>
 
 	<div class="title-row">
 		<h2 class="product-name">{item.display_name}</h2>
 		{#if item.category_icon}
-			<span class="cat-badge" style:background-color={item.category_color ?? 'var(--surface-overlay)'}>
+			<span
+				class="cat-badge"
+				style:background-color={item.category_color ?? 'var(--surface-overlay)'}
+			>
 				{item.category_icon}
 			</span>
 		{/if}
-		<button class="close-btn" onclick={() => { flush(); onClose?.(); }} aria-label={$_('item_sheet.close')}>✕</button>
+		<button
+			class="close-btn"
+			onclick={() => {
+				flush();
+				onClose?.();
+			}}
+			aria-label={$_('item_sheet.close')}>✕</button
+		>
 	</div>
 
 	<hr />
@@ -107,19 +123,15 @@
 	<div class="field">
 		<span class="field-label">{$_('item_sheet.store')}</span>
 		<div class="store-chips">
-			<button
-				class="chip"
-				class:active={selectedStore === ''}
-				onclick={() => pickStore('')}
-			>{$_('list.no_store')}</button>
+			<button class="chip" class:active={selectedStore === ''} onclick={() => pickStore('')}
+				>{$_('list.no_store')}</button
+			>
 			{#each stores as s (s.id)}
-				<button
-					class="chip"
-					class:active={selectedStore === s.id}
-					onclick={() => pickStore(s.id)}
-				>
-					<span aria-hidden="true">{s.icon}</span> {s.name}
-					{#if preferred.has(s.id)}<span class="star" title={$_('item_sheet.preferred')}>★</span>{/if}
+				<button class="chip" class:active={selectedStore === s.id} onclick={() => pickStore(s.id)}>
+					<span aria-hidden="true">{s.icon}</span>
+					{s.name}
+					{#if preferred.has(s.id)}<span class="star" title={$_('item_sheet.preferred')}>★</span
+						>{/if}
 				</button>
 			{/each}
 		</div>
@@ -285,7 +297,10 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
-		transition: background 150ms, color 150ms, border-color 150ms;
+		transition:
+			background 150ms,
+			color 150ms,
+			border-color 150ms;
 	}
 
 	.chip.active {

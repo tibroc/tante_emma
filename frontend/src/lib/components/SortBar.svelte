@@ -59,7 +59,8 @@
 			class:active={activeStoreId === s.id}
 			onclick={() => toggleStore(s.id)}
 		>
-			<span aria-hidden="true">{s.icon}</span> {s.name}
+			<span aria-hidden="true">{s.icon}</span>
+			{s.name}
 		</button>
 	{/each}
 </nav>
@@ -77,7 +78,9 @@
 		border-bottom: 1px solid var(--border-subtle);
 	}
 
-	.sort-bar::-webkit-scrollbar { display: none; }
+	.sort-bar::-webkit-scrollbar {
+		display: none;
+	}
 
 	.pill {
 		height: 32px;
@@ -92,7 +95,10 @@
 		white-space: nowrap;
 		cursor: pointer;
 		flex-shrink: 0;
-		transition: background 150ms, color 150ms, border-color 150ms;
+		transition:
+			background 150ms,
+			color 150ms,
+			border-color 150ms;
 	}
 
 	.pill.active {

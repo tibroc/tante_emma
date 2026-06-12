@@ -7,9 +7,9 @@
 	import { goto } from '$app/navigation';
 
 	const LOCALES = [
-		{ code: 'de',    label: 'Deutsch' },
-		{ code: 'en',    label: 'English' },
-		{ code: 'pt-BR', label: 'Português (BR)' },
+		{ code: 'de', label: 'Deutsch' },
+		{ code: 'en', label: 'English' },
+		{ code: 'pt-BR', label: 'Português (BR)' }
 	];
 
 	const darkMode = $derived($themeStore === 'dark');
@@ -67,8 +67,8 @@
 					<button
 						class="locale-pill"
 						class:active={$locale === l.code}
-						onclick={() => setLocale(l.code)}
-					>{l.label}</button>
+						onclick={() => setLocale(l.code)}>{l.label}</button
+					>
 				{/each}
 			</div>
 		</div>
@@ -123,7 +123,11 @@
 		flex-shrink: 0;
 	}
 
-	.profile-info { display: flex; flex-direction: column; gap: 2px; }
+	.profile-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
 
 	.profile-name {
 		font-weight: 600;
@@ -167,7 +171,9 @@
 		border-bottom: 1px solid var(--border-subtle);
 	}
 
-	.setting-row:last-child { border-bottom: none; }
+	.setting-row:last-child {
+		border-bottom: none;
+	}
 
 	.setting-label {
 		font-size: var(--text-base);
@@ -188,7 +194,9 @@
 		align-items: center;
 	}
 
-	.toggle.on { background: var(--color-primary); }
+	.toggle.on {
+		background: var(--color-primary);
+	}
 
 	.toggle-thumb {
 		width: 22px;
@@ -199,7 +207,9 @@
 		display: block;
 	}
 
-	.toggle.on .toggle-thumb { transform: translateX(20px); }
+	.toggle.on .toggle-thumb {
+		transform: translateX(20px);
+	}
 
 	.locale-pills {
 		display: flex;
@@ -237,7 +247,9 @@
 		border-bottom: 1px solid var(--border-subtle);
 	}
 
-	.setting-link:last-child { border-bottom: none; }
+	.setting-link:last-child {
+		border-bottom: none;
+	}
 
 	.logout-btn {
 		width: 100%;

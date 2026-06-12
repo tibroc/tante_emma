@@ -9,7 +9,6 @@
 
 <!-- TODO: full BottomSheet with swipe-down gesture (Phase 1) -->
 {#if open}
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="backdrop" role="presentation" onclick={onClose}></div>
 	<div class="sheet" role="dialog" aria-modal="true">
 		<div class="handle" aria-hidden="true"></div>

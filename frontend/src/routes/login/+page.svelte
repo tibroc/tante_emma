@@ -56,7 +56,9 @@
 		border-radius: 999px;
 		text-decoration: none;
 		box-shadow: var(--shadow-lg);
-		transition: transform 150ms, box-shadow 150ms;
+		transition:
+			transform 150ms,
+			box-shadow 150ms;
 	}
 
 	.btn-login:active {

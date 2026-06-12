@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { lists, type List } from '$lib/stores/listStore';
 	import { api } from '$lib/api';
-	import { ulid } from '$lib/ulid';
 	import { user } from '$lib/stores/userStore';
 	import { _ } from 'svelte-i18n';
 
@@ -43,14 +42,24 @@
 	</header>
 
 	{#if $user?.role !== 'child'}
-		<form class="create-form" onsubmit={(e) => { e.preventDefault(); createList(); }}>
+		<form
+			class="create-form"
+			onsubmit={(e) => {
+				e.preventDefault();
+				createList();
+			}}
+		>
 			<input
 				type="text"
 				bind:value={newName}
 				placeholder={$_('lists.new_name_ph')}
 				aria-label={$_('lists.new_name_label')}
 			/>
-			<button type="submit" disabled={creating || !newName.trim()} aria-label={$_('lists.create_label')}>
+			<button
+				type="submit"
+				disabled={creating || !newName.trim()}
+				aria-label={$_('lists.create_label')}
+			>
 				+
 			</button>
 		</form>
@@ -129,8 +138,12 @@
 		transition: transform 80ms;
 	}
 
-	.create-form button:active { transform: scale(0.9); }
-	.create-form button:disabled { opacity: 0.4; }
+	.create-form button:active {
+		transform: scale(0.9);
+	}
+	.create-form button:disabled {
+		opacity: 0.4;
+	}
 
 	.list-cards {
 		list-style: none;
@@ -155,9 +168,13 @@
 		min-height: 56px;
 	}
 
-	.list-card:active { box-shadow: none; }
+	.list-card:active {
+		box-shadow: none;
+	}
 
-	.list-icon { font-size: 24px; }
+	.list-icon {
+		font-size: 24px;
+	}
 
 	.list-name {
 		flex: 1;
@@ -181,7 +198,9 @@
 		padding: var(--space-16) 0;
 	}
 
-	.empty-icon { font-size: 48px; }
+	.empty-icon {
+		font-size: 48px;
+	}
 
 	.empty-heading {
 		font-family: var(--font-display);
@@ -189,5 +208,9 @@
 		color: var(--text-secondary);
 	}
 
-	.hint { color: var(--text-muted); text-align: center; padding: var(--space-8); }
+	.hint {
+		color: var(--text-muted);
+		text-align: center;
+		padding: var(--space-8);
+	}
 </style>

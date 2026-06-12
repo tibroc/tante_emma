@@ -9,14 +9,16 @@
 	import { api } from '$lib/api';
 	import { startWs } from '$lib/ws';
 	import '$lib/i18n';
-	import { locale, _ } from 'svelte-i18n';
-	import { theme as themeStore } from '$lib/stores/themeStore';
-	// Importing themeStore triggers its subscribe, which sets data-theme from localStorage.
+	import { _ } from 'svelte-i18n';
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	import { theme as themeStore } from '$lib/stores/themeStore'; // side-effect: sets data-theme from localStorage on subscribe
 
 	let { children } = $props();
 
 	// PWA install prompt
-	let installPrompt = $state<Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> } | null>(null);
+	let installPrompt = $state<
+		(Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> }) | null
+	>(null);
 	let showInstallBanner = $state(false);
 
 	if (browser) {
@@ -36,10 +38,10 @@
 	}
 
 	const navItems = $derived([
-		{ href: '/lists',    icon: '🛒', label: $_('nav.lists')   },
-		{ href: '/stores',   icon: '🏪', label: $_('nav.stores')  },
-		{ href: '/history',  icon: '🕐', label: $_('nav.history') },
-		{ href: '/settings', icon: '⚙️', label: $_('nav.settings').slice(0, 5) },
+		{ href: '/lists', icon: '🛒', label: $_('nav.lists') },
+		{ href: '/stores', icon: '🏪', label: $_('nav.stores') },
+		{ href: '/history', icon: '🕐', label: $_('nav.history') },
+		{ href: '/settings', icon: '⚙️', label: $_('nav.settings').slice(0, 5) }
 	]);
 
 	const isAuthPage = $derived(page.url.pathname === '/login');
@@ -67,7 +69,11 @@
 	<div class="install-banner">
 		<span>{$_('pwa.install_prompt')}</span>
 		<button onclick={installApp}>{$_('pwa.install')}</button>
-		<button class="dismiss" onclick={() => (showInstallBanner = false)} aria-label={$_('pwa.dismiss')}>✕</button>
+		<button
+			class="dismiss"
+			onclick={() => (showInstallBanner = false)}
+			aria-label={$_('pwa.dismiss')}>✕</button
+		>
 	</div>
 {/if}
 
@@ -75,7 +81,7 @@
 
 {#if !isAuthPage}
 	<nav class="bottom-nav safe-bottom" aria-label={$_('nav.aria_label')}>
-		{#each navItems as item}
+		{#each navItems as item (item.href)}
 			{@const active = page.url.pathname.startsWith(item.href)}
 			<a href={item.href} class="nav-tab" class:active aria-current={active ? 'page' : undefined}>
 				<span class="nav-icon" aria-hidden="true">{item.icon}</span>
@@ -103,7 +109,9 @@
 		font-size: var(--text-sm);
 	}
 
-	.install-banner span { flex: 1; }
+	.install-banner span {
+		flex: 1;
+	}
 
 	.install-banner button {
 		background: white;
@@ -120,7 +128,7 @@
 
 	.install-banner .dismiss {
 		background: transparent;
-		color: rgba(255,255,255,0.7);
+		color: rgba(255, 255, 255, 0.7);
 		padding: var(--space-1);
 		min-width: 28px;
 	}
@@ -166,7 +174,9 @@
 		padding: var(--space-1);
 		border-radius: 8px;
 		margin: var(--space-1);
-		transition: background 100ms, color 100ms;
+		transition:
+			background 100ms,
+			color 100ms;
 		min-height: 48px;
 	}
 

@@ -18,10 +18,27 @@
 	import ItemDetailSheet from '$lib/components/ItemDetailSheet.svelte';
 	import PresenceAvatars from '$lib/components/PresenceAvatars.svelte';
 
-	interface Store { id: string; name: string; icon: string; color: string; }
-	interface ShelfEntry { category_id: string; position: number; }
-	interface Member { id: string; name: string; avatar_url?: string; }
-	interface Share { user_id: string; name: string; avatar_url?: string; permission: string; }
+	interface Store {
+		id: string;
+		name: string;
+		icon: string;
+		color: string;
+	}
+	interface ShelfEntry {
+		category_id: string;
+		position: number;
+	}
+	interface Member {
+		id: string;
+		name: string;
+		avatar_url?: string;
+	}
+	interface Share {
+		user_id: string;
+		name: string;
+		avatar_url?: string;
+		permission: string;
+	}
 
 	const listId = $derived(page.params.id ?? '');
 
@@ -34,7 +51,9 @@
 	// Use page.params.id directly (not the derived listId) to avoid the
 	// "reference only captures initial value" Svelte warning.
 	let viewMode = $state<'list' | 'tile'>(
-		browser ? ((localStorage.getItem(`view-mode-${page.params.id}`) as 'list' | 'tile') ?? 'list') : 'list'
+		browser
+			? ((localStorage.getItem(`view-mode-${page.params.id}`) as 'list' | 'tile') ?? 'list')
+			: 'list'
 	);
 
 	function toggleViewMode() {
@@ -107,21 +126,23 @@
 
 	// Apply the active store filter (if any) before grouping/sorting.
 	const visibleItems = $derived(
-		activeFilterStoreId
-			? $items.filter((i) => itemMatchesStore(i, activeFilterStoreId!))
-			: $items
+		activeFilterStoreId ? $items.filter((i) => itemMatchesStore(i, activeFilterStoreId!)) : $items
 	);
 
 	// Group items: unchecked first, then checked.
 	const unchecked = $derived(sortedItems(visibleItems.filter((i) => !i.checked)));
-	const checked   = $derived(sortedItems(visibleItems.filter((i) => i.checked)));
+	const checked = $derived(sortedItems(visibleItems.filter((i) => i.checked)));
 	let showChecked = $state(false);
 
 	// Item detail bottom sheet.
 	let detailItemId = $state<string | null>(null);
 	const detailItem = $derived($items.find((i) => i.id === detailItemId) ?? null);
-	function openDetail(id: string) { detailItemId = id; }
-	function closeDetail() { detailItemId = null; }
+	function openDetail(id: string) {
+		detailItemId = id;
+	}
+	function closeDetail() {
+		detailItemId = null;
+	}
 
 	onMount(async () => {
 		await loadList();
@@ -153,9 +174,13 @@
 			const [data, storeList, memberList] = await Promise.all([
 				api.get<{ list: { name: string }; items: ListItem[] }>(`/api/lists/${listId}`),
 				api.get<Store[]>('/api/stores').catch(() => [] as Store[]),
-				api.get<{ id: string; name: string; avatar_url?: string }[]>('/api/users/members').catch(() => [])
+				api
+					.get<{ id: string; name: string; avatar_url?: string }[]>('/api/users/members')
+					.catch(() => [])
 			]);
-			memberMap = new Map(memberList.map((m) => [m.id, { name: m.name, avatar_url: m.avatar_url }]));
+			memberMap = new Map(
+				memberList.map((m) => [m.id, { name: m.name, avatar_url: m.avatar_url }])
+			);
 			listName = data.list.name;
 			stores = storeList;
 			if (remaining === 0) {
@@ -190,7 +215,9 @@
 	}
 
 	function shelfPos(i: ListItem): number {
-		return i.category_id ? (shelfOrder.get(i.category_id) ?? UNSORTED_SHELF_POSITION) : UNSORTED_SHELF_POSITION;
+		return i.category_id
+			? (shelfOrder.get(i.category_id) ?? UNSORTED_SHELF_POSITION)
+			: UNSORTED_SHELF_POSITION;
 	}
 
 	function sortedItems(list: ListItem[]): ListItem[] {
@@ -229,7 +256,12 @@
 			return;
 		}
 		if (msg.type !== 'event') return;
-		const ev = (msg as { type: 'event'; event: { type: string; list_id?: string; payload: Record<string, unknown> } }).event;
+		const ev = (
+			msg as {
+				type: 'event';
+				event: { type: string; list_id?: string; payload: Record<string, unknown> };
+			}
+		).event;
 		applyEvent(ev);
 	});
 
@@ -246,7 +278,10 @@
 		items.update((current) => reduceEvent(current, { ...ev, list_id: ev.list_id ?? listId }));
 	}
 
-	interface ServerEvent { type: string; payload: Record<string, unknown> }
+	interface ServerEvent {
+		type: string;
+		payload: Record<string, unknown>;
+	}
 
 	async function submitEvent(
 		eventId: string,
@@ -267,7 +302,11 @@
 			return undefined;
 		}
 		try {
-			const res = await api.post<{ events: ServerEvent[] }>(`/api/lists/${listId}/events`, event, connHeaders());
+			const res = await api.post<{ events: ServerEvent[] }>(
+				`/api/lists/${listId}/events`,
+				event,
+				connHeaders()
+			);
 			if (dev) console.log('[list] submitEvent posted', type);
 			return res.events;
 		} catch (e) {
@@ -314,7 +353,9 @@
 			);
 			const resolvedCat = resolved?.payload.category_id as string | undefined;
 			if (resolvedCat) {
-				items.update((ls) => ls.map((i) => (i.id === itemId ? { ...i, category_id: resolvedCat } : i)));
+				items.update((ls) =>
+					ls.map((i) => (i.id === itemId ? { ...i, category_id: resolvedCat } : i))
+				);
 			}
 		} catch {
 			items.update((ls) => ls.filter((i) => i.id !== itemId));
@@ -432,7 +473,8 @@
 				class="header-btn"
 				onclick={toggleViewMode}
 				aria-label={viewMode === 'list' ? $_('list.tile_view') : $_('list.list_view')}
-			>{viewMode === 'list' ? '⊞' : '☰'}</button>
+				>{viewMode === 'list' ? '⊞' : '☰'}</button
+			>
 		</header>
 
 		<SortBar
@@ -479,7 +521,12 @@
 				<ul class="item-list">
 					{#each unchecked as item (item.id)}
 						<li>
-							<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} onOpen={openDetail} />
+							<ListItemRow
+								{item}
+								onCheck={handleCheck}
+								onDelete={handleDelete}
+								onOpen={openDetail}
+							/>
 						</li>
 					{/each}
 				</ul>
@@ -505,14 +552,24 @@
 						{#if viewMode === 'tile'}
 							<div class="tile-grid tile-grid--checked">
 								{#each checked as item (item.id)}
-									<TileItem {item} onCheck={handleCheck} onDelete={handleDelete} onOpen={openDetail} />
+									<TileItem
+										{item}
+										onCheck={handleCheck}
+										onDelete={handleDelete}
+										onOpen={openDetail}
+									/>
 								{/each}
 							</div>
 						{:else}
 							<ul class="item-list">
 								{#each checked as item (item.id)}
 									<li>
-										<ListItemRow {item} onCheck={handleCheck} onDelete={handleDelete} onOpen={openDetail} />
+										<ListItemRow
+											{item}
+											onCheck={handleCheck}
+											onDelete={handleDelete}
+											onOpen={openDetail}
+										/>
 									</li>
 								{/each}
 							</ul>
@@ -535,23 +592,30 @@
 			{stores}
 			isAdmin={$user?.role === 'admin'}
 			onUpdate={handleItemUpdate}
-			onDelete={(id) => { closeDetail(); handleDelete(id); }}
+			onDelete={(id) => {
+				closeDetail();
+				handleDelete(id);
+			}}
 			onClose={closeDetail}
 		/>
 	{/key}
 {/if}
 
 {#if shareOpen}
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="backdrop" role="presentation" onclick={() => (shareOpen = false)}></div>
-	<div class="share-sheet" role="dialog" aria-modal="true" aria-label={$_('share_sheet.aria_label')}>
+	<div
+		class="share-sheet"
+		role="dialog"
+		aria-modal="true"
+		aria-label={$_('share_sheet.aria_label')}
+	>
 		<div class="sheet-handle"></div>
 		<h2 class="sheet-title">{$_('share_sheet.title')}</h2>
 		{#if shareLoading}
 			<p class="hint">{$_('list.loading')}</p>
 		{:else}
 			<ul class="member-list">
-				{#each members.filter(m => m.id !== $user?.id) as m (m.id)}
+				{#each members.filter((m) => m.id !== $user?.id) as m (m.id)}
 					<li class="member-row">
 						<div class="avatar">{m.name[0]?.toUpperCase()}</div>
 						<span class="member-name">{m.name}</span>
@@ -690,7 +754,10 @@
 		font-size: var(--text-sm);
 		font-family: var(--font-body);
 		cursor: pointer;
-		transition: background 120ms, color 120ms, border-color 120ms;
+		transition:
+			background 120ms,
+			color 120ms,
+			border-color 120ms;
 	}
 
 	.share-toggle.shared {
@@ -711,7 +778,9 @@
 	}
 
 	@media (min-width: 480px) {
-		.tile-grid { grid-template-columns: repeat(3, 1fr); }
+		.tile-grid {
+			grid-template-columns: repeat(3, 1fr);
+		}
 	}
 
 	.item-list {
@@ -751,7 +820,9 @@
 		transition: transform 200ms;
 		display: inline-block;
 	}
-	.chevron.rotated { transform: rotate(90deg); }
+	.chevron.rotated {
+		transform: rotate(90deg);
+	}
 
 	.clear-btn {
 		margin-left: auto;
@@ -774,7 +845,9 @@
 		text-align: center;
 	}
 
-	.empty-icon { font-size: 48px; }
+	.empty-icon {
+		font-size: 48px;
+	}
 
 	.empty-heading {
 		font-family: var(--font-display);
@@ -814,7 +887,11 @@
 		color: var(--text-primary);
 	}
 
-	.hint { color: var(--text-muted); text-align: center; padding: var(--space-8); }
+	.hint {
+		color: var(--text-muted);
+		text-align: center;
+		padding: var(--space-8);
+	}
 
 	.toast {
 		position: fixed;

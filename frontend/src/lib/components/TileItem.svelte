@@ -20,14 +20,20 @@
 		{/if}
 		<button
 			class="edit-btn"
-			onclick={(e) => { e.stopPropagation(); onOpen?.(item.id); }}
-			aria-label={$_('item_sheet.open')}
-		>⋯</button>
+			onclick={(e) => {
+				e.stopPropagation();
+				onOpen?.(item.id);
+			}}
+			aria-label={$_('item_sheet.open')}>⋯</button
+		>
 		<button
 			class="delete-btn"
-			onclick={(e) => { e.stopPropagation(); onDelete?.(item.id); }}
-			aria-label={$_('item.delete')}
-		>✕</button>
+			onclick={(e) => {
+				e.stopPropagation();
+				onDelete?.(item.id);
+			}}
+			aria-label={$_('item.delete')}>✕</button
+		>
 	</div>
 
 	<button
@@ -38,7 +44,11 @@
 	>
 		<span class="name">{item.display_name}</span>
 		{#if item.quantity}
-			<span class="qty">{item.quantity}{item.unit ? ' ' + $_('units.' + item.unit, { default: item.unit }) : ''}</span>
+			<span class="qty"
+				>{item.quantity}{item.unit
+					? ' ' + $_('units.' + item.unit, { default: item.unit })
+					: ''}</span
+			>
 		{/if}
 	</button>
 
@@ -94,7 +104,9 @@
 		justify-content: center;
 		border-radius: 6px;
 		padding: 0;
-		transition: background 100ms, color 100ms;
+		transition:
+			background 100ms,
+			color 100ms;
 	}
 
 	.edit-btn {

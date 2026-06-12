@@ -19,7 +19,10 @@
 	let saving = $state<string | null>(null);
 
 	onMount(async () => {
-		if ($user?.role !== 'admin') { goto('/lists'); return; }
+		if ($user?.role !== 'admin') {
+			goto('/lists');
+			return;
+		}
 		try {
 			users = await api.get<AdminUser[]>('/api/users');
 		} finally {
@@ -31,7 +34,7 @@
 		saving = uid;
 		try {
 			await api.put(`/api/users/${uid}/role`, { role });
-			users = users.map((u) => u.id === uid ? { ...u, role: role as AdminUser['role'] } : u);
+			users = users.map((u) => (u.id === uid ? { ...u, role: role as AdminUser['role'] } : u));
 		} finally {
 			saving = null;
 		}
@@ -60,7 +63,9 @@
 					<div class="user-info">
 						<p class="user-name">{u.name}</p>
 						<p class="user-email">{u.email}</p>
-						<p class="user-seen">{$_('admin.last_seen', { values: { date: lastSeen(u.last_seen) } })}</p>
+						<p class="user-seen">
+							{$_('admin.last_seen', { values: { date: lastSeen(u.last_seen) } })}
+						</p>
 					</div>
 					<select
 						value={u.role}
@@ -138,7 +143,10 @@
 		flex-shrink: 0;
 	}
 
-	.user-info { flex: 1; min-width: 0; }
+	.user-info {
+		flex: 1;
+		min-width: 0;
+	}
 
 	.user-name {
 		font-weight: 500;
@@ -150,7 +158,8 @@
 		text-overflow: ellipsis;
 	}
 
-	.user-email, .user-seen {
+	.user-email,
+	.user-seen {
 		font-size: var(--text-xs);
 		color: var(--text-muted);
 		margin: 0;
@@ -167,7 +176,13 @@
 		flex-shrink: 0;
 	}
 
-	select:disabled { opacity: 0.5; }
+	select:disabled {
+		opacity: 0.5;
+	}
 
-	.hint { text-align: center; color: var(--text-muted); padding: var(--space-8); }
+	.hint {
+		text-align: center;
+		color: var(--text-muted);
+		padding: var(--space-8);
+	}
 </style>

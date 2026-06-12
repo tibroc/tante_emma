@@ -1,168 +1,168 @@
 {
-  "nav": {
-    "lists":      "Lists",
-    "stores":     "Stores",
-    "history":    "History",
-    "settings":   "Settings",
-    "aria_label": "Main navigation"
-  },
-  "login": {
-    "tagline": "Shopping. Simply.",
-    "sign_in": "Sign in"
-  },
-  "lists": {
-    "title":          "Shopping Lists",
-    "new_name_ph":    "New list…",
-    "new_name_label": "Name of new list",
-    "create_label":   "Create list",
-    "empty":          "No lists yet",
-    "shared_badge":   "shared"
-  },
-  "list": {
-    "empty_heading":      "List is empty",
-    "empty_body":         "Tap above to add something.",
-    "loading":            "Loading…",
-    "checked_count":      "{n} done",
-    "clear_checked":      "Clear all",
-    "tile_view":          "Tile view",
-    "list_view":          "List view",
-    "share":              "Share",
-    "active_store":       "Shopping at:",
-    "active_store_label": "Active store for this shopping trip",
-    "select_store":       "Select store",
-    "no_store":           "– no store –"
-  },
-  "add_item": {
-    "placeholder": "Add item…",
-    "aria_add":    "Add",
-    "aria_scan":   "Scan barcode",
-    "aria_input":  "Add item"
-  },
-  "sort": {
-    "category":   "Category",
-    "store":      "Store",
-    "date":       "Date",
-    "alpha":      "A–Z",
-    "aria_label": "Sort & filter"
-  },
-  "item": {
-    "check":   "Mark as done",
-    "uncheck": "Mark as not done",
-    "delete":  "Remove item",
-    "removed": "Removed"
-  },
-  "item_sheet": {
-    "open":         "Open details",
-    "close":        "Close",
-    "quantity":     "Quantity",
-    "unit":         "Unit",
-    "no_unit":      "– unit –",
-    "store":        "Store",
-    "note":         "Note",
-    "note_ph":      "e.g. the large pack",
-    "preferred":    "Preferred store",
-    "edit_product": "Edit product"
-  },
-  "units": {
-    "pcs": "pc",
-    "g":   "g",
-    "kg":  "kg",
-    "ml":  "ml",
-    "l":   "l",
-    "pkg": "pkg"
-  },
-  "share_sheet": {
-    "title":      "Share list",
-    "aria_label": "Share list",
-    "shared":     "✓ Shared",
-    "share":      "Share"
-  },
-  "scanner": {
-    "aria_label":         "Scan barcode",
-    "cancel":             "Cancel",
-    "scanning":           "Scanning barcode…",
-    "camera_unavailable": "Camera not available"
-  },
-  "pwa": {
-    "install_prompt": "Install TanteEmma as app",
-    "install":        "Install",
-    "dismiss":        "Dismiss"
-  },
-  "status": {
-    "offline": "⚡ Offline"
-  },
-  "stores": {
-    "title":          "Stores",
-    "add":            "+ Store",
-    "empty":          "No stores yet.",
-    "create_first":   "Create first store",
-    "no_categories":  "No categories saved. Buy items to auto-learn the order.",
-    "shelf_hint":     "Drag to sort – order = aisle sequence.",
-    "edit":           "Edit",
-    "delete":         "Delete",
-    "shelf_order":    "Shelf order",
-    "confirm_delete": "Really delete store?",
-    "save_error":     "Save failed",
-    "delete_error":   "Delete failed",
-    "load_error":     "Could not load stores",
-    "shelf_error":    "Could not save shelf order",
-    "bulk_title":     "Assign stores by category",
-    "bulk_hint":      "Assign a preferred store to every product in a category.",
-    "bulk_category":  "Choose category",
-    "bulk_store":     "Choose store",
-    "bulk_assign":    "Assign",
-    "bulk_done":      "Assigned {n} products",
-    "bulk_error":     "Assignment failed",
-    "form": {
-      "name":       "Name",
-      "name_ph":    "e.g. Tesco High Street",
-      "emoji":      "Emoji",
-      "color":      "Color",
-      "address":    "Address (optional)",
-      "address_ph": "123 Main St",
-      "create":     "Create store",
-      "edit":       "Edit store",
-      "cancel":     "Cancel",
-      "save":       "Save"
-    }
-  },
-  "history": {
-    "title":        "History",
-    "search_ph":    "Search…",
-    "search_label": "Search history",
-    "empty":        "Nothing purchased yet.",
-    "no_results":   "No results for \"{q}\".",
-    "load_error":   "Could not load history"
-  },
-  "settings": {
-    "title":     "Settings",
-    "language":  "Language",
-    "dark_mode": "Dark mode",
-    "logout":    "Log out",
-    "version":   "Version"
-  },
-  "admin": {
-    "users_title":          "User management",
-    "products_title":       "Product management",
-    "role_admin":           "Admin",
-    "role_member":          "Member",
-    "role_child":           "Child",
-    "save_role":            "Save role",
-    "last_seen":            "Last seen: {date}",
-    "role_for":             "Role for {name}",
-    "product_search_ph":    "Search product…",
-    "product_search_label": "Search product",
-    "product_edit":         "Edit product",
-    "product_create":       "Create product",
-    "field_name_de":        "Name (DE)",
-    "field_name_en":        "Name (EN)",
-    "field_brand":          "Brand",
-    "field_barcode":        "Barcode",
-    "field_category":       "Category",
-    "field_preferred_stores": "Preferred stores",
-    "no_category":          "– none –"
-  },
-  "errors": {
-    "sync": "Could not sync"
-  }
+	"nav": {
+		"lists": "Lists",
+		"stores": "Stores",
+		"history": "History",
+		"settings": "Settings",
+		"aria_label": "Main navigation"
+	},
+	"login": {
+		"tagline": "Shopping. Simply.",
+		"sign_in": "Sign in"
+	},
+	"lists": {
+		"title": "Shopping Lists",
+		"new_name_ph": "New list…",
+		"new_name_label": "Name of new list",
+		"create_label": "Create list",
+		"empty": "No lists yet",
+		"shared_badge": "shared"
+	},
+	"list": {
+		"empty_heading": "List is empty",
+		"empty_body": "Tap above to add something.",
+		"loading": "Loading…",
+		"checked_count": "{n} done",
+		"clear_checked": "Clear all",
+		"tile_view": "Tile view",
+		"list_view": "List view",
+		"share": "Share",
+		"active_store": "Shopping at:",
+		"active_store_label": "Active store for this shopping trip",
+		"select_store": "Select store",
+		"no_store": "– no store –"
+	},
+	"add_item": {
+		"placeholder": "Add item…",
+		"aria_add": "Add",
+		"aria_scan": "Scan barcode",
+		"aria_input": "Add item"
+	},
+	"sort": {
+		"category": "Category",
+		"store": "Store",
+		"date": "Date",
+		"alpha": "A–Z",
+		"aria_label": "Sort & filter"
+	},
+	"item": {
+		"check": "Mark as done",
+		"uncheck": "Mark as not done",
+		"delete": "Remove item",
+		"removed": "Removed"
+	},
+	"item_sheet": {
+		"open": "Open details",
+		"close": "Close",
+		"quantity": "Quantity",
+		"unit": "Unit",
+		"no_unit": "– unit –",
+		"store": "Store",
+		"note": "Note",
+		"note_ph": "e.g. the large pack",
+		"preferred": "Preferred store",
+		"edit_product": "Edit product"
+	},
+	"units": {
+		"pcs": "pc",
+		"g": "g",
+		"kg": "kg",
+		"ml": "ml",
+		"l": "l",
+		"pkg": "pkg"
+	},
+	"share_sheet": {
+		"title": "Share list",
+		"aria_label": "Share list",
+		"shared": "✓ Shared",
+		"share": "Share"
+	},
+	"scanner": {
+		"aria_label": "Scan barcode",
+		"cancel": "Cancel",
+		"scanning": "Scanning barcode…",
+		"camera_unavailable": "Camera not available"
+	},
+	"pwa": {
+		"install_prompt": "Install TanteEmma as app",
+		"install": "Install",
+		"dismiss": "Dismiss"
+	},
+	"status": {
+		"offline": "⚡ Offline"
+	},
+	"stores": {
+		"title": "Stores",
+		"add": "+ Store",
+		"empty": "No stores yet.",
+		"create_first": "Create first store",
+		"no_categories": "No categories saved. Buy items to auto-learn the order.",
+		"shelf_hint": "Drag to sort – order = aisle sequence.",
+		"edit": "Edit",
+		"delete": "Delete",
+		"shelf_order": "Shelf order",
+		"confirm_delete": "Really delete store?",
+		"save_error": "Save failed",
+		"delete_error": "Delete failed",
+		"load_error": "Could not load stores",
+		"shelf_error": "Could not save shelf order",
+		"bulk_title": "Assign stores by category",
+		"bulk_hint": "Assign a preferred store to every product in a category.",
+		"bulk_category": "Choose category",
+		"bulk_store": "Choose store",
+		"bulk_assign": "Assign",
+		"bulk_done": "Assigned {n} products",
+		"bulk_error": "Assignment failed",
+		"form": {
+			"name": "Name",
+			"name_ph": "e.g. Tesco High Street",
+			"emoji": "Emoji",
+			"color": "Color",
+			"address": "Address (optional)",
+			"address_ph": "123 Main St",
+			"create": "Create store",
+			"edit": "Edit store",
+			"cancel": "Cancel",
+			"save": "Save"
+		}
+	},
+	"history": {
+		"title": "History",
+		"search_ph": "Search…",
+		"search_label": "Search history",
+		"empty": "Nothing purchased yet.",
+		"no_results": "No results for \"{q}\".",
+		"load_error": "Could not load history"
+	},
+	"settings": {
+		"title": "Settings",
+		"language": "Language",
+		"dark_mode": "Dark mode",
+		"logout": "Log out",
+		"version": "Version"
+	},
+	"admin": {
+		"users_title": "User management",
+		"products_title": "Product management",
+		"role_admin": "Admin",
+		"role_member": "Member",
+		"role_child": "Child",
+		"save_role": "Save role",
+		"last_seen": "Last seen: {date}",
+		"role_for": "Role for {name}",
+		"product_search_ph": "Search product…",
+		"product_search_label": "Search product",
+		"product_edit": "Edit product",
+		"product_create": "Create product",
+		"field_name_de": "Name (DE)",
+		"field_name_en": "Name (EN)",
+		"field_brand": "Brand",
+		"field_barcode": "Barcode",
+		"field_category": "Category",
+		"field_preferred_stores": "Preferred stores",
+		"no_category": "– none –"
+	},
+	"errors": {
+		"sync": "Could not sync"
+	}
 }

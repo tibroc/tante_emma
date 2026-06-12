@@ -1,23 +1,39 @@
-# Build stage
+# syntax=docker/dockerfile:1
+
+# ── Builder ───────────────────────────────────────────────────────────────────
 FROM node:24-alpine AS builder
+
 WORKDIR /app
+
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci
+
 COPY frontend/ .
 RUN npm run build
-# Strip devDependencies so node_modules can be copied straight into runtime.
+
+# Strip devDependencies — adapter-node needs runtime deps but not the rest.
 RUN npm prune --omit=dev
 
-# Runtime stage
+# ── Runtime ───────────────────────────────────────────────────────────────────
 FROM node:24-alpine
+
 WORKDIR /app
-# adapter-node does NOT bundle dependencies — external imports (e.g. 'idb',
-# 'ulid') resolve from node_modules at runtime. Copy the pruned tree from the
-# builder so it always matches the freshly compiled build (no separate cached
-# npm-ci layer that podman can skip).
+
+# adapter-node does NOT bundle deps — external imports (idb, ulid, etc.) resolve
+# from node_modules at runtime, so copy the pruned tree from the builder.
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/package.json ./
+
 ENV NODE_ENV=production
+
+# Run as the built-in non-root node user.
+USER node
+
 EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD node -e "fetch('http://localhost:3000/').then(r=>r.ok||process.exit(1)).catch(()=>process.exit(1))"
+
 CMD ["node", "build"]

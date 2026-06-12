@@ -21,9 +21,7 @@
 
 	const filtered = $derived(
 		search.trim()
-			? entries.filter((e) =>
-					e.name_snapshot.toLowerCase().includes(search.trim().toLowerCase())
-			  )
+			? entries.filter((e) => e.name_snapshot.toLowerCase().includes(search.trim().toLowerCase()))
 			: entries
 	);
 
@@ -32,7 +30,10 @@
 		const map = new Map<string, HistoryEntry[]>();
 		for (const e of filtered) {
 			const day = new Date(e.checked_at).toLocaleDateString('de-DE', {
-				weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+				weekday: 'long',
+				day: 'numeric',
+				month: 'long',
+				year: 'numeric'
 			});
 			if (!map.has(day)) map.set(day, []);
 			map.get(day)!.push(e);
@@ -134,9 +135,13 @@
 		transition: outline-color 150ms;
 	}
 
-	input[type='search']:focus { outline-color: var(--color-primary); }
+	input[type='search']:focus {
+		outline-color: var(--color-primary);
+	}
 
-	.day-group { margin-bottom: var(--space-4); }
+	.day-group {
+		margin-bottom: var(--space-4);
+	}
 
 	.day-heading {
 		font-size: var(--text-sm);
@@ -198,14 +203,19 @@
 		color: var(--text-muted);
 	}
 
-	.empty-icon { font-size: 48px; }
+	.empty-icon {
+		font-size: 48px;
+	}
 
-	.hint, .error {
+	.hint,
+	.error {
 		text-align: center;
 		padding: var(--space-8);
 		color: var(--text-muted);
 		font-size: var(--text-sm);
 	}
 
-	.error { color: var(--color-danger); }
+	.error {
+		color: var(--color-danger);
+	}
 </style>

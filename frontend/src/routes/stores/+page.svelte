@@ -21,7 +21,11 @@
 		color: string;
 	}
 
-	interface Category { id: string; name_de: string; icon: string; }
+	interface Category {
+		id: string;
+		name_de: string;
+		icon: string;
+	}
 
 	let stores = $state<Store[]>([]);
 	let loading = $state(true);
@@ -87,7 +91,12 @@
 
 	function openEdit(s: Store) {
 		editTarget = s;
-		form = { name: s.name, icon: s.icon || '🛒', color: s.color || '#6366f1', address: s.address || '' };
+		form = {
+			name: s.name,
+			icon: s.icon || '🛒',
+			color: s.color || '#6366f1',
+			address: s.address || ''
+		};
 		dialogOpen = true;
 	}
 
@@ -122,7 +131,10 @@
 	}
 
 	async function toggleShelf(storeId: string) {
-		if (shelfStoreId === storeId) { shelfStoreId = null; return; }
+		if (shelfStoreId === storeId) {
+			shelfStoreId = null;
+			return;
+		}
 		shelfStoreId = storeId;
 		shelfLoading = true;
 		try {
@@ -134,7 +146,9 @@
 		}
 	}
 
-	function dragStart(i: number) { dragIndex = i; }
+	function dragStart(i: number) {
+		dragIndex = i;
+	}
 
 	function dragOver(e: DragEvent, i: number) {
 		e.preventDefault();
@@ -180,17 +194,29 @@
 		<ul class="store-list">
 			{#each stores as s (s.id)}
 				<li class="store-row">
-					<span class="store-icon" style:background-color={s.color || '#e5e7eb'}>{s.icon || '🛒'}</span>
+					<span class="store-icon" style:background-color={s.color || '#e5e7eb'}
+						>{s.icon || '🛒'}</span
+					>
 					<div class="store-info">
 						<span class="store-name">{s.name}</span>
 						{#if s.address}<span class="store-addr">{s.address}</span>{/if}
 					</div>
 					<div class="store-actions">
-						<button class="icon-btn" onclick={() => toggleShelf(s.id)} aria-label={$_('stores.shelf_order')}>
+						<button
+							class="icon-btn"
+							onclick={() => toggleShelf(s.id)}
+							aria-label={$_('stores.shelf_order')}
+						>
 							{shelfStoreId === s.id ? '▲' : '☰'}
 						</button>
-						<button class="icon-btn" onclick={() => openEdit(s)} aria-label={$_('stores.edit')}>✎</button>
-						<button class="icon-btn danger" onclick={() => deleteStore(s.id)} aria-label={$_('stores.delete')}>✕</button>
+						<button class="icon-btn" onclick={() => openEdit(s)} aria-label={$_('stores.edit')}
+							>✎</button
+						>
+						<button
+							class="icon-btn danger"
+							onclick={() => deleteStore(s.id)}
+							aria-label={$_('stores.delete')}>✕</button
+						>
 					</div>
 				</li>
 
@@ -210,7 +236,10 @@
 										draggable="true"
 										ondragstart={() => dragStart(i)}
 										ondragover={(e) => dragOver(e, i)}
-										ondragend={() => { dragIndex = null; saveShelfOrder(); }}
+										ondragend={() => {
+											dragIndex = null;
+											saveShelfOrder();
+										}}
 									>
 										<span class="drag-handle" aria-hidden="true">⠿</span>
 										<span class="cat-dot" style:background-color={row.color}></span>
@@ -251,7 +280,8 @@
 					class="btn-primary"
 					onclick={assignByCategory}
 					disabled={bulkBusy || !bulkCategory || !bulkStore}
-				>{bulkBusy ? '…' : $_('stores.bulk_assign')}</button>
+					>{bulkBusy ? '…' : $_('stores.bulk_assign')}</button
+				>
 			</div>
 			{#if bulkMessage}<p class="bulk-message">{bulkMessage}</p>{/if}
 		</section>
@@ -259,7 +289,6 @@
 </div>
 
 {#if dialogOpen}
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<div class="backdrop" role="presentation" onclick={() => (dialogOpen = false)}></div>
 	<div class="dialog" role="dialog" aria-modal="true">
 		<h2>{editTarget ? $_('stores.form.edit') : $_('stores.form.create')}</h2>
@@ -282,7 +311,9 @@
 			<input type="text" bind:value={form.address} placeholder={$_('stores.form.address_ph')} />
 		</label>
 		<div class="dialog-actions">
-			<button class="btn-ghost" onclick={() => (dialogOpen = false)}>{$_('stores.form.cancel')}</button>
+			<button class="btn-ghost" onclick={() => (dialogOpen = false)}
+				>{$_('stores.form.cancel')}</button
+			>
 			<button class="btn-primary" onclick={saveStore} disabled={saving || !form.name.trim()}>
 				{saving ? '…' : $_('stores.form.save')}
 			</button>
@@ -340,7 +371,13 @@
 		flex-shrink: 0;
 	}
 
-	.store-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+	.store-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		min-width: 0;
+	}
 
 	.store-name {
 		font-weight: 500;
@@ -358,7 +395,11 @@
 		text-overflow: ellipsis;
 	}
 
-	.store-actions { display: flex; gap: var(--space-1); flex-shrink: 0; }
+	.store-actions {
+		display: flex;
+		gap: var(--space-1);
+		flex-shrink: 0;
+	}
 
 	.icon-btn {
 		width: 36px;
@@ -374,7 +415,9 @@
 		justify-content: center;
 	}
 
-	.icon-btn.danger:hover { color: var(--color-danger); }
+	.icon-btn.danger:hover {
+		color: var(--color-danger);
+	}
 
 	.shelf-panel {
 		background: var(--surface-raised);
@@ -383,9 +426,20 @@
 		margin-top: 2px;
 	}
 
-	.shelf-hint { font-size: var(--text-xs); color: var(--text-muted); margin: 0 0 var(--space-2); }
+	.shelf-hint {
+		font-size: var(--text-xs);
+		color: var(--text-muted);
+		margin: 0 0 var(--space-2);
+	}
 
-	.shelf-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 2px; }
+	.shelf-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
 
 	.shelf-row {
 		display: flex;
@@ -399,12 +453,28 @@
 		user-select: none;
 	}
 
-	.shelf-row.dragging { opacity: 0.4; }
+	.shelf-row.dragging {
+		opacity: 0.4;
+	}
 
-	.drag-handle { color: var(--text-muted); font-size: 18px; }
-	.cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-	.cat-icon { font-size: 16px; }
-	.cat-name { flex: 1; font-size: var(--text-sm); color: var(--text-primary); }
+	.drag-handle {
+		color: var(--text-muted);
+		font-size: 18px;
+	}
+	.cat-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		flex-shrink: 0;
+	}
+	.cat-icon {
+		font-size: 16px;
+	}
+	.cat-name {
+		flex: 1;
+		font-size: var(--text-sm);
+		color: var(--text-primary);
+	}
 
 	.auto-badge {
 		font-size: var(--text-xs);
@@ -437,7 +507,11 @@
 		margin: 0 auto;
 	}
 
-	.dialog h2 { font-family: var(--font-display); font-size: var(--text-xl); margin: 0; }
+	.dialog h2 {
+		font-family: var(--font-display);
+		font-size: var(--text-xl);
+		margin: 0;
+	}
 
 	label {
 		display: flex;
@@ -458,14 +532,32 @@
 		transition: outline-color 150ms;
 	}
 
-	input[type='text']:focus { outline-color: var(--color-primary); }
+	input[type='text']:focus {
+		outline-color: var(--color-primary);
+	}
 
-	.emoji-input { width: 60px; text-align: center; }
-	.color-input { width: 48px; height: 40px; border-radius: 8px; cursor: pointer; padding: 2px; }
+	.emoji-input {
+		width: 60px;
+		text-align: center;
+	}
+	.color-input {
+		width: 48px;
+		height: 40px;
+		border-radius: 8px;
+		cursor: pointer;
+		padding: 2px;
+	}
 
-	.row { display: flex; gap: var(--space-4); }
+	.row {
+		display: flex;
+		gap: var(--space-4);
+	}
 
-	.dialog-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
+	.dialog-actions {
+		display: flex;
+		gap: var(--space-3);
+		justify-content: flex-end;
+	}
 
 	.btn-primary {
 		height: 44px;
@@ -480,7 +572,9 @@
 		cursor: pointer;
 	}
 
-	.btn-primary:disabled { opacity: 0.5; }
+	.btn-primary:disabled {
+		opacity: 0.5;
+	}
 
 	.btn-ghost {
 		height: 44px;
@@ -504,9 +598,16 @@
 		color: var(--text-muted);
 	}
 
-	.empty-icon { font-size: 48px; }
+	.empty-icon {
+		font-size: 48px;
+	}
 
-	.hint { text-align: center; color: var(--text-muted); padding: var(--space-6); font-size: var(--text-sm); }
+	.hint {
+		text-align: center;
+		color: var(--text-muted);
+		padding: var(--space-6);
+		font-size: var(--text-sm);
+	}
 
 	.error-banner {
 		background: color-mix(in srgb, var(--color-danger) 10%, transparent);
@@ -555,7 +656,9 @@
 		color: var(--text-primary);
 	}
 
-	.bulk-arrow { color: var(--text-muted); }
+	.bulk-arrow {
+		color: var(--text-muted);
+	}
 
 	.bulk-message {
 		font-size: var(--text-sm);

@@ -36,6 +36,6 @@ export interface List {
 	updated_at: number;
 }
 
-export const lists    = writable<List[]>([]);
-export const items    = writable<ListItem[]>([]);
+export const lists = writable<List[]>([]);
+export const items = writable<ListItem[]>([]);
 export const activeId = writable<string | null>(null);

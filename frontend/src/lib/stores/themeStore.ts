@@ -3,9 +3,7 @@ import { writable } from 'svelte/store';
 
 type Theme = 'light' | 'dark';
 
-const initial: Theme = browser
-	? ((localStorage.getItem('theme') as Theme) ?? 'light')
-	: 'light';
+const initial: Theme = browser ? ((localStorage.getItem('theme') as Theme) ?? 'light') : 'light';
 
 export const theme = writable<Theme>(initial);
 

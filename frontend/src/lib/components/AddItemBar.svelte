@@ -120,13 +120,9 @@
 			class="scan-btn"
 			onclick={() => (showScanner = true)}
 			aria-label="Barcode scannen"
-			disabled={scanLoading}
-		>{scanLoading ? '…' : '▦'}</button>
-		<button
-			class="add-btn"
-			onclick={handleAdd}
-			aria-label="Hinzufügen"
-		>+</button>
+			disabled={scanLoading}>{scanLoading ? '…' : '▦'}</button
+		>
+		<button class="add-btn" onclick={handleAdd} aria-label="Hinzufügen">+</button>
 	</div>
 
 	{#if showScanner}
@@ -142,7 +138,8 @@
 					class:selected={selectedIndex === i}
 					onmousedown={() => selectSuggestion(s)}
 				>
-					<span class="dot" style:background-color={s.category?.color ?? 'var(--border-subtle)'}></span>
+					<span class="dot" style:background-color={s.category?.color ?? 'var(--border-subtle)'}
+					></span>
 					<span class="sug-name">{s.display_name}</span>
 					{#if s.brand}<span class="sug-brand">{s.brand}</span>{/if}
 					{#if s.category}<span class="sug-cat">{s.category.icon} {s.category.name_de}</span>{/if}
@@ -153,7 +150,11 @@
 					role="option"
 					aria-selected={false}
 					class="create-row"
-					onmousedown={() => { onAdd?.(query.trim()); query = ''; suggestions = []; }}
+					onmousedown={() => {
+						onAdd?.(query.trim());
+						query = '';
+						suggestions = [];
+					}}
 				>
 					<span class="create-plus">+</span>
 					<span>„{query.trim()}" hinzufügen</span>
@@ -181,7 +182,10 @@
 		box-shadow: var(--shadow-sm);
 	}
 
-	.search-icon { font-size: 20px; flex-shrink: 0; }
+	.search-icon {
+		font-size: 20px;
+		flex-shrink: 0;
+	}
 
 	input {
 		flex: 1;
@@ -195,7 +199,9 @@
 		transition: outline-color 150ms;
 	}
 
-	input:focus { outline-color: var(--color-primary); }
+	input:focus {
+		outline-color: var(--color-primary);
+	}
 
 	.scan-btn {
 		width: 40px;
@@ -212,7 +218,9 @@
 		flex-shrink: 0;
 	}
 
-	.scan-btn:disabled { opacity: 0.5; }
+	.scan-btn:disabled {
+		opacity: 0.5;
+	}
 
 	.add-btn {
 		width: 40px;
@@ -230,7 +238,9 @@
 		transition: transform 80ms;
 	}
 
-	.add-btn:active { transform: scale(0.9); }
+	.add-btn:active {
+		transform: scale(0.9);
+	}
 
 	.suggestions {
 		position: absolute;
@@ -260,7 +270,9 @@
 	}
 
 	.suggestions li:hover,
-	.suggestions li.selected { background: var(--surface-raised); }
+	.suggestions li.selected {
+		background: var(--surface-raised);
+	}
 
 	.dot {
 		width: 10px;
@@ -269,9 +281,20 @@
 		flex-shrink: 0;
 	}
 
-	.sug-name { font-size: var(--text-base); color: var(--text-primary); flex: 1; }
-	.sug-brand { font-size: var(--text-sm); color: var(--text-muted); }
-	.sug-cat { font-size: var(--text-xs); color: var(--text-muted); margin-left: auto; }
+	.sug-name {
+		font-size: var(--text-base);
+		color: var(--text-primary);
+		flex: 1;
+	}
+	.sug-brand {
+		font-size: var(--text-sm);
+		color: var(--text-muted);
+	}
+	.sug-cat {
+		font-size: var(--text-xs);
+		color: var(--text-muted);
+		margin-left: auto;
+	}
 
 	.create-row {
 		height: 48px;

@@ -23,9 +23,9 @@
 		try {
 			const devices = await BrowserMultiFormatReader.listVideoInputDevices();
 			// Prefer rear camera on mobile.
-			const deviceId = devices.find((d) =>
-				/back|rear|environment/i.test(d.label)
-			)?.deviceId ?? devices[0]?.deviceId;
+			const deviceId =
+				devices.find((d) => /back|rear|environment/i.test(d.label))?.deviceId ??
+				devices[0]?.deviceId;
 
 			if (!videoEl) return;
 			controls = await reader.decodeFromVideoDevice(deviceId, videoEl, (result, err) => {
@@ -49,7 +49,6 @@
 
 <div class="scanner-overlay" role="dialog" aria-modal="true" aria-label={$_('scanner.aria_label')}>
 	<button class="cancel" onclick={onClose}>{$_('scanner.cancel')}</button>
-	<!-- svelte-ignore element_invalid_self_closing_tag -->
 	<video bind:this={videoEl} autoplay playsinline muted></video>
 	{#if error}
 		<p class="error-msg">{error}</p>
