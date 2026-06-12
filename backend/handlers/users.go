@@ -15,9 +15,16 @@ type Users struct {
 	DB *sql.DB
 }
 
-// GetMembers returns a minimal user list (id, name, avatar) for all authenticated
-// users so they can pick whom to share a list with.
+// GetMembers returns a minimal user list (id, name, avatar) so a user can pick
+// whom to share a list with. Children cannot share lists (sharing requires
+// owner-or-admin), so they have no need for the directory and are denied it —
+// the listing is not exposed more widely than the capability it serves.
 func (h *Users) GetMembers(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.SessionFromContext(r.Context())
+	if sess.Role == models.RoleChild {
+		respondErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
 	rows, err := h.DB.QueryContext(r.Context(),
 		`SELECT id, name, COALESCE(avatar_url,'') FROM users ORDER BY name`)
 	if err != nil {

@@ -55,15 +55,24 @@ func main() {
 	requireAuth := middleware.NewRequireAuth(sc, database)
 	requireAdmin := middleware.NewRequireRole("admin")
 
+	// Abuse mitigation (SEC-5): cap request bodies, throttle the auth flow and the
+	// Open Food Facts proxy per client.
+	const maxRequestBody = 1 << 20               // 1 MiB — generous for event batches, bounds memory
+	authLimit := middleware.RateLimit(30, 10)    // login/callback/logout
+	barcodeLimit := middleware.RateLimit(60, 20) // outbound OFF lookups
+
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(middleware.CORS([]string{cfg.FrontendURL}))
 
-	// Auth (no auth required)
-	r.Get("/auth/login", auth.Login)
-	r.Get("/auth/callback", auth.Callback)
-	r.Post("/auth/logout", auth.Logout)
+	// Auth (no auth required; rate-limited against login spam)
+	r.Group(func(r chi.Router) {
+		r.Use(authLimit)
+		r.Get("/auth/login", auth.Login)
+		r.Get("/auth/callback", auth.Callback)
+		r.Post("/auth/logout", auth.Logout)
+	})
 
 	// WebSocket (self-authenticates via cookie)
 	r.Get("/ws", wsHandler.ServeWS)
@@ -71,6 +80,7 @@ func main() {
 	// API (auth required)
 	r.Group(func(r chi.Router) {
 		r.Use(requireAuth)
+		r.Use(middleware.MaxBytes(maxRequestBody))
 
 		r.Get("/api/health", health)
 		r.Get("/api/version", version)
@@ -94,7 +104,7 @@ func main() {
 		// Products & categories
 		r.Get("/api/categories", products.GetCategories)
 		r.Get("/api/products/search", products.Search)
-		r.Get("/api/products/barcode/{code}", products.GetByBarcode)
+		r.With(barcodeLimit).Get("/api/products/barcode/{code}", products.GetByBarcode)
 		r.Get("/api/products/{id}", products.GetByID)
 		r.Post("/api/products", products.Create)
 		r.Put("/api/products/{id}", products.Update)
