@@ -30,8 +30,13 @@ COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=certs /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /tanteemma /tanteemma
 
-# Non-root: numeric UID/GID only (scratch has no /etc/passwd)
-USER 65532:65532
+# Runs as root by default so it can write the SQLite data volume. Under rootless
+# podman, container-root maps to the host user (who owns ./data); under Docker,
+# root can write the mounted volume too. A hardcoded non-root UID instead maps to
+# an unprivileged subuid that does NOT own a bind-mounted ./data, which makes
+# SQLite open read-only and the backend exit ("attempt to write a readonly
+# database"). To run non-root, set `user:` in compose to a UID that owns the data
+# volume (e.g. the host UID for a bind mount, or chown a named volume first).
 
 EXPOSE 8080
 ENTRYPOINT ["/tanteemma"]
