@@ -23,6 +23,7 @@
 		"empty_body": "Toque acima para adicionar algo.",
 		"loading": "Carregando…",
 		"checked_count": "{n} feito(s)",
+		"item_count": "{n} itens",
 		"clear_checked": "Limpar todos",
 		"tile_view": "Visualização em grade",
 		"list_view": "Visualização em lista",

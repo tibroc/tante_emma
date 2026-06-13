@@ -23,6 +23,7 @@
 		"empty_body": "Tippe oben, um etwas hinzuzufügen.",
 		"loading": "Lade…",
 		"checked_count": "{n} erledigt",
+		"item_count": "{n} Artikel",
 		"clear_checked": "Alle löschen",
 		"tile_view": "Kachelansicht",
 		"list_view": "Listenansicht",

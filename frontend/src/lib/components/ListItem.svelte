@@ -1,141 +1,143 @@
 <script lang="ts">
 	import { _ } from 'svelte-i18n';
+	import Icon from './Icon.svelte';
 	import type { ListItem } from '$lib/stores/listStore';
 
 	interface Props {
 		item: ListItem;
 		onCheck?: (id: string, checked: boolean) => void;
+		// Kept for parent API compatibility; deletion happens via the detail sheet
+		// (matches the Claude Design row, which has no inline delete button).
 		onDelete?: (id: string) => void;
 		onOpen?: (id: string) => void;
 	}
-	let { item, onCheck, onDelete, onOpen }: Props = $props();
+	let { item, onCheck, onOpen }: Props = $props();
+
+	const qtyLabel = $derived(
+		item.quantity
+			? `${item.quantity}${item.unit ? ' ' + $_('units.' + item.unit, { default: item.unit }) : ''}`
+			: ''
+	);
 </script>
 
-<div class="list-item" class:checked={item.checked}>
+<div
+	class="row"
+	class:checked={item.checked}
+	role="button"
+	tabindex="0"
+	onclick={() => onOpen?.(item.id)}
+	onkeydown={(e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onOpen?.(item.id);
+		}
+	}}
+>
 	<button
 		class="checkbox"
-		onclick={() => onCheck?.(item.id, !item.checked)}
-		aria-label={item.checked ? 'Als unerledigt markieren' : 'Als erledigt markieren'}
+		class:on={item.checked}
+		onclick={(e) => {
+			e.stopPropagation();
+			onCheck?.(item.id, !item.checked);
+		}}
+		aria-label={item.checked ? $_('item.uncheck') : $_('item.check')}
 		aria-pressed={item.checked}
 	>
-		{#if item.checked}✓{/if}
+		{#if item.checked}<Icon name="check" size={16} strokeWidth={3.2} />{/if}
 	</button>
-	<div
-		class="category-line"
-		style:background-color={item.category_color ?? 'var(--border-subtle)'}
-	></div>
-	<button class="name" onclick={() => onOpen?.(item.id)} aria-label={$_('item_sheet.open')}>
+
+	<span class="cat-bar" style:background-color={item.category_color ?? 'var(--border-default)'}
+	></span>
+
+	<div class="name">
 		<span class="name-text">{item.display_name}</span>
-		{#if item.quantity}
-			<span class="qty"
-				>{item.quantity}{item.unit
-					? ' ' + $_('units.' + item.unit, { default: item.unit })
-					: ''}</span
-			>
-		{/if}
-	</button>
-	<button class="delete-btn" onclick={() => onDelete?.(item.id)} aria-label={$_('item.delete')}
-		>✕</button
-	>
+	</div>
+
+	{#if qtyLabel}
+		<div class="meta"><span class="badge-qty">{qtyLabel}</span></div>
+	{/if}
 </div>
 
 <style>
-	.list-item {
+	.row {
 		display: flex;
 		align-items: center;
-		gap: var(--space-4);
-		min-height: 56px;
-		padding: 0 var(--space-4);
+		gap: 13px;
+		padding: 12px 18px;
+		min-height: 60px;
+		cursor: pointer;
 		background: var(--surface-base);
-		border-bottom: 1px solid var(--border-subtle);
-		transition: opacity 120ms;
+		transition: opacity 0.18s;
 	}
-
-	.list-item.checked {
+	.row.checked {
 		opacity: 0.6;
 	}
 
-	.list-item.checked .name {
-		text-decoration: line-through;
-		color: var(--text-muted);
-	}
-
 	.checkbox {
-		width: 24px;
-		height: 24px;
-		border: 2px solid var(--border-default);
-		border-radius: 6px;
-		background: transparent;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		width: 26px;
+		height: 26px;
 		flex-shrink: 0;
-		color: white;
-		font-size: 14px;
+		padding: 0;
+		cursor: pointer;
+		border-radius: 8px;
+		border: 2px solid var(--border-default);
+		background: transparent;
+		display: grid;
+		place-items: center;
+		color: #fff;
 		transition:
-			background 120ms,
-			border-color 120ms;
+			background 0.18s,
+			border-color 0.18s;
+	}
+	.checkbox.on {
+		border-color: var(--emerald-500);
+		background: var(--emerald-500);
+		animation: checkPop 0.26s ease;
 	}
 
-	.list-item.checked .checkbox {
-		background: var(--color-accent);
-		border-color: var(--color-accent);
-	}
-
-	.category-line {
-		width: 3px;
-		height: 24px;
+	.cat-bar {
+		width: 3.5px;
+		height: 26px;
 		border-radius: 2px;
 		flex-shrink: 0;
 	}
+	.row.checked .cat-bar {
+		opacity: 0.4;
+	}
 
 	.name {
+		min-width: 0;
 		flex: 1;
-		display: flex;
-		align-items: baseline;
-		gap: var(--space-2);
-		min-height: 56px;
-		border: none;
-		background: transparent;
-		cursor: pointer;
-		text-align: left;
-		font-family: var(--font-body);
-		font-size: var(--text-base);
-		color: var(--text-primary);
-		padding: 0;
 	}
-
 	.name-text {
-		flex: 1;
-	}
-
-	.qty {
-		font-size: var(--text-sm);
-		color: var(--text-muted);
-		flex-shrink: 0;
-	}
-
-	.delete-btn {
-		width: 40px;
-		height: 40px;
-		border: none;
-		background: transparent;
-		color: var(--text-muted);
+		display: block;
 		font-size: 16px;
-		cursor: pointer;
+		font-weight: 500;
+		color: var(--text-primary);
+		letter-spacing: -0.01em;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.row.checked .name-text {
+		color: var(--text-muted);
+		text-decoration: line-through;
+	}
+
+	.meta {
 		display: flex;
 		align-items: center;
-		justify-content: center;
+		gap: 6px;
 		flex-shrink: 0;
-		border-radius: 8px;
-		transition:
-			background 100ms,
-			color 100ms;
 	}
-
-	.delete-btn:hover {
-		background: color-mix(in srgb, var(--color-danger) 12%, transparent);
-		color: var(--color-danger);
+	.badge-qty {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--text-secondary);
+		background: var(--surface-overlay);
+		border-radius: 7px;
+		padding: 3px 8px;
+		white-space: nowrap;
+		font-variant-numeric: tabular-nums;
 	}
 </style>

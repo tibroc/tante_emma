@@ -23,6 +23,7 @@
 		"empty_body": "Tap above to add something.",
 		"loading": "Loading…",
 		"checked_count": "{n} done",
+		"item_count": "{n} items",
 		"clear_checked": "Clear all",
 		"tile_view": "Tile view",
 		"list_view": "List view",

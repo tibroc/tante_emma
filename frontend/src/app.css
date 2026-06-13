@@ -38,6 +38,8 @@
 }
 
 /* === Semantic Tokens — Light === */
+/* Palette ported from Claude Design (design-ref/): warm purple-tinted neutrals,
+   accent-driven brand. --accent is the single brand knob (buttons, pills, nav). */
 :root,
 [data-theme='light'] {
 	--color-primary: var(--fuchsia-500);
@@ -46,48 +48,57 @@
 	--color-accent: var(--emerald-500);
 	--color-accent-light: var(--emerald-100);
 
+	/* Brand accent (Claude Design) */
+	--accent: var(--fuchsia-500);
+	--accent-600: var(--fuchsia-700);
+	--accent-light: color-mix(in oklab, var(--accent) 14%, white);
+	--accent-tint: color-mix(in oklab, var(--accent) 8%, white);
+
 	--color-success: #10b981;
 	--color-warning: #f59e0b;
 	--color-danger: #ef4444;
 	--color-info: #3b82f6;
 
 	--surface-base: #ffffff;
-	--surface-raised: #f9fafb;
-	--surface-overlay: #f3f4f6;
-	--surface-inverse: #111827;
+	--surface-raised: #f9f7f9;
+	--surface-overlay: #f1eef2;
+	--surface-sunken: #ece7ec;
+	--surface-inverse: #221b27;
 
-	--border-subtle: #e5e7eb;
-	--border-default: #d1d5db;
-	--border-strong: #9ca3af;
+	--border-subtle: #ece6ec;
+	--border-default: #ddd5dd;
+	--border-strong: #a39daa;
 
-	--text-primary: #111827;
-	--text-secondary: #4b5563;
-	--text-muted: #9ca3af;
+	--text-primary: #1a141c;
+	--text-secondary: #6b6470;
+	--text-muted: #a39daa;
 	--text-inverse: #ffffff;
 	--text-primary-brand: var(--fuchsia-700);
 
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 1px 3px rgba(0, 0, 0, 0.06);
-	--shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08), 0 4px 6px rgba(0, 0, 0, 0.05);
-	--shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1), 0 8px 10px rgba(0, 0, 0, 0.04);
+	--shadow-sm: 0 1px 2px rgba(40, 20, 45, 0.05);
+	--shadow-md: 0 4px 10px rgba(40, 20, 45, 0.07), 0 1px 3px rgba(40, 20, 45, 0.05);
+	--shadow-lg: 0 14px 30px rgba(40, 20, 45, 0.12), 0 4px 10px rgba(40, 20, 45, 0.06);
+	--shadow-xl: 0 24px 48px rgba(40, 20, 45, 0.16), 0 8px 16px rgba(40, 20, 45, 0.08);
+	--shadow-pop: 0 10px 24px color-mix(in oklab, var(--accent) 30%, transparent);
 }
 
 /* === Semantic Tokens — Dark === */
 /* html[data-theme] beats :root by specificity (0,2,0 vs 0,1,0) */
 html[data-theme='dark'] {
-	--surface-base: #0d0d10;
-	--surface-raised: #18181f;
-	--surface-overlay: #222230;
-	--surface-inverse: #f9fafb;
+	--surface-base: #131017;
+	--surface-raised: #1c1822;
+	--surface-overlay: #251f2e;
+	--surface-sunken: #0d0b11;
+	--surface-inverse: #2b2333;
 
-	--border-subtle: #2d2d3d;
-	--border-default: #3d3d50;
-	--border-strong: #5a5a72;
+	--border-subtle: #2a2433;
+	--border-default: #3a3346;
+	--border-strong: #5a5168;
 
-	--text-primary: #f3f4f6;
-	--text-secondary: #9ca3af;
-	--text-muted: #6b7280;
-	--text-inverse: #111827;
+	--text-primary: #f4eff6;
+	--text-secondary: #b3aabd;
+	--text-muted: #756d80;
+	--text-inverse: #131017;
 	--text-primary-brand: var(--fuchsia-300);
 
 	--color-primary: var(--fuchsia-400);
@@ -95,8 +106,17 @@ html[data-theme='dark'] {
 	--color-accent: var(--emerald-400);
 	--color-accent-light: rgba(16, 185, 129, 0.15);
 
-	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-	--shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+	--accent: var(--fuchsia-400);
+	--accent-600: var(--fuchsia-700);
+	--accent-light: color-mix(in oklab, var(--accent) 24%, #131017);
+	--accent-tint: color-mix(in oklab, var(--accent) 14%, #131017);
+	--emerald-500: #34d399;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+	--shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+	--shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55);
+	--shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.6);
+	--shadow-pop: 0 10px 28px color-mix(in oklab, var(--accent) 40%, transparent);
 }
 
 /* === Spacing === */
@@ -148,4 +168,53 @@ body {
 }
 .safe-bottom {
 	padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* === Animation keyframes (Claude Design) === */
+@keyframes slideInItem {
+	from {
+		opacity: 0;
+		transform: translateY(-10px) scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+@keyframes checkPop {
+	0% {
+		transform: scale(1);
+	}
+	45% {
+		transform: scale(0.82);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+@keyframes suggIn {
+	from {
+		opacity: 0;
+		transform: translateY(-4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+@keyframes sheetUp {
+	from {
+		transform: translateY(100%);
+	}
+	to {
+		transform: translateY(0);
+	}
+}
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }

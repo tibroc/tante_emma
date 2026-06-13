@@ -70,7 +70,7 @@ your repository path (`ghcr.io/<owner>/<repo>`).
 ```yaml
 services:
   caddy:
-    image: caddy:2-alpine
+    image: docker.io/library/caddy:2-alpine
     restart: unless-stopped
     ports:
       - "80:80"
@@ -86,7 +86,7 @@ services:
       - backend
 
   frontend:
-    image: ghcr.io/youruser/tante_emma/frontend:latest
+    image: ghcr.io/tibroc/tante_emma/frontend:latest
     restart: unless-stopped
     # PUBLIC_API_URL / PUBLIC_WS_URL are left unset on purpose: the app then uses
     # same-origin relative URLs, which is exactly what the single-domain Caddy
@@ -97,7 +97,7 @@ services:
       - backend
 
   backend:
-    image: ghcr.io/youruser/tante_emma/backend:latest
+    image: ghcr.io/tibroc/tante_emma/backend:latest
     restart: unless-stopped
     volumes:
       - tanteemma-data:/data
@@ -119,7 +119,7 @@ services:
   # Optional: continuous SQLite backup to S3-compatible storage.
   # Remove this block (and the litestream.yml volume) if you don't need it.
   litestream:
-    image: litestream/litestream:0.3
+    image: docker.io/litestream/litestream:0.3
     restart: unless-stopped
     command: replicate
     volumes:

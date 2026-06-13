@@ -20,6 +20,9 @@ frontend/node_modules
 frontend/.svelte-kit
 frontend/build
 
+# Claude Design reference (not part of the app)
+frontend/design-ref
+
 # Backend build artifacts
 backend/coverage.out
 backend/coverage.html

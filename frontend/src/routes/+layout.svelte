@@ -8,6 +8,7 @@
 	import { syncStatus } from '$lib/stores/syncStore';
 	import { api } from '$lib/api';
 	import { startWs } from '$lib/ws';
+	import Icon from '$lib/components/Icon.svelte';
 	import '$lib/i18n';
 	import { _ } from 'svelte-i18n';
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -38,10 +39,10 @@
 	}
 
 	const navItems = $derived([
-		{ href: '/lists', icon: '🛒', label: $_('nav.lists') },
-		{ href: '/stores', icon: '🏪', label: $_('nav.stores') },
-		{ href: '/history', icon: '🕐', label: $_('nav.history') },
-		{ href: '/settings', icon: '⚙️', label: $_('nav.settings').slice(0, 5) }
+		{ href: '/lists', icon: 'cart', label: $_('nav.lists') },
+		{ href: '/stores', icon: 'store', label: $_('nav.stores') },
+		{ href: '/history', icon: 'clock', label: $_('nav.history') },
+		{ href: '/settings', icon: 'gear', label: $_('nav.settings').slice(0, 5) }
 	]);
 
 	const isAuthPage = $derived(page.url.pathname === '/login');
@@ -84,7 +85,9 @@
 		{#each navItems as item (item.href)}
 			{@const active = page.url.pathname.startsWith(item.href)}
 			<a href={item.href} class="nav-tab" class:active aria-current={active ? 'page' : undefined}>
-				<span class="nav-icon" aria-hidden="true">{item.icon}</span>
+				<span class="nav-icon" aria-hidden="true">
+					<Icon name={item.icon} size={22} strokeWidth={active ? 2.1 : 1.8} />
+				</span>
 				<span class="nav-label">{item.label}</span>
 			</a>
 		{/each}
@@ -167,35 +170,41 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		gap: 2px;
+		gap: 3px;
 		text-decoration: none;
 		color: var(--text-muted);
-		font-size: var(--text-xs);
-		padding: var(--space-1);
-		border-radius: 8px;
-		margin: var(--space-1);
-		transition:
-			background 100ms,
-			color 100ms;
+		font-size: 10.5px;
+		padding: 4px 0;
 		min-height: 48px;
 	}
 
 	.nav-tab.active {
-		color: var(--color-primary);
-		background: var(--color-primary-light);
+		color: var(--accent);
 	}
 
 	.nav-tab:active {
-		transform: scale(0.92);
+		transform: scale(0.95);
 	}
 
 	.nav-icon {
-		font-size: 20px;
-		line-height: 1;
+		display: grid;
+		place-items: center;
+		width: 52px;
+		height: 30px;
+		border-radius: 16px;
+		transition: background 180ms;
+	}
+
+	.nav-tab.active .nav-icon {
+		background: var(--accent-light);
 	}
 
 	.nav-label {
 		font-weight: 500;
+	}
+
+	.nav-tab.active .nav-label {
+		font-weight: 700;
 	}
 
 	/* Leave room for bottom nav on content pages */

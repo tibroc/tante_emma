@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { _ } from 'svelte-i18n';
 	import { api, ApiError } from '$lib/api';
+	import Icon from './Icon.svelte';
 	import BarcodeScanner from './BarcodeScanner.svelte';
 
 	interface Suggestion {
@@ -103,13 +105,13 @@
 </script>
 
 <div class="add-bar-wrapper">
-	<div class="add-bar" role="search">
-		<span class="search-icon" aria-hidden="true">🔍</span>
+	<div class="add-bar" class:focused role="search">
+		<span class="search-icon" aria-hidden="true"><Icon name="search" size={19} /></span>
 		<input
 			type="text"
 			bind:value={query}
-			placeholder="Hinzufügen…"
-			aria-label="Artikel hinzufügen"
+			placeholder={$_('add_item.placeholder')}
+			aria-label={$_('add_item.aria_input')}
 			aria-autocomplete="list"
 			oninput={handleInput}
 			onkeydown={handleKeydown}
@@ -119,10 +121,14 @@
 		<button
 			class="scan-btn"
 			onclick={() => (showScanner = true)}
-			aria-label="Barcode scannen"
-			disabled={scanLoading}>{scanLoading ? '…' : '▦'}</button
+			aria-label={$_('add_item.aria_scan')}
+			disabled={scanLoading}
 		>
-		<button class="add-btn" onclick={handleAdd} aria-label="Hinzufügen">+</button>
+			{#if scanLoading}…{:else}<Icon name="camera" size={21} />{/if}
+		</button>
+		<button class="add-btn" onclick={handleAdd} aria-label={$_('add_item.aria_add')}>
+			<Icon name="plus" size={20} strokeWidth={2.4} />
+		</button>
 	</div>
 
 	{#if showScanner}
@@ -138,11 +144,21 @@
 					class:selected={selectedIndex === i}
 					onmousedown={() => selectSuggestion(s)}
 				>
-					<span class="dot" style:background-color={s.category?.color ?? 'var(--border-subtle)'}
-					></span>
-					<span class="sug-name">{s.display_name}</span>
-					{#if s.brand}<span class="sug-brand">{s.brand}</span>{/if}
-					{#if s.category}<span class="sug-cat">{s.category.icon} {s.category.name_de}</span>{/if}
+					{#if s.category}
+						<span
+							class="cat-chip"
+							style="color:{s.category.color}; background:color-mix(in oklab, {s.category
+								.color} 15%, var(--surface-base))">{s.category.icon}</span
+						>
+					{:else}
+						<span class="dot" style:background-color="var(--border-subtle)"></span>
+					{/if}
+					<span class="sug-main">
+						<span class="sug-name"
+							>{s.display_name}{#if s.brand}<span class="sug-brand"> · {s.brand}</span>{/if}</span
+						>
+						{#if s.category}<span class="sug-cat">{s.category.name_de}</span>{/if}
+					</span>
 				</li>
 			{/each}
 			{#if query.trim()}
@@ -156,7 +172,7 @@
 						suggestions = [];
 					}}
 				>
-					<span class="create-plus">+</span>
+					<span class="create-plus"><Icon name="plus" size={18} strokeWidth={2.4} /></span>
 					<span>„{query.trim()}" hinzufügen</span>
 				</li>
 			{/if}
@@ -166,90 +182,87 @@
 
 <style>
 	.add-bar-wrapper {
-		position: sticky;
-		top: 0;
-		z-index: 100;
+		position: relative;
+		padding: 0 16px 12px;
 	}
 
 	.add-bar {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		height: 56px;
-		padding: 0 var(--space-4);
-		background: var(--surface-base);
-		border-bottom: 1px solid var(--border-subtle);
-		box-shadow: var(--shadow-sm);
+		gap: 8px;
+		height: 50px;
+		padding: 0 8px 0 14px;
+		background: var(--surface-overlay);
+		border-radius: 15px;
+		color: var(--text-muted);
+		outline: 2px solid transparent;
+		transition: outline-color 0.15s;
+	}
+	.add-bar.focused {
+		outline-color: var(--accent);
+		box-shadow: var(--shadow-md);
+		color: var(--accent);
 	}
 
 	.search-icon {
-		font-size: 20px;
 		flex-shrink: 0;
+		display: grid;
+		place-items: center;
 	}
 
 	input {
 		flex: 1;
-		font-family: var(--font-body);
-		font-size: var(--text-base); /* 16px prevents iOS zoom */
-		background: var(--surface-overlay);
+		min-width: 0;
 		border: none;
-		border-radius: 12px;
-		padding: var(--space-2) var(--space-3);
-		outline: 2px solid transparent;
-		transition: outline-color 150ms;
-	}
-
-	input:focus {
-		outline-color: var(--color-primary);
+		outline: none;
+		background: transparent;
+		font-family: var(--font-body);
+		font-size: 16px; /* prevents iOS zoom */
+		font-weight: 500;
+		color: var(--text-primary);
 	}
 
 	.scan-btn {
-		width: 40px;
-		height: 40px;
-		border-radius: 12px;
-		border: 1px solid var(--border-subtle);
-		background: var(--surface-overlay);
-		color: var(--text-secondary);
-		font-size: 18px;
+		width: 34px;
+		height: 34px;
+		border: none;
+		background: transparent;
+		color: var(--text-muted);
 		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
+		display: grid;
+		place-items: center;
 		flex-shrink: 0;
 	}
-
 	.scan-btn:disabled {
 		opacity: 0.5;
 	}
 
 	.add-btn {
-		width: 40px;
-		height: 40px;
+		width: 38px;
+		height: 38px;
 		border-radius: 50%;
 		border: none;
-		background: var(--color-primary);
-		color: white;
-		font-size: 20px;
-		cursor: pointer;
-		display: flex;
-		align-items: center;
-		justify-content: center;
 		flex-shrink: 0;
-		transition: transform 80ms;
+		background: linear-gradient(145deg, var(--accent), var(--accent-600));
+		color: #fff;
+		cursor: pointer;
+		display: grid;
+		place-items: center;
+		box-shadow: var(--shadow-pop);
+		transition: transform 0.08s;
 	}
-
 	.add-btn:active {
 		transform: scale(0.9);
 	}
 
 	.suggestions {
 		position: absolute;
-		left: 0;
-		right: 0;
+		left: 16px;
+		right: 16px;
+		top: 54px;
 		background: var(--surface-base);
 		border: 1px solid var(--border-subtle);
-		border-top: none;
-		border-radius: 0 0 16px 16px;
+		border-radius: 16px;
 		box-shadow: var(--shadow-lg);
 		max-height: 320px;
 		overflow-y: auto;
@@ -257,23 +270,35 @@
 		margin: 0;
 		padding: 0;
 		z-index: 99;
+		animation: suggIn 0.16s ease;
 	}
 
 	.suggestions li {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		height: 56px;
-		padding: 0 var(--space-4);
+		gap: 11px;
+		padding: 10px 14px;
 		cursor: pointer;
+		border-bottom: 1px solid var(--border-subtle);
 		transition: background 80ms;
 	}
-
+	.suggestions li:last-child {
+		border-bottom: none;
+	}
 	.suggestions li:hover,
 	.suggestions li.selected {
 		background: var(--surface-raised);
 	}
 
+	.cat-chip {
+		width: 30px;
+		height: 30px;
+		border-radius: 10px;
+		flex-shrink: 0;
+		display: grid;
+		place-items: center;
+		font-size: 16px;
+	}
 	.dot {
 		width: 10px;
 		height: 10px;
@@ -281,31 +306,43 @@
 		flex-shrink: 0;
 	}
 
-	.sug-name {
-		font-size: var(--text-base);
-		color: var(--text-primary);
+	.sug-main {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
 		flex: 1;
 	}
+	.sug-name {
+		font-size: 15px;
+		font-weight: 500;
+		color: var(--text-primary);
+	}
 	.sug-brand {
-		font-size: var(--text-sm);
 		color: var(--text-muted);
+		font-weight: 400;
 	}
 	.sug-cat {
-		font-size: var(--text-xs);
+		font-size: 11.5px;
 		color: var(--text-muted);
-		margin-left: auto;
 	}
 
 	.create-row {
-		height: 48px;
-		color: var(--color-primary);
-		font-style: italic;
-		font-size: var(--text-sm);
+		background: var(--accent-tint);
 	}
-
 	.create-plus {
-		font-size: 18px;
-		font-style: normal;
-		color: var(--color-primary);
+		width: 30px;
+		height: 30px;
+		border-radius: 9px;
+		display: grid;
+		place-items: center;
+		background: var(--accent);
+		color: #fff;
+		flex-shrink: 0;
+	}
+	.create-row span:last-child {
+		font-size: 14.5px;
+		color: var(--accent);
+		font-weight: 600;
+		white-space: nowrap;
 	}
 </style>

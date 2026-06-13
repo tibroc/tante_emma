@@ -10,8 +10,9 @@
 	import { applyEvent as reduceEvent } from '$lib/offline/applyEvent';
 	import { syncStatus } from '$lib/stores/syncStore';
 	import { browser, dev } from '$app/environment';
-	import { _ } from 'svelte-i18n';
+	import { _, locale } from 'svelte-i18n';
 	import AddItemBar from '$lib/components/AddItemBar.svelte';
+	import Icon from '$lib/components/Icon.svelte';
 	import ListItemRow from '$lib/components/ListItem.svelte';
 	import TileItem from '$lib/components/TileItem.svelte';
 	import SortBar from '$lib/components/SortBar.svelte';
@@ -134,6 +135,48 @@
 	const checked = $derived(sortedItems(visibleItems.filter((i) => i.checked)));
 	let showChecked = $state(false);
 
+	// category_id → localized name, loaded once (see loadList). Used for the
+	// category section headers when sorting by category.
+	let categoryNames = $state<Record<string, string>>({});
+	let collapsedCats = $state<Record<string, boolean>>({});
+
+	interface ItemGroup {
+		key: string;
+		name: string | null; // null → render items with no header
+		color: string | null;
+		items: ListItem[];
+	}
+
+	// Group the unchecked items under category headers when in category sort with
+	// no active store filter; otherwise a single headerless group (flat list).
+	const groupedUnchecked = $derived.by<ItemGroup[]>(() => {
+		if (sortMode !== 'category' || activeFilterStoreId) {
+			return [{ key: 'all', name: null, color: null, items: unchecked }];
+		}
+		const groups: ItemGroup[] = [];
+		const index = new Map<string, number>();
+		for (const it of unchecked) {
+			const key = it.category_id ?? 'none';
+			let gi = index.get(key);
+			if (gi === undefined) {
+				gi = groups.length;
+				index.set(key, gi);
+				groups.push({
+					key,
+					name: it.category_id ? (categoryNames[it.category_id] ?? null) : null,
+					color: it.category_color ?? null,
+					items: []
+				});
+			}
+			groups[gi].items.push(it);
+		}
+		return groups;
+	});
+
+	function toggleCat(key: string) {
+		collapsedCats = { ...collapsedCats, [key]: !collapsedCats[key] };
+	}
+
 	// Item detail bottom sheet.
 	let detailItemId = $state<string | null>(null);
 	const detailItem = $derived($items.find((i) => i.id === detailItemId) ?? null);
@@ -171,13 +214,20 @@
 		}
 
 		try {
-			const [data, storeList, memberList] = await Promise.all([
+			const [data, storeList, memberList, catList] = await Promise.all([
 				api.get<{ list: { name: string }; items: ListItem[] }>(`/api/lists/${listId}`),
 				api.get<Store[]>('/api/stores').catch(() => [] as Store[]),
 				api
 					.get<{ id: string; name: string; avatar_url?: string }[]>('/api/users/members')
-					.catch(() => [])
+					.catch(() => []),
+				api
+					.get<{ id: string; name_de: string; name_en: string }[]>('/api/categories')
+					.catch(() => [] as { id: string; name_de: string; name_en: string }[])
 			]);
+			const useEn = ($locale ?? '').startsWith('en');
+			categoryNames = Object.fromEntries(
+				catList.map((c) => [c.id, (useEn ? c.name_en : c.name_de) || c.name_de || c.name_en])
+			);
 			memberMap = new Map(
 				memberList.map((m) => [m.id, { name: m.name, avatar_url: m.avatar_url }])
 			);
@@ -456,26 +506,33 @@
 </script>
 
 <div class="shopping-page">
-	<AddItemBar {listId} onAdd={handleAdd} />
+	<!-- Sticky header: wordmark + title + search + sort — always visible -->
+	<div class="sticky-top">
+		<div class="top-bar">
+			<div class="wordmark" aria-label="TanteEmma">
+				<div class="wordmark-icon" aria-hidden="true">
+					<Icon name="cart" size={19} strokeWidth={2} />
+				</div>
+				<div class="wordmark-text" aria-hidden="true">
+					<span class="wordmark-tante">Tante</span><span class="wordmark-emma">Emma</span>
+				</div>
+			</div>
+			<div class="top-actions">
+				{#if activeUsers.length > 0}
+					<PresenceAvatars users={activeUsers} />
+				{/if}
+				{#if $user?.role !== 'child'}
+					<button class="header-btn" onclick={openShare} aria-label={$_('list.share')}>⎘</button>
+				{/if}
+			</div>
+		</div>
 
-	{#if loading}
-		<p class="hint">{$_('list.loading')}</p>
-	{:else}
-		<header class="list-header">
-			<h1 class="list-title">{listName}</h1>
-			{#if activeUsers.length > 0}
-				<PresenceAvatars users={activeUsers} />
-			{/if}
-			{#if $user?.role !== 'child'}
-				<button class="header-btn" onclick={openShare} aria-label={$_('list.share')}>⎘</button>
-			{/if}
-			<button
-				class="header-btn"
-				onclick={toggleViewMode}
-				aria-label={viewMode === 'list' ? $_('list.tile_view') : $_('list.list_view')}
-				>{viewMode === 'list' ? '⊞' : '☰'}</button
-			>
-		</header>
+		<div class="title-row">
+			<h1 class="list-title">{listName || '…'}</h1>
+			<span class="list-count">{$_('list.item_count', { values: { n: unchecked.length } })}</span>
+		</div>
+
+		<AddItemBar {listId} onAdd={handleAdd} />
 
 		<SortBar
 			mode={sortMode}
@@ -483,27 +540,14 @@
 			stores={storesWithItems}
 			activeStoreId={activeFilterStoreId}
 			onStoreFilter={handleStoreFilter}
+			{viewMode}
+			onViewChange={toggleViewMode}
 		/>
+	</div>
 
-		{#if stores.length > 0}
-			<div class="active-store-bar">
-				<span class="active-store-label">{$_('list.active_store')}</span>
-				<select
-					value={activeStoreId ?? ''}
-					onchange={(e) => {
-						activeStoreId = (e.target as HTMLSelectElement).value || null;
-						sessionStart = Date.now();
-					}}
-					aria-label={$_('list.active_store_label')}
-				>
-					<option value="">{$_('list.no_store')}</option>
-					{#each stores as s (s.id)}
-						<option value={s.id}>{s.icon} {s.name}</option>
-					{/each}
-				</select>
-			</div>
-		{/if}
-
+	{#if loading}
+		<p class="hint">{$_('list.loading')}</p>
+	{:else}
 		{#if unchecked.length === 0 && checked.length === 0}
 			<div class="empty">
 				<span class="empty-icon">🛒</span>
@@ -518,18 +562,36 @@
 					{/each}
 				</div>
 			{:else}
-				<ul class="item-list">
-					{#each unchecked as item (item.id)}
-						<li>
-							<ListItemRow
-								{item}
-								onCheck={handleCheck}
-								onDelete={handleDelete}
-								onOpen={openDetail}
-							/>
-						</li>
-					{/each}
-				</ul>
+				{#each groupedUnchecked as group (group.key)}
+					{#if group.name}
+						<button class="cat-header" onclick={() => toggleCat(group.key)}>
+							<span
+								class="cat-dot"
+								style:background-color={group.color ?? 'var(--border-default)'}
+							></span>
+							<span class="cat-name">{group.name}</span>
+							<span class="cat-count">{group.items.length}</span>
+							<span class="cat-spacer"></span>
+							<span class="cat-chev" class:collapsed={collapsedCats[group.key]}>
+								<Icon name="chevron-down" size={17} />
+							</span>
+						</button>
+					{/if}
+					{#if !collapsedCats[group.key]}
+						<ul class="item-list">
+							{#each group.items as item (item.id)}
+								<li>
+									<ListItemRow
+										{item}
+										onCheck={handleCheck}
+										onDelete={handleDelete}
+										onOpen={openDetail}
+									/>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				{/each}
 			{/if}
 
 			{#if checked.length > 0}
@@ -540,8 +602,8 @@
 							onclick={() => (showChecked = !showChecked)}
 							aria-expanded={showChecked}
 						>
-							<span>✓ {$_('list.checked_count', { values: { n: checked.length } })}</span>
-							<span class="chevron" class:rotated={showChecked}>›</span>
+							<span class="check-circle" aria-hidden="true"><Icon name="check" size={13} strokeWidth={3} /></span><span class="checked-label">{$_('list.checked_count', { values: { n: checked.length } })}</span>
+							<span class="chev-wrap" class:open={showChecked} aria-hidden="true"><Icon name="chevron-down" size={16} /></span>
 						</button>
 						{#if $user?.role !== 'child'}
 							<button class="clear-btn" onclick={clearChecked}>{$_('list.clear_checked')}</button>
@@ -641,29 +703,105 @@
 		min-height: 100dvh;
 	}
 
-	.list-header {
+	/* ── Sticky header ─────────────────────────────────────────── */
+	.sticky-top {
+		position: sticky;
+		top: 0;
+		z-index: 100;
+		background: linear-gradient(
+			180deg,
+			color-mix(in oklab, var(--accent) 16%, var(--surface-base)) 0%,
+			var(--surface-base) 82%
+		);
+		padding-top: max(12px, env(safe-area-inset-top));
+	}
+
+	.top-bar {
 		display: flex;
 		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-4) var(--space-4) var(--space-2);
+		justify-content: space-between;
+		padding: 4px 18px 14px;
+	}
+
+	.wordmark {
+		display: flex;
+		align-items: center;
+		gap: 9px;
+	}
+
+	.wordmark-icon {
+		width: 34px;
+		height: 34px;
+		border-radius: 11px;
+		flex-shrink: 0;
+		background: linear-gradient(150deg, var(--accent), var(--accent-600));
+		display: grid;
+		place-items: center;
+		color: #fff;
+		box-shadow: var(--shadow-pop);
+	}
+
+	.wordmark-text {
+		font-family: var(--font-display);
+		font-size: 22px;
+		line-height: 1;
+		letter-spacing: -0.01em;
+	}
+
+	.wordmark-tante {
+		font-style: italic;
+		font-weight: 500;
+		color: var(--accent);
+	}
+
+	.wordmark-emma {
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+
+	.top-actions {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+	}
+
+	.title-row {
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+		padding: 0 18px 14px;
 	}
 
 	.list-title {
 		font-family: var(--font-display);
-		font-size: var(--text-2xl);
+		font-size: 30px;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		line-height: 1.05;
 		margin: 0;
 		color: var(--text-primary);
-		flex: 1;
+		flex: 0 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.list-count {
+		flex-shrink: 0;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--text-muted);
 	}
 
 	.header-btn {
-		width: 40px;
-		height: 40px;
+		width: 36px;
+		height: 36px;
 		border: 1px solid var(--border-subtle);
-		border-radius: 10px;
-		background: var(--surface-overlay);
+		border-radius: 11px;
+		background: var(--surface-base);
 		color: var(--text-secondary);
-		font-size: 20px;
+		font-size: 18px;
 		cursor: pointer;
 		display: flex;
 		align-items: center;
@@ -789,6 +927,60 @@
 		margin: 0;
 	}
 
+	.cat-header {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 9px;
+		padding: 14px 18px 7px;
+		background: transparent;
+		border: none;
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.cat-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 2px;
+		flex-shrink: 0;
+	}
+
+	.cat-name {
+		font-size: 12px;
+		font-weight: 700;
+		letter-spacing: 0.07em;
+		text-transform: uppercase;
+		color: var(--text-secondary);
+		white-space: nowrap;
+	}
+
+	.cat-count {
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--text-muted);
+		flex-shrink: 0;
+		background: var(--surface-overlay);
+		border-radius: 20px;
+		padding: 1px 8px;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.cat-spacer {
+		flex: 1;
+	}
+
+	.cat-chev {
+		display: grid;
+		place-items: center;
+		color: var(--text-muted);
+		transition: transform 200ms;
+	}
+
+	.cat-chev.collapsed {
+		transform: rotate(-90deg);
+	}
+
 	.checked-section {
 		border-top: 1px solid var(--border-subtle);
 		background: var(--surface-raised);
@@ -797,7 +989,7 @@
 	.checked-toggle-row {
 		display: flex;
 		align-items: center;
-		padding-right: var(--space-4);
+		padding: 12px 18px;
 	}
 
 	.checked-toggle {
@@ -805,35 +997,56 @@
 		display: flex;
 		align-items: center;
 		gap: var(--space-2);
-		padding: var(--space-3) var(--space-4);
+		padding: 0;
 		background: transparent;
 		border: none;
 		cursor: pointer;
 		font-family: var(--font-body);
-		font-size: var(--text-sm);
-		color: var(--text-muted);
-		min-height: 48px;
+		font-size: 14px;
+		font-weight: 600;
+		color: var(--text-secondary);
+		min-height: 44px;
 	}
 
-	.chevron {
-		font-size: 18px;
-		transition: transform 200ms;
-		display: inline-block;
+	.check-circle {
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background: var(--emerald-500);
+		color: #fff;
+		font-size: 12px;
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
 	}
-	.chevron.rotated {
-		transform: rotate(90deg);
+
+	.checked-label {
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.chev-wrap {
+		color: var(--text-muted);
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
+		transform: rotate(-90deg);
+		transition: transform 200ms;
+	}
+	.chev-wrap.open {
+		transform: none;
 	}
 
 	.clear-btn {
-		margin-left: auto;
-		padding: var(--space-1) var(--space-3);
-		border: 1px solid var(--color-danger);
-		border-radius: 8px;
+		border: none;
 		background: transparent;
-		color: var(--color-danger);
-		font-size: var(--text-xs);
+		color: #ef4444;
+		font-size: 13px;
+		font-weight: 600;
 		cursor: pointer;
 		font-family: var(--font-body);
+		padding: 0 var(--space-4);
+		flex-shrink: 0;
 	}
 
 	.empty {
@@ -862,30 +1075,6 @@
 		margin: 0;
 	}
 
-	.active-store-bar {
-		display: flex;
-		align-items: center;
-		gap: var(--space-2);
-		padding: var(--space-2) var(--space-4);
-		background: var(--surface-raised);
-		border-bottom: 1px solid var(--border-subtle);
-	}
-
-	.active-store-label {
-		font-size: var(--text-xs);
-		color: var(--text-muted);
-		white-space: nowrap;
-	}
-
-	.active-store-bar select {
-		font-family: var(--font-body);
-		font-size: var(--text-sm);
-		padding: var(--space-1) var(--space-2);
-		border: 1px solid var(--border-subtle);
-		border-radius: 8px;
-		background: var(--surface-overlay);
-		color: var(--text-primary);
-	}
 
 	.hint {
 		color: var(--text-muted);
