@@ -24,6 +24,8 @@ void i18n.use(initReactI18next).init({
   lng: stored ?? 'de',
   fallbackLng: 'de',
   interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
+  // Resources are bundled + initialised synchronously, so no Suspense needed.
+  react: { useSuspense: false },
 });
 
 export function setLocale(code: string) {

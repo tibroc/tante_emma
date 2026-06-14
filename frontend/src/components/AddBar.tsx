@@ -321,7 +321,7 @@ export function AddBar({ listId, onAdd }: AddBarProps) {
                   whiteSpace: 'nowrap',
                 }}
               >
-                „{query}" neu anlegen
+                {t('add_item.create', { q: query })}
               </span>
             </button>
           )}

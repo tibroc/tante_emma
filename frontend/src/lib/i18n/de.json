@@ -41,7 +41,8 @@
     "placeholder": "Hinzufügen…",
     "aria_add": "Hinzufügen",
     "aria_scan": "Barcode scannen",
-    "aria_input": "Artikel hinzufügen"
+    "aria_input": "Artikel hinzufügen",
+    "create": "„{q}\" neu anlegen"
   },
   "sort": {
     "category": "Kategorie",
@@ -147,7 +148,10 @@
     "language": "Sprache",
     "dark_mode": "Dunkles Design",
     "logout": "Abmelden",
-    "version": "Version"
+    "version": "Version",
+    "design": "Design",
+    "accent": "Akzentfarbe",
+    "management": "Verwaltung"
   },
   "admin": {
     "users_title": "Benutzerverwaltung",
@@ -172,5 +176,8 @@
   },
   "errors": {
     "sync": "Konnte nicht synchronisiert werden"
+  },
+  "presence": {
+    "active": "{name} ist gerade aktiv"
   }
 }

@@ -41,7 +41,8 @@
     "placeholder": "Add item…",
     "aria_add": "Add",
     "aria_scan": "Scan barcode",
-    "aria_input": "Add item"
+    "aria_input": "Add item",
+    "create": "Add “{q}”"
   },
   "sort": {
     "category": "Category",
@@ -147,7 +148,10 @@
     "language": "Language",
     "dark_mode": "Dark mode",
     "logout": "Log out",
-    "version": "Version"
+    "version": "Version",
+    "design": "Design",
+    "accent": "Accent color",
+    "management": "Management"
   },
   "admin": {
     "users_title": "User management",
@@ -172,5 +176,8 @@
   },
   "errors": {
     "sync": "Could not sync"
+  },
+  "presence": {
+    "active": "{name} is active now"
   }
 }

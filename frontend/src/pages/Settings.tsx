@@ -274,7 +274,7 @@ export default function Settings() {
 
           {/* design / accent */}
           <div>
-            <SectionLabel>Design</SectionLabel>
+            <SectionLabel>{t('settings.design')}</SectionLabel>
             <Group>
               <div style={{ padding: 16 }}>
                 <div
@@ -286,7 +286,7 @@ export default function Settings() {
                   }}
                 >
                   <span style={{ fontSize: 15.5, fontWeight: 500, color: 'var(--text-primary)' }}>
-                    Akzentfarbe
+                    {t('settings.accent')}
                   </span>
                   <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--accent)' }}>
                     {themeName}
@@ -340,7 +340,7 @@ export default function Settings() {
           {/* admin */}
           {user?.role === 'admin' && (
             <div>
-              <SectionLabel>Verwaltung</SectionLabel>
+              <SectionLabel>{t('settings.management')}</SectionLabel>
               <Group>
                 <Row
                   icon="users"
@@ -398,7 +398,7 @@ export default function Settings() {
               padding: '4px 0',
             }}
           >
-            TanteEmma · Version 1.0
+            TanteEmma · {t('settings.version')} 1.0
           </div>
         </div>
       </div>

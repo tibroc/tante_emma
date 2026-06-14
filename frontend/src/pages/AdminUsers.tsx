@@ -16,15 +16,13 @@ interface AdminUser {
   last_seen?: number; // omitted by the backend when the user was never seen
 }
 
-const dateFmt = new Intl.DateTimeFormat('de-DE', { dateStyle: 'short' });
-
-function formatLastSeen(ts?: number): string {
+function formatLastSeen(ts: number | undefined, locale: string): string {
   if (!ts) return '–'; // undefined or 0
-  return dateFmt.format(new Date(ts));
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'short' }).format(new Date(ts));
 }
 
 export default function AdminUsersPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const user = useUserStore((s) => s.user);
 
@@ -173,7 +171,7 @@ export default function AdminUsersPage() {
                       {u.email}
                     </div>
                     <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 2 }}>
-                      {t('admin.last_seen', { date: formatLastSeen(u.last_seen) })}
+                      {t('admin.last_seen', { date: formatLastSeen(u.last_seen, i18n.language) })}
                     </div>
                   </div>
 

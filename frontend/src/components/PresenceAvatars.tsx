@@ -1,6 +1,8 @@
 // PresenceAvatars.tsx — overlapping avatar stack of users currently on the list.
 // Ported from the Svelte component; uses avatar_url when present, else initials
 // with a deterministic hue from the user id.
+import { useTranslation } from 'react-i18next';
+
 interface PresenceUser {
   id: string;
   name: string;
@@ -14,13 +16,14 @@ function hueFor(id: string): number {
 }
 
 export function PresenceAvatars({ users }: { users: PresenceUser[] }) {
+  const { t } = useTranslation();
   if (!users.length) return null;
   return (
     <div style={{ display: 'flex' }}>
       {users.slice(0, 4).map((u, idx) => (
         <div
           key={u.id}
-          title={`${u.name} ist gerade aktiv`}
+          title={t('presence.active', { name: u.name })}
           style={{
             width: 28,
             height: 28,

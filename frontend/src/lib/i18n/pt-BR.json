@@ -41,7 +41,8 @@
     "placeholder": "Adicionar…",
     "aria_add": "Adicionar",
     "aria_scan": "Escanear código",
-    "aria_input": "Adicionar item"
+    "aria_input": "Adicionar item",
+    "create": "Adicionar “{q}”"
   },
   "sort": {
     "category": "Categoria",
@@ -147,7 +148,10 @@
     "language": "Idioma",
     "dark_mode": "Modo escuro",
     "logout": "Sair",
-    "version": "Versão"
+    "version": "Versão",
+    "design": "Design",
+    "accent": "Cor de destaque",
+    "management": "Administração"
   },
   "admin": {
     "users_title": "Gerenciamento de usuários",
@@ -172,5 +176,8 @@
   },
   "errors": {
     "sync": "Não foi possível sincronizar"
+  },
+  "presence": {
+    "active": "{name} está ativo agora"
   }
 }
