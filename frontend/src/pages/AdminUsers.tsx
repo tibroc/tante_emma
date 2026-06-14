@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { useUserStore } from '../stores/userStore';
-import { Icon } from '../components/Icon';
+import { BackHeader } from '../components/Header';
 
 interface AdminUser {
   id: string;
@@ -77,154 +77,135 @@ export default function AdminUsersPage() {
   return (
     <div
       style={{
-        minHeight: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         background: 'var(--surface-base)',
         color: 'var(--text-primary)',
-        padding: '20px 16px 32px',
       }}
     >
-      <header
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 44,
-            height: 44,
-            borderRadius: 16,
-            background: 'var(--surface-raised)',
-            color: 'var(--accent)',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <Icon name="users" size={24} />
-        </span>
-        <h1 className="ff-display" style={{ margin: 0, fontSize: 26, lineHeight: 1.1 }}>
-          {t('admin.users_title')}
-        </h1>
-      </header>
+      <BackHeader
+        title={t('admin.users_title')}
+        backLabel={t('settings.title')}
+        onBack={() => navigate('/settings')}
+      />
 
-      {loading ? (
-        <p style={{ color: 'var(--text-muted)', padding: '24px 4px' }}>{t('list.loading')}</p>
-      ) : (
-        <ul
-          style={{
-            listStyle: 'none',
-            margin: 0,
-            padding: 0,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}
-        >
-          {users.map((u) => {
-            const initial = (u.name.charAt(0) || '?').toUpperCase();
-            const disabled = saving === u.id || u.id === user?.id;
-            return (
-              <li
-                key={u.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 14,
-                  background: 'var(--surface-raised)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: 20,
-                  padding: '14px 16px',
-                  boxShadow: 'var(--shadow-sm)',
-                }}
-              >
-                <span
-                  aria-hidden="true"
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 24px' }}>
+        {loading ? (
+          <p style={{ color: 'var(--text-muted)', padding: '24px 4px' }}>{t('list.loading')}</p>
+        ) : (
+          <ul
+            style={{
+              listStyle: 'none',
+              margin: 0,
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            {users.map((u) => {
+              const initial = (u.name.charAt(0) || '?').toUpperCase();
+              const disabled = saving === u.id || u.id === user?.id;
+              return (
+                <li
+                  key={u.id}
                   style={{
-                    flex: '0 0 auto',
-                    display: 'inline-flex',
+                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 48,
-                    height: 48,
-                    borderRadius: '50%',
-                    background: 'var(--accent)',
-                    color: 'var(--surface-overlay)',
-                    fontSize: 20,
-                    fontWeight: 600,
-                    overflow: 'hidden',
-                  }}
-                >
-                  {u.avatar_url ? (
-                    <img
-                      src={u.avatar_url}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    />
-                  ) : (
-                    initial
-                  )}
-                </span>
-
-                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      fontSize: 16,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {u.name}
-                  </div>
-                  <div
-                    style={{
-                      color: 'var(--text-muted)',
-                      fontSize: 13,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {u.email}
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 2 }}>
-                    {t('admin.last_seen', { date: formatLastSeen(u.last_seen) })}
-                  </div>
-                </div>
-
-                <select
-                  aria-label={t('admin.role_for', { name: u.name })}
-                  value={u.role}
-                  disabled={disabled}
-                  onChange={(e) => changeRole(u, e.target.value as AdminUser['role'])}
-                  style={{
-                    flex: '0 0 auto',
-                    appearance: 'none',
-                    background: 'var(--surface-overlay)',
-                    color: 'var(--text-primary)',
+                    gap: 14,
+                    background: 'var(--surface-raised)',
                     border: '1px solid var(--border-subtle)',
-                    borderRadius: 12,
-                    padding: '8px 12px',
-                    fontSize: 14,
-                    fontFamily: 'inherit',
-                    cursor: disabled ? 'default' : 'pointer',
-                    opacity: disabled ? 0.6 : 1,
+                    borderRadius: 20,
+                    padding: '14px 16px',
+                    boxShadow: 'var(--shadow-sm)',
                   }}
                 >
-                  <option value="admin">{t('admin.role_admin')}</option>
-                  <option value="member">{t('admin.role_member')}</option>
-                  <option value="child">{t('admin.role_child')}</option>
-                </select>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      flex: '0 0 auto',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(150deg, var(--accent), var(--accent-600))',
+                      color: '#fff',
+                      fontSize: 20,
+                      fontWeight: 600,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {u.avatar_url ? (
+                      <img
+                        src={u.avatar_url}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      />
+                    ) : (
+                      initial
+                    )}
+                  </span>
+
+                  <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 16,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {u.name}
+                    </div>
+                    <div
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: 13,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {u.email}
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 2 }}>
+                      {t('admin.last_seen', { date: formatLastSeen(u.last_seen) })}
+                    </div>
+                  </div>
+
+                  <select
+                    aria-label={t('admin.role_for', { name: u.name })}
+                    value={u.role}
+                    disabled={disabled}
+                    onChange={(e) => changeRole(u, e.target.value as AdminUser['role'])}
+                    style={{
+                      flex: '0 0 auto',
+                      appearance: 'none',
+                      background: 'var(--surface-overlay)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: 12,
+                      padding: '8px 12px',
+                      fontSize: 14,
+                      fontFamily: 'inherit',
+                      cursor: disabled ? 'default' : 'pointer',
+                      opacity: disabled ? 0.6 : 1,
+                    }}
+                  >
+                    <option value="admin">{t('admin.role_admin')}</option>
+                    <option value="member">{t('admin.role_member')}</option>
+                    <option value="child">{t('admin.role_child')}</option>
+                  </select>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

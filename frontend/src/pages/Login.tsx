@@ -18,7 +18,8 @@ export default function Login() {
           'calc(24px + env(safe-area-inset-top)) 28px calc(28px + env(safe-area-inset-bottom))',
         textAlign: 'center',
         color: '#fff',
-        background: 'linear-gradient(165deg, var(--accent), var(--accent-600))',
+        background:
+          'radial-gradient(120% 70% at 28% 0%, rgba(255,255,255,0.28), transparent 55%), linear-gradient(165deg, var(--accent), var(--accent-600))',
       }}
     >
       {/* centered brand */}

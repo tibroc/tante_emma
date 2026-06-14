@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { Icon } from '../components/Icon';
+import { CatChip } from '../components/primitives';
+import { BackHeader } from '../components/Header';
+import { resolveCategoryIcon } from '../lib/categories';
 import { useUserStore } from '../stores/userStore';
 import type { Category, Store, Suggestion, Product } from '../lib/types';
 
@@ -182,38 +185,28 @@ export default function AdminProductsPage() {
         color: 'var(--text-primary)',
       }}
     >
-      {/* Header */}
-      <div style={{ flexShrink: 0, padding: '40px 18px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ color: 'var(--accent)' }}>
-            <Icon name="box" size={26} />
-          </span>
-          <h1
-            className="ff-display"
-            style={{ margin: 0, fontSize: 26, fontWeight: 600, letterSpacing: '-0.02em' }}
-          >
-            {t('admin.products_title')}
-          </h1>
-        </div>
+      <BackHeader
+        title={t('admin.products_title')}
+        backLabel={t('settings.title')}
+        onBack={() => navigate('/settings')}
+      />
 
-        {/* Search + create row */}
-        <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+      {/* Search + create row */}
+      <div style={{ flexShrink: 0, padding: '0 16px 12px' }}>
+        <div style={{ display: 'flex', gap: 10 }}>
           <div
             style={{
               flex: 1,
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              background: 'var(--surface-raised)',
-              border: '1px solid var(--border-subtle)',
+              gap: 9,
+              background: 'var(--surface-overlay)',
               borderRadius: 14,
-              padding: '0 12px',
-              boxShadow: 'var(--shadow-sm)',
+              padding: '0 14px',
+              height: 48,
             }}
           >
-            <span style={{ color: 'var(--text-muted)' }}>
-              <Icon name="search" size={18} />
-            </span>
+            <Icon name="search" size={18} style={{ color: 'var(--text-muted)' }} />
             <input
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
@@ -226,7 +219,6 @@ export default function AdminProductsPage() {
                 background: 'transparent',
                 color: 'var(--text-primary)',
                 fontSize: 16,
-                height: 48,
               }}
             />
           </div>
@@ -241,14 +233,14 @@ export default function AdminProductsPage() {
               borderRadius: 14,
               border: 'none',
               cursor: 'pointer',
-              background: 'var(--accent)',
+              background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
               color: '#fff',
               display: 'grid',
               placeItems: 'center',
-              boxShadow: 'var(--shadow-md)',
+              boxShadow: 'var(--shadow-pop)',
             }}
           >
-            <Icon name="plus" size={22} />
+            <Icon name="plus" size={22} strokeWidth={2.4} />
           </button>
         </div>
       </div>
@@ -284,29 +276,21 @@ export default function AdminProductsPage() {
                 boxShadow: 'var(--shadow-sm)',
               }}
             >
+              <CatChip
+                color={r.category?.color || '#9ca3af'}
+                icon={resolveCategoryIcon(r.category?.icon)}
+                size={36}
+              />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 16, fontWeight: 500, color: 'var(--text-primary)' }}>
                   {r.display_name}
                 </div>
-                {r.brand && (
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>{r.brand}</div>
+                {(r.brand || r.category) && (
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    {[r.brand, r.category?.name_de].filter(Boolean).join(' · ')}
+                  </div>
                 )}
               </div>
-              {r.category && (
-                <span
-                  style={{
-                    flexShrink: 0,
-                    fontSize: 12,
-                    color: 'var(--text-secondary)',
-                    background: 'var(--surface-overlay)',
-                    border: '1px solid var(--border-subtle)',
-                    borderRadius: 999,
-                    padding: '3px 10px',
-                  }}
-                >
-                  {r.category.name_de}
-                </span>
-              )}
               <button
                 onClick={() => openEdit(r.product_id)}
                 aria-label={t('admin.product_edit')}
@@ -501,13 +485,13 @@ export default function AdminProductsPage() {
                   height: 50,
                   borderRadius: 14,
                   border: 'none',
-                  background: 'var(--accent)',
+                  background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
                   color: '#fff',
                   fontSize: 16,
                   fontWeight: 600,
                   cursor: canSave ? 'pointer' : 'not-allowed',
                   opacity: canSave ? 1 : 0.5,
-                  boxShadow: canSave ? 'var(--shadow-md)' : 'none',
+                  boxShadow: canSave ? 'var(--shadow-pop)' : 'none',
                 }}
               >
                 {t('stores.form.save')}
