@@ -20,6 +20,11 @@ services:
       - LOG_LEVEL=debug
     restart: unless-stopped
 
+  # Serves the production static build (sirv). For day-to-day frontend work use
+  # `cd frontend && npm run dev` instead — its Vite proxy makes /api + /ws
+  # same-origin. This container expects to sit behind a same-origin reverse proxy
+  # (as in docker-compose.prod.yml); on its own it can't reach the backend
+  # cross-origin with cookies.
   frontend:
     build:
       context: .
