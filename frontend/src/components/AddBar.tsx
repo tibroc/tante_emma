@@ -212,7 +212,7 @@ export function AddBar({ listId, onAdd }: AddBarProps) {
             border: 'none',
             cursor: 'pointer',
             flexShrink: 0,
-            background: 'var(--accent)',
+            background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
             color: '#fff',
             display: 'grid',
             placeItems: 'center',

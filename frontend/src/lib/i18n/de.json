@@ -8,7 +8,8 @@
   },
   "login": {
     "tagline": "Einkaufen. Einfach.",
-    "sign_in": "Anmelden"
+    "sign_in": "Anmelden",
+    "sso_hint": "Sicher per Single Sign-On"
   },
   "lists": {
     "title": "Einkaufslisten",

@@ -8,7 +8,8 @@
   },
   "login": {
     "tagline": "Shopping. Simply.",
-    "sign_in": "Sign in"
+    "sign_in": "Sign in",
+    "sso_hint": "Secure via Single Sign-On"
   },
   "lists": {
     "title": "Shopping Lists",
