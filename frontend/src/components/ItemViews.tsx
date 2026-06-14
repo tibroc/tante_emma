@@ -113,13 +113,11 @@ export function ItemTile({
   nameWeight,
   onToggle,
   onOpen,
-  onDelete,
 }: {
   item: ItemVM;
   nameWeight: number;
   onToggle: () => void;
   onOpen: () => void;
-  onDelete?: () => void;
 }) {
   const checked = item.checked;
   return (
@@ -151,31 +149,7 @@ export function ItemTile({
         }}
       >
         <CatChip color={item.categoryColor} icon={item.categoryIcon} size={30} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {onDelete && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete();
-              }}
-              aria-label="Entfernen"
-              style={{
-                width: 26,
-                height: 26,
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-                display: 'grid',
-                placeItems: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="x" size={16} strokeWidth={2.2} />
-            </button>
-          )}
-          <Checkbox checked={checked} onToggle={onToggle} />
-        </div>
+        <Checkbox checked={checked} onToggle={onToggle} />
       </div>
       <div style={{ marginTop: 'auto' }}>
         <div

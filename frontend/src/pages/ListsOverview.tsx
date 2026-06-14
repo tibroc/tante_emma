@@ -1,7 +1,7 @@
-// ListsOverview.tsx — route /lists. Design-ref gradient list cards + large-title
-// header. Create form is child-gated. (Per-list progress/members/counts aren't
-// in GET /api/lists, so the card shows what the API provides: name, icon, color,
-// type, and a relative "edited" time from updated_at.)
+// ListsOverview.tsx — route /lists. Design-ref gradient cards with progress,
+// category dots and open/done counts. GET /api/lists has no per-list counts, so
+// each list's detail is fetched once to enrich the card (member stacks aren't
+// exposed by the API and are omitted). Create form is child-gated.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,13 @@ import { Icon } from '../components/Icon';
 import { LargeTitleHeader, ThemeToggle } from '../components/Header';
 import { useTheme } from '../hooks/useTheme';
 import { useUserStore } from '../stores/userStore';
-import type { List } from '../lib/types';
+import type { List, ListDetail, Category } from '../lib/types';
+
+interface Enriched {
+  open: number;
+  done: number;
+  catColors: string[];
+}
 
 function relativeTime(ms: number, lang: string): string {
   const diff = ms - Date.now();
@@ -28,17 +34,24 @@ function relativeTime(ms: number, lang: string): string {
 
 function ListCard({
   list,
+  data,
   edited,
-  sharedLabel,
   onOpen,
 }: {
   list: List;
+  data?: Enriched;
   edited: string;
-  sharedLabel?: string;
   onOpen: () => void;
 }) {
+  const { t } = useTranslation();
   const color = list.color || 'var(--accent)';
   const dark = `color-mix(in oklab, ${color} 72%, black)`;
+  const total = (data?.open ?? 0) + (data?.done ?? 0);
+  const pct = total ? Math.round(((data?.done ?? 0) / total) * 100) : 0;
+  const countLine = data
+    ? `${t('lists.open', { n: data.open })}${data.done ? ` · ${t('lists.done', { n: data.done })}` : ''}`
+    : '';
+
   return (
     <button
       onClick={onOpen}
@@ -54,10 +67,11 @@ function ListCard({
         boxShadow: 'var(--shadow-md)',
       }}
     >
+      {/* accent header band */}
       <div
         style={{
           position: 'relative',
-          padding: '16px',
+          padding: 16,
           background: `linear-gradient(135deg, ${color}, ${dark})`,
         }}
       >
@@ -104,34 +118,73 @@ function ListCard({
             >
               {list.name}
             </div>
+            {countLine && (
+              <div
+                style={{
+                  fontSize: 12.5,
+                  fontWeight: 500,
+                  color: 'rgba(255,255,255,0.85)',
+                  marginTop: 1,
+                }}
+              >
+                {countLine}
+              </div>
+            )}
+          </div>
+          <Icon name="chevron-right" size={20} style={{ color: 'rgba(255,255,255,0.9)' }} />
+        </div>
+      </div>
+
+      {/* body: progress + categories + edited */}
+      <div style={{ padding: '13px 16px 15px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div
+            style={{
+              flex: 1,
+              height: 7,
+              borderRadius: 4,
+              background: 'var(--surface-overlay)',
+              overflow: 'hidden',
+            }}
+          >
             <div
               style={{
-                fontSize: 12.5,
-                fontWeight: 500,
-                color: 'rgba(255,255,255,0.85)',
-                marginTop: 1,
+                width: `${pct}%`,
+                height: '100%',
+                borderRadius: 4,
+                background: `linear-gradient(90deg, ${color}, ${dark})`,
+                transition: 'width .3s',
               }}
-            >
-              {edited}
-            </div>
+            />
           </div>
-          {sharedLabel && (
+          <span
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {pct}%
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {(data?.catColors ?? []).map((c, i) => (
+              <span key={i} style={{ width: 8, height: 8, borderRadius: 3, background: c }} />
+            ))}
             <span
-              style={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                letterSpacing: '0.03em',
-                textTransform: 'uppercase',
-                color: '#fff',
-                background: 'rgba(255,255,255,0.22)',
-                borderRadius: 6,
-                padding: '3px 8px',
-              }}
+              style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 3 }}
             >
-              {sharedLabel}
+              {t('lists.categories', { n: data?.catColors.length ?? 0 })}
             </span>
-          )}
-          <Icon name="chevron-right" size={20} style={{ color: 'rgba(255,255,255,0.9)' }} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="clock" size={13} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
+              {edited}
+            </span>
+          </div>
         </div>
       </div>
     </button>
@@ -144,15 +197,51 @@ export default function ListsOverview() {
   const { dark, toggleDark } = useTheme();
   const user = useUserStore((s) => s.user);
   const [lists, setLists] = useState<List[] | null>(null);
+  const [enriched, setEnriched] = useState<Record<string, Enriched>>({});
   const [error, setError] = useState<string>();
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    api
-      .get<List[]>('/api/lists')
-      .then(setLists)
-      .catch((e) => setError(String(e?.message ?? e)));
+    let cancelled = false;
+    (async () => {
+      try {
+        const [all, cats] = await Promise.all([
+          api.get<List[]>('/api/lists'),
+          api.get<Category[]>('/api/categories').catch(() => [] as Category[]),
+        ]);
+        if (cancelled) return;
+        setLists(all);
+        const catColor: Record<string, string> = {};
+        for (const c of cats) catColor[c.id] = c.color || '#9ca3af';
+        // Enrich each card with counts + category dots (best-effort, parallel).
+        const details = await Promise.all(
+          all.map((l) => api.get<ListDetail>(`/api/lists/${l.id}`).catch(() => null)),
+        );
+        if (cancelled) return;
+        const map: Record<string, Enriched> = {};
+        details.forEach((d, i) => {
+          if (!d) return;
+          const open = d.items.filter((it) => !it.checked).length;
+          const done = d.items.filter((it) => it.checked).length;
+          const colors = [
+            ...new Set(
+              d.items
+                .filter((it) => !it.checked)
+                .map((it) => (it.category_id ? catColor[it.category_id] : undefined))
+                .filter(Boolean) as string[],
+            ),
+          ].slice(0, 5);
+          map[all[i].id] = { open, done, catColors: colors };
+        });
+        setEnriched(map);
+      } catch (e) {
+        if (!cancelled) setError(String((e as Error)?.message ?? e));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const createList = async () => {
@@ -170,6 +259,8 @@ export default function ListsOverview() {
     }
   };
 
+  const totalOpen = lists ? lists.reduce((n, l) => n + (enriched[l.id]?.open ?? 0), 0) : 0;
+
   return (
     <div
       style={{
@@ -181,7 +272,7 @@ export default function ListsOverview() {
     >
       <LargeTitleHeader
         title={t('lists.title')}
-        subtitle={lists ? `${lists.length}` : undefined}
+        subtitle={lists ? t('lists.summary', { lists: lists.length, open: totalOpen }) : undefined}
         trailing={<ThemeToggle dark={dark} onToggle={toggleDark} />}
       />
 
@@ -250,8 +341,8 @@ export default function ListsOverview() {
             <ListCard
               key={l.id}
               list={l}
+              data={enriched[l.id]}
               edited={relativeTime(l.updated_at, i18n.language)}
-              sharedLabel={l.owner_id !== user?.id ? t('lists.shared_badge') : undefined}
               onOpen={() => navigate(`/lists/${l.id}`)}
             />
           ))}

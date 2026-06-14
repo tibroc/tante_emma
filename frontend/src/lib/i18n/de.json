@@ -17,7 +17,11 @@
     "new_name_label": "Name der neuen Liste",
     "create_label": "Liste erstellen",
     "empty": "Noch keine Listen",
-    "shared_badge": "geteilt"
+    "shared_badge": "geteilt",
+    "summary": "{lists} Listen · {open} offen",
+    "open": "{n} offen",
+    "done": "{n} erledigt",
+    "categories": "{n} Kategorien"
   },
   "list": {
     "empty_heading": "Liste ist leer",
@@ -126,7 +130,8 @@
       "edit": "Laden bearbeiten",
       "cancel": "Abbrechen",
       "save": "Speichern"
-    }
+    },
+    "summary": "{n} Läden · Regal-Reihenfolge spart Zeit"
   },
   "history": {
     "title": "Verlauf",
@@ -134,7 +139,8 @@
     "search_label": "Verlauf durchsuchen",
     "empty": "Noch nichts eingekauft.",
     "no_results": "Keine Ergebnisse für \"{q}\".",
-    "load_error": "Verlauf konnte nicht geladen werden"
+    "load_error": "Verlauf konnte nicht geladen werden",
+    "subtitle": "Tippe + zum Wiederholen"
   },
   "settings": {
     "title": "Einstellungen",

@@ -17,7 +17,11 @@
     "new_name_label": "Nome da nova lista",
     "create_label": "Criar lista",
     "empty": "Nenhuma lista ainda",
-    "shared_badge": "compartilhada"
+    "shared_badge": "compartilhada",
+    "summary": "{lists} listas · {open} em aberto",
+    "open": "{n} em aberto",
+    "done": "{n} concluído",
+    "categories": "{n} categorias"
   },
   "list": {
     "empty_heading": "Lista vazia",
@@ -126,7 +130,8 @@
       "edit": "Editar loja",
       "cancel": "Cancelar",
       "save": "Salvar"
-    }
+    },
+    "summary": "{n} lojas · a ordem das prateleiras poupa tempo"
   },
   "history": {
     "title": "Histórico",
@@ -134,7 +139,8 @@
     "search_label": "Pesquisar histórico",
     "empty": "Nada comprado ainda.",
     "no_results": "Nenhum resultado para \"{q}\".",
-    "load_error": "Não foi possível carregar o histórico"
+    "load_error": "Não foi possível carregar o histórico",
+    "subtitle": "Toque + para repetir"
   },
   "settings": {
     "title": "Configurações",

@@ -17,7 +17,11 @@
     "new_name_label": "Name of new list",
     "create_label": "Create list",
     "empty": "No lists yet",
-    "shared_badge": "shared"
+    "shared_badge": "shared",
+    "summary": "{lists} lists · {open} open",
+    "open": "{n} open",
+    "done": "{n} done",
+    "categories": "{n} categories"
   },
   "list": {
     "empty_heading": "List is empty",
@@ -126,7 +130,8 @@
       "edit": "Edit store",
       "cancel": "Cancel",
       "save": "Save"
-    }
+    },
+    "summary": "{n} stores · shelf order saves time"
   },
   "history": {
     "title": "History",
@@ -134,7 +139,8 @@
     "search_label": "Search history",
     "empty": "Nothing purchased yet.",
     "no_results": "No results for \"{q}\".",
-    "load_error": "Could not load history"
+    "load_error": "Could not load history",
+    "subtitle": "Tap + to repeat"
   },
   "settings": {
     "title": "Settings",

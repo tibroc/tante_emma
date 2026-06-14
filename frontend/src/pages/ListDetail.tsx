@@ -171,7 +171,17 @@ export default function ListDetail() {
           nameWeight={NAME_WEIGHT}
           onToggle={() => list.check(vm.id)}
           onOpen={() => setDetailId(vm.id)}
-          onDelete={() => removeWithUndo(vm.id)}
+        />
+      );
+    if (view === 'card')
+      return (
+        <ItemRow
+          key={vm.id}
+          item={vm}
+          nameWeight={NAME_WEIGHT}
+          view="card"
+          onToggle={() => list.check(vm.id)}
+          onOpen={() => setDetailId(vm.id)}
         />
       );
     return (
@@ -268,11 +278,14 @@ export default function ListDetail() {
               </button>
             )}
             <button
-              onClick={() => setView((v) => (v === 'row' ? 'tile' : 'row'))}
-              aria-label={view === 'row' ? t('list.tile_view') : t('list.list_view')}
+              onClick={() => setView((v) => (v === 'row' ? 'card' : v === 'card' ? 'tile' : 'row'))}
+              aria-label={view === 'tile' ? t('list.list_view') : t('list.tile_view')}
               style={iconBtn}
             >
-              <Icon name={view === 'tile' ? 'rows' : 'grid'} size={18} />
+              <Icon
+                name={view === 'tile' ? 'grid' : view === 'card' ? 'card-rows' : 'rows'}
+                size={18}
+              />
             </button>
             <button onClick={toggleDark} aria-label="Theme" style={iconBtn}>
               <Icon name={dark ? 'sun' : 'moon'} size={18} />
@@ -381,7 +394,7 @@ export default function ListDetail() {
         )}
 
         {groups.map((g) => (
-          <div key={g.key} style={view === 'tile' ? undefined : undefined}>
+          <div key={g.key}>
             {g.label && (
               <CategoryHeader
                 label={g.label}
@@ -398,6 +411,17 @@ export default function ListDetail() {
                     display: 'grid',
                     gridTemplateColumns: '1fr 1fr',
                     gap: 9,
+                    padding: '4px 16px 10px',
+                  }}
+                >
+                  {g.items.map(renderItem)}
+                </div>
+              ) : view === 'card' ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
                     padding: '4px 16px 10px',
                   }}
                 >

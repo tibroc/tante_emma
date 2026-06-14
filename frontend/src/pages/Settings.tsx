@@ -210,6 +210,7 @@ export default function Settings() {
                     {user.email}
                   </div>
                 </div>
+                <Icon name="chevron-right" size={18} style={{ color: 'var(--text-muted)' }} />
               </div>
             </Group>
           )}

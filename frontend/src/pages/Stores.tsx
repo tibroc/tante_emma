@@ -19,8 +19,10 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { api, ApiError } from '../lib/api';
 import { Icon } from '../components/Icon';
+import { ThemeToggle } from '../components/Header';
 import type { Store, Category } from '../lib/types';
 import { useUserStore } from '../stores/userStore';
+import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from 'react-i18next';
 
 // ── local types not in lib/types ──
@@ -109,6 +111,7 @@ const labelStyle: CSSProperties = {
 
 export default function StoresPage() {
   const { t } = useTranslation();
+  const { dark, toggleDark } = useTheme();
   const user = useUserStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
 
@@ -298,25 +301,54 @@ export default function StoresPage() {
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-end',
           justifyContent: 'space-between',
+          gap: 12,
           marginBottom: 16,
         }}
       >
-        <h1
-          className="ff-display"
-          style={{ margin: 0, fontSize: 24, color: 'var(--text-primary)' }}
-        >
-          {t('stores.title')}
-        </h1>
-        <button
-          type="button"
-          style={{ ...primaryBtn, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          onClick={openCreate}
-        >
-          <Icon name="plus" size={18} strokeWidth={2.2} />
-          {t('stores.add')}
-        </button>
+        <div style={{ minWidth: 0 }}>
+          <h1
+            className="ff-display"
+            style={{
+              margin: 0,
+              fontSize: 30,
+              fontWeight: 600,
+              letterSpacing: '-0.02em',
+              color: 'var(--text-primary)',
+              lineHeight: 1.05,
+            }}
+          >
+            {t('stores.title')}
+          </h1>
+          <div
+            style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--text-muted)', marginTop: 4 }}
+          >
+            {t('stores.summary', { n: stores.length })}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <ThemeToggle dark={dark} onToggle={toggleDark} />
+          <button
+            type="button"
+            aria-label={t('stores.add')}
+            onClick={openCreate}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 11,
+              cursor: 'pointer',
+              display: 'grid',
+              placeItems: 'center',
+              border: 'none',
+              color: '#fff',
+              background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
+              boxShadow: 'var(--shadow-pop)',
+            }}
+          >
+            <Icon name="plus" size={20} strokeWidth={2.4} />
+          </button>
+        </div>
       </div>
 
       {error && (
