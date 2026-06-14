@@ -81,7 +81,7 @@ export default function History() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--surface-base)',
+        background: 'transparent',
       }}
     >
       <LargeTitleHeader
@@ -93,7 +93,7 @@ export default function History() {
       <div
         style={{
           flexShrink: 0,
-          background: 'var(--surface-base)',
+          background: 'transparent',
           position: 'relative',
           zIndex: 20,
         }}

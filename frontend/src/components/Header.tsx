@@ -44,7 +44,7 @@ export function BackHeader({
       style={{
         flexShrink: 0,
         paddingTop: 'calc(14px + env(safe-area-inset-top))',
-        background: 'var(--surface-base)',
+        background: 'transparent',
         position: 'relative',
         zIndex: 30,
       }}
@@ -115,7 +115,7 @@ export function LargeTitleHeader({
       style={{
         flexShrink: 0,
         paddingTop: 'calc(20px + env(safe-area-inset-top))',
-        background: 'var(--surface-base)',
+        background: 'transparent',
         position: 'relative',
         zIndex: 30,
       }}

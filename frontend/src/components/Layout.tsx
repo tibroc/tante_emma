@@ -94,7 +94,7 @@ export default function Layout() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--surface-base)',
+        background: 'transparent',
       }}
     >
       {syncStatus === 'offline' && (

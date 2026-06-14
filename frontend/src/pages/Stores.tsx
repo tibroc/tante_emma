@@ -294,9 +294,7 @@ export default function StoresPage() {
   }
 
   return (
-    <div
-      style={{ background: 'var(--surface-base)', minHeight: '100%', padding: '16px 14px 96px' }}
-    >
+    <div style={{ background: 'transparent', minHeight: '100%', padding: '16px 14px 96px' }}>
       {/* header */}
       <div
         style={{

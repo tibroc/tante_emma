@@ -153,7 +153,7 @@ export default function Settings() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--surface-base)',
+        background: 'transparent',
       }}
     >
       <LargeTitleHeader title={t('settings.title')} />

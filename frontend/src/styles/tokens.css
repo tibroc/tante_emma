@@ -46,9 +46,14 @@ body {
   --shadow-sm: 0 1px 2px rgba(40, 20, 45, 0.05);
   --shadow-md: 0 4px 10px rgba(40, 20, 45, 0.07), 0 1px 3px rgba(40, 20, 45, 0.05);
   --shadow-lg: 0 14px 30px rgba(40, 20, 45, 0.12), 0 4px 10px rgba(40, 20, 45, 0.06);
-  --shadow-pop: 0 10px 24px color-mix(in oklab, var(--accent) 30%, transparent);
+  /* srgb (not oklab) so the accent glow stays a clean colored halo, not muddy. */
+  --shadow-pop: 0 7px 22px color-mix(in srgb, var(--accent) 42%, transparent);
 
   color: var(--text-primary);
+  /* warm ambient wash (design-ref body matte); screens are transparent over it */
+  background:
+    radial-gradient(1200px 800px at 15% -5%, #fbe9fb 0%, transparent 55%),
+    radial-gradient(1100px 700px at 100% 105%, #e7fbf2 0%, transparent 50%), #f3eef2;
 }
 .app[data-theme='dark'] {
   --emerald-500: #34d399;
@@ -73,7 +78,12 @@ body {
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
   --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55);
-  --shadow-pop: 0 10px 28px color-mix(in oklab, var(--accent) 40%, transparent);
+  --shadow-pop: 0 7px 24px color-mix(in srgb, var(--accent) 55%, transparent);
+
+  background:
+    radial-gradient(1200px 800px at 15% -5%, rgba(217, 70, 239, 0.1) 0%, transparent 55%),
+    radial-gradient(1100px 700px at 100% 105%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+    #0d0b11;
 }
 
 .ff-display {

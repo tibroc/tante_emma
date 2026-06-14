@@ -75,17 +75,6 @@ function ListCard({
           background: `linear-gradient(135deg, ${color}, ${dark})`,
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: -24,
-            right: -16,
-            width: 96,
-            height: 96,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.12)',
-          }}
-        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
           <div
             style={{
@@ -267,7 +256,7 @@ export default function ListsOverview() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'var(--surface-base)',
+        background: 'transparent',
       }}
     >
       <LargeTitleHeader
