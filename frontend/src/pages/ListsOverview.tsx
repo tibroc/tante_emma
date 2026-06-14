@@ -1,21 +1,37 @@
 // ListsOverview.tsx — route /lists. Design-ref gradient cards with progress,
-// category dots and open/done counts. GET /api/lists has no per-list counts, so
-// each list's detail is fetched once to enrich the card (member stacks aren't
-// exposed by the API and are omitted). Create form is child-gated.
+// category dots, open/done counts, and a member-avatar stack. GET /api/lists has
+// no per-list counts/members, so each list's detail is fetched for counts and,
+// where permitted (owner or admin), GET /api/lists/:id/share for members; lists
+// merely shared to the user fall back to owner + self. Create form is child-gated.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { Icon } from '../components/Icon';
 import { LargeTitleHeader, ThemeToggle } from '../components/Header';
+import { PresenceAvatars } from '../components/PresenceAvatars';
 import { useTheme } from '../hooks/useTheme';
 import { useUserStore } from '../stores/userStore';
 import type { List, ListDetail, Category } from '../lib/types';
+
+interface Member {
+  id: string;
+  name: string;
+  avatar_url?: string;
+}
+
+// GET /api/lists/:id/share row (owner/admin only)
+interface ShareRow {
+  user_id: string;
+  name: string;
+  avatar_url?: string;
+}
 
 interface Enriched {
   open: number;
   done: number;
   catColors: string[];
+  members: Member[];
 }
 
 function relativeTime(ms: number, lang: string): string {
@@ -120,6 +136,7 @@ function ListCard({
               </div>
             )}
           </div>
+          {data?.members && data.members.length > 0 && <PresenceAvatars users={data.members} />}
           <Icon name="chevron-right" size={20} style={{ color: 'rgba(255,255,255,0.9)' }} />
         </div>
       </div>
@@ -191,6 +208,10 @@ export default function ListsOverview() {
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
 
+  const me = user?.id;
+  const isAdmin = user?.role === 'admin';
+  const isChild = user?.role === 'child';
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -203,25 +224,53 @@ export default function ListsOverview() {
         setLists(all);
         const catColor: Record<string, string> = {};
         for (const c of cats) catColor[c.id] = c.color || '#9ca3af';
-        // Enrich each card with counts + category dots (best-effort, parallel).
-        const details = await Promise.all(
-          all.map((l) => api.get<ListDetail>(`/api/lists/${l.id}`).catch(() => null)),
-        );
+
+        // Counts (per-list detail), family members (for names/avatars), and
+        // per-list shares (owner/admin only) — all best-effort, in parallel.
+        const [details, familyMembers, shareLists] = await Promise.all([
+          Promise.all(all.map((l) => api.get<ListDetail>(`/api/lists/${l.id}`).catch(() => null))),
+          isChild
+            ? Promise.resolve([] as Member[])
+            : api.get<Member[]>('/api/users/members').catch(() => []),
+          Promise.all(
+            all.map((l) =>
+              isAdmin || l.owner_id === me
+                ? api.get<ShareRow[]>(`/api/lists/${l.id}/share`).catch(() => [])
+                : Promise.resolve([] as ShareRow[]),
+            ),
+          ),
+        ]);
         if (cancelled) return;
+
+        const memberMap: Record<string, Member> = {};
+        for (const m of familyMembers) memberMap[m.id] = m;
+
         const map: Record<string, Enriched> = {};
-        details.forEach((d, i) => {
-          if (!d) return;
-          const open = d.items.filter((it) => !it.checked).length;
-          const done = d.items.filter((it) => it.checked).length;
+        all.forEach((l, i) => {
+          const d = details[i];
+          const active = d ? d.items.filter((it) => !it.checked) : [];
+          const open = active.length;
+          const done = d ? d.items.length - active.length : 0;
           const colors = [
             ...new Set(
-              d.items
-                .filter((it) => !it.checked)
+              active
                 .map((it) => (it.category_id ? catColor[it.category_id] : undefined))
                 .filter(Boolean) as string[],
             ),
           ].slice(0, 5);
-          map[all[i].id] = { open, done, catColors: colors };
+
+          // Members: owner + shares (when visible); shared-to-me falls back to owner + self.
+          const shares = shareLists[i];
+          const ids = new Set<string>([l.owner_id]);
+          shares.forEach((s) => ids.add(s.user_id));
+          if (me && l.owner_id !== me) ids.add(me);
+          const members: Member[] = [...ids].map((id) => {
+            const fromShare = shares.find((s) => s.user_id === id);
+            if (fromShare) return { id, name: fromShare.name, avatar_url: fromShare.avatar_url };
+            return memberMap[id] ?? { id, name: id };
+          });
+
+          map[l.id] = { open, done, catColors: colors, members };
         });
         setEnriched(map);
       } catch (e) {
@@ -231,7 +280,7 @@ export default function ListsOverview() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [me, isAdmin, isChild]);
 
   const createList = async () => {
     const name = newName.trim();
