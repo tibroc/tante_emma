@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -216,6 +218,58 @@ func (h *Lists) GetShares(w http.ResponseWriter, r *http.Request) {
 		shares = append(shares, s)
 	}
 	respond(w, http.StatusOK, shares)
+}
+
+// ListMember is one entry of a list's roster (owner + shared users).
+type ListMember struct {
+	UserID    string `json:"user_id"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url,omitempty"`
+	IsOwner   bool   `json:"is_owner"`
+}
+
+// listMembers returns the owner plus all shared users of a list, owner first.
+func (h *Lists) listMembers(ctx context.Context, listID string) ([]ListMember, error) {
+	rows, err := h.DB.QueryContext(ctx, `
+		SELECT u.id, u.name, COALESCE(u.avatar_url,''),
+		       CASE WHEN u.id = (SELECT owner_id FROM lists WHERE id = ?) THEN 1 ELSE 0 END AS is_owner
+		  FROM users u
+		 WHERE u.id = (SELECT owner_id FROM lists WHERE id = ?)
+		    OR u.id IN (SELECT user_id FROM list_shares WHERE list_id = ?)
+		 ORDER BY is_owner DESC, u.name`, listID, listID, listID)
+	if err != nil {
+		return nil, fmt.Errorf("listMembers: %w", err)
+	}
+	defer rows.Close() //nolint:errcheck
+	members := make([]ListMember, 0)
+	for rows.Next() {
+		var m ListMember
+		var owner int
+		if err := rows.Scan(&m.UserID, &m.Name, &m.AvatarURL, &owner); err != nil {
+			return nil, fmt.Errorf("listMembers scan: %w", err)
+		}
+		m.IsOwner = owner == 1
+		members = append(members, m)
+	}
+	return members, rows.Err()
+}
+
+// GetMembers returns the roster (owner + shared users) for a list. Readable by
+// anyone with access to the list, so the UI can show who a list is shared with.
+// (Share management — Share/Unshare — stays owner/admin-only.)
+func (h *Lists) GetMembers(w http.ResponseWriter, r *http.Request) {
+	sess := middleware.SessionFromContext(r.Context())
+	listID := chi.URLParam(r, "id")
+	if !h.canAccess(r, sess.UserID, listID) {
+		respondErr(w, http.StatusForbidden, "forbidden")
+		return
+	}
+	members, err := h.listMembers(r.Context(), listID)
+	if err != nil {
+		respondErr(w, http.StatusInternalServerError, "db error")
+		return
+	}
+	respond(w, http.StatusOK, members)
 }
 
 func (h *Lists) Share(w http.ResponseWriter, r *http.Request) {

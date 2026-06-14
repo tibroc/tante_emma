@@ -20,11 +20,12 @@ interface Member {
   avatar_url?: string;
 }
 
-// GET /api/lists/:id/share row (owner/admin only)
-interface ShareRow {
+// GET /api/lists/:id/members row (readable by anyone with list access)
+interface ListMemberRow {
   user_id: string;
   name: string;
   avatar_url?: string;
+  is_owner: boolean;
 }
 
 interface Enriched {
@@ -208,10 +209,6 @@ export default function ListsOverview() {
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const me = user?.id;
-  const isAdmin = user?.role === 'admin';
-  const isChild = user?.role === 'child';
-
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -225,25 +222,15 @@ export default function ListsOverview() {
         const catColor: Record<string, string> = {};
         for (const c of cats) catColor[c.id] = c.color || '#9ca3af';
 
-        // Counts (per-list detail), family members (for names/avatars), and
-        // per-list shares (owner/admin only) — all best-effort, in parallel.
-        const [details, familyMembers, shareLists] = await Promise.all([
+        // Counts (per-list detail) + roster (GET /api/lists/:id/members — readable
+        // by anyone with list access). Best-effort, in parallel.
+        const [details, memberLists] = await Promise.all([
           Promise.all(all.map((l) => api.get<ListDetail>(`/api/lists/${l.id}`).catch(() => null))),
-          isChild
-            ? Promise.resolve([] as Member[])
-            : api.get<Member[]>('/api/users/members').catch(() => []),
           Promise.all(
-            all.map((l) =>
-              isAdmin || l.owner_id === me
-                ? api.get<ShareRow[]>(`/api/lists/${l.id}/share`).catch(() => [])
-                : Promise.resolve([] as ShareRow[]),
-            ),
+            all.map((l) => api.get<ListMemberRow[]>(`/api/lists/${l.id}/members`).catch(() => [])),
           ),
         ]);
         if (cancelled) return;
-
-        const memberMap: Record<string, Member> = {};
-        for (const m of familyMembers) memberMap[m.id] = m;
 
         const map: Record<string, Enriched> = {};
         all.forEach((l, i) => {
@@ -259,16 +246,11 @@ export default function ListsOverview() {
             ),
           ].slice(0, 5);
 
-          // Members: owner + shares (when visible); shared-to-me falls back to owner + self.
-          const shares = shareLists[i];
-          const ids = new Set<string>([l.owner_id]);
-          shares.forEach((s) => ids.add(s.user_id));
-          if (me && l.owner_id !== me) ids.add(me);
-          const members: Member[] = [...ids].map((id) => {
-            const fromShare = shares.find((s) => s.user_id === id);
-            if (fromShare) return { id, name: fromShare.name, avatar_url: fromShare.avatar_url };
-            return memberMap[id] ?? { id, name: id };
-          });
+          const members: Member[] = memberLists[i].map((m) => ({
+            id: m.user_id,
+            name: m.name,
+            avatar_url: m.avatar_url,
+          }));
 
           map[l.id] = { open, done, catColors: colors, members };
         });
@@ -280,7 +262,7 @@ export default function ListsOverview() {
     return () => {
       cancelled = true;
     };
-  }, [me, isAdmin, isChild]);
+  }, []);
 
   const createList = async () => {
     const name = newName.trim();

@@ -527,6 +527,11 @@ Current working state: [describe what exists so far]
   `category_color`, `category_icon`, `store_id`, `quantity`, `unit`, `checked` — but **no
   category name, no store name, no brand**. Resolve names via `GET /api/categories`
   (`{id,name_de,name_en,icon,color}`, no `sort_order`) and `GET /api/stores`.
+- `GET /api/lists/:id/members` → `[{user_id,name,avatar_url,is_owner}]`, the roster
+  (owner + shared users), readable by **anyone with list access** — used for the
+  overview member-avatar stacks. (Added during the migration with approval; share
+  *management* `POST/DELETE /api/lists/:id/share` stays owner/admin-only. The latter's
+  `GET .../share` is still owner/admin-gated and is used by the list detail share sheet.)
 - Events: `POST /api/lists/:id/events` accepts a single event or `{events:[...]}`; server
   fills `id`/`list_id`/`user_id`/`server_ts`. `item.checked` payload = `{item_id, store_id?}`.
   Child role may only send `item.added`/`item.checked`/`item.unchecked` (else 403).
