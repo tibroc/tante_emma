@@ -1,5 +1,5 @@
-build/
-.svelte-kit/
-dist/
-node_modules/
+dist
+dev-dist
+node_modules
+design-ref
 package-lock.json

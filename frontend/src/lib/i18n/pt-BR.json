@@ -1,168 +1,169 @@
 {
-	"nav": {
-		"lists": "Listas",
-		"stores": "Lojas",
-		"history": "Histórico",
-		"settings": "Configurações",
-		"aria_label": "Navegação principal"
-	},
-	"login": {
-		"tagline": "Comprar. Simples.",
-		"sign_in": "Entrar"
-	},
-	"lists": {
-		"title": "Listas de compras",
-		"new_name_ph": "Nova lista…",
-		"new_name_label": "Nome da nova lista",
-		"create_label": "Criar lista",
-		"empty": "Nenhuma lista ainda",
-		"shared_badge": "compartilhada"
-	},
-	"list": {
-		"empty_heading": "Lista vazia",
-		"empty_body": "Toque acima para adicionar algo.",
-		"loading": "Carregando…",
-		"checked_count": "{n} feito(s)",
-		"clear_checked": "Limpar todos",
-		"tile_view": "Visualização em grade",
-		"list_view": "Visualização em lista",
-		"share": "Compartilhar",
-		"active_store": "Comprando em:",
-		"active_store_label": "Loja ativa para esta compra",
-		"select_store": "Selecionar loja",
-		"no_store": "– sem loja –"
-	},
-	"add_item": {
-		"placeholder": "Adicionar…",
-		"aria_add": "Adicionar",
-		"aria_scan": "Escanear código",
-		"aria_input": "Adicionar item"
-	},
-	"sort": {
-		"category": "Categoria",
-		"store": "Loja",
-		"date": "Data",
-		"alpha": "A–Z",
-		"aria_label": "Ordenar e filtrar"
-	},
-	"item": {
-		"check": "Marcar como feito",
-		"uncheck": "Marcar como não feito",
-		"delete": "Remover item",
-		"removed": "Removido"
-	},
-	"item_sheet": {
-		"open": "Abrir detalhes",
-		"close": "Fechar",
-		"quantity": "Quantidade",
-		"unit": "Unidade",
-		"no_unit": "– unidade –",
-		"store": "Loja",
-		"note": "Observação",
-		"note_ph": "ex. a embalagem grande",
-		"preferred": "Loja preferida",
-		"edit_product": "Editar produto"
-	},
-	"units": {
-		"pcs": "un",
-		"g": "g",
-		"kg": "kg",
-		"ml": "ml",
-		"l": "l",
-		"pkg": "pct"
-	},
-	"share_sheet": {
-		"title": "Compartilhar lista",
-		"aria_label": "Compartilhar lista",
-		"shared": "✓ Compartilhado",
-		"share": "Compartilhar"
-	},
-	"scanner": {
-		"aria_label": "Escanear código",
-		"cancel": "Cancelar",
-		"scanning": "Escaneando código…",
-		"camera_unavailable": "Câmera não disponível"
-	},
-	"pwa": {
-		"install_prompt": "Instalar TanteEmma como app",
-		"install": "Instalar",
-		"dismiss": "Fechar"
-	},
-	"status": {
-		"offline": "⚡ Offline"
-	},
-	"stores": {
-		"title": "Lojas",
-		"add": "+ Loja",
-		"empty": "Nenhuma loja ainda.",
-		"create_first": "Criar primeira loja",
-		"no_categories": "Nenhuma categoria salva. Compre itens para aprender a ordem automaticamente.",
-		"shelf_hint": "Arraste para ordenar – ordem = sequência de corredor.",
-		"edit": "Editar",
-		"delete": "Excluir",
-		"shelf_order": "Ordem das prateleiras",
-		"confirm_delete": "Excluir loja?",
-		"save_error": "Falha ao salvar",
-		"delete_error": "Falha ao excluir",
-		"load_error": "Não foi possível carregar lojas",
-		"shelf_error": "Não foi possível salvar ordem das prateleiras",
-		"bulk_title": "Atribuir lojas por categoria",
-		"bulk_hint": "Atribua uma loja preferida a todos os produtos de uma categoria.",
-		"bulk_category": "Escolher categoria",
-		"bulk_store": "Escolher loja",
-		"bulk_assign": "Atribuir",
-		"bulk_done": "{n} produtos atribuídos",
-		"bulk_error": "Falha na atribuição",
-		"form": {
-			"name": "Nome",
-			"name_ph": "ex. Supermercado Central",
-			"emoji": "Emoji",
-			"color": "Cor",
-			"address": "Endereço (opcional)",
-			"address_ph": "Rua Principal, 123",
-			"create": "Criar loja",
-			"edit": "Editar loja",
-			"cancel": "Cancelar",
-			"save": "Salvar"
-		}
-	},
-	"history": {
-		"title": "Histórico",
-		"search_ph": "Pesquisar…",
-		"search_label": "Pesquisar histórico",
-		"empty": "Nada comprado ainda.",
-		"no_results": "Nenhum resultado para \"{q}\".",
-		"load_error": "Não foi possível carregar o histórico"
-	},
-	"settings": {
-		"title": "Configurações",
-		"language": "Idioma",
-		"dark_mode": "Modo escuro",
-		"logout": "Sair",
-		"version": "Versão"
-	},
-	"admin": {
-		"users_title": "Gerenciamento de usuários",
-		"products_title": "Gerenciamento de produtos",
-		"role_admin": "Admin",
-		"role_member": "Membro",
-		"role_child": "Criança",
-		"save_role": "Salvar função",
-		"last_seen": "Última vez: {date}",
-		"role_for": "Função para {name}",
-		"product_search_ph": "Buscar produto…",
-		"product_search_label": "Buscar produto",
-		"product_edit": "Editar produto",
-		"product_create": "Criar produto",
-		"field_name_de": "Nome (DE)",
-		"field_name_en": "Nome (EN)",
-		"field_brand": "Marca",
-		"field_barcode": "Código de barras",
-		"field_category": "Categoria",
-		"field_preferred_stores": "Lojas preferidas",
-		"no_category": "– nenhuma –"
-	},
-	"errors": {
-		"sync": "Não foi possível sincronizar"
-	}
+  "nav": {
+    "lists": "Listas",
+    "stores": "Lojas",
+    "history": "Histórico",
+    "settings": "Configurações",
+    "aria_label": "Navegação principal"
+  },
+  "login": {
+    "tagline": "Comprar. Simples.",
+    "sign_in": "Entrar"
+  },
+  "lists": {
+    "title": "Listas de compras",
+    "new_name_ph": "Nova lista…",
+    "new_name_label": "Nome da nova lista",
+    "create_label": "Criar lista",
+    "empty": "Nenhuma lista ainda",
+    "shared_badge": "compartilhada"
+  },
+  "list": {
+    "empty_heading": "Lista vazia",
+    "empty_body": "Toque acima para adicionar algo.",
+    "loading": "Carregando…",
+    "checked_count": "{n} feito(s)",
+    "clear_checked": "Limpar todos",
+    "tile_view": "Visualização em grade",
+    "list_view": "Visualização em lista",
+    "share": "Compartilhar",
+    "active_store": "Comprando em:",
+    "active_store_label": "Loja ativa para esta compra",
+    "select_store": "Selecionar loja",
+    "no_store": "– sem loja –"
+  },
+  "add_item": {
+    "placeholder": "Adicionar…",
+    "aria_add": "Adicionar",
+    "aria_scan": "Escanear código",
+    "aria_input": "Adicionar item"
+  },
+  "sort": {
+    "category": "Categoria",
+    "store": "Loja",
+    "date": "Data",
+    "alpha": "A–Z",
+    "aria_label": "Ordenar e filtrar"
+  },
+  "item": {
+    "check": "Marcar como feito",
+    "uncheck": "Marcar como não feito",
+    "delete": "Remover item",
+    "removed": "Removido"
+  },
+  "item_sheet": {
+    "open": "Abrir detalhes",
+    "close": "Fechar",
+    "quantity": "Quantidade",
+    "unit": "Unidade",
+    "no_unit": "– unidade –",
+    "store": "Loja",
+    "note": "Observação",
+    "note_ph": "ex. a embalagem grande",
+    "preferred": "Loja preferida",
+    "edit_product": "Editar produto"
+  },
+  "units": {
+    "pcs": "un",
+    "g": "g",
+    "kg": "kg",
+    "ml": "ml",
+    "l": "l",
+    "pkg": "pct"
+  },
+  "share_sheet": {
+    "title": "Compartilhar lista",
+    "aria_label": "Compartilhar lista",
+    "shared": "✓ Compartilhado",
+    "share": "Compartilhar"
+  },
+  "scanner": {
+    "aria_label": "Escanear código",
+    "cancel": "Cancelar",
+    "scanning": "Escaneando código…",
+    "camera_unavailable": "Câmera não disponível"
+  },
+  "pwa": {
+    "install_prompt": "Instalar TanteEmma como app",
+    "install": "Instalar",
+    "dismiss": "Fechar"
+  },
+  "status": {
+    "offline": "⚡ Offline"
+  },
+  "stores": {
+    "title": "Lojas",
+    "add": "+ Loja",
+    "empty": "Nenhuma loja ainda.",
+    "create_first": "Criar primeira loja",
+    "no_categories": "Nenhuma categoria salva. Compre itens para aprender a ordem automaticamente.",
+    "shelf_hint": "Arraste para ordenar – ordem = sequência de corredor.",
+    "edit": "Editar",
+    "delete": "Excluir",
+    "shelf_order": "Ordem das prateleiras",
+    "auto": "auto",
+    "confirm_delete": "Excluir loja?",
+    "save_error": "Falha ao salvar",
+    "delete_error": "Falha ao excluir",
+    "load_error": "Não foi possível carregar lojas",
+    "shelf_error": "Não foi possível salvar ordem das prateleiras",
+    "bulk_title": "Atribuir lojas por categoria",
+    "bulk_hint": "Atribua uma loja preferida a todos os produtos de uma categoria.",
+    "bulk_category": "Escolher categoria",
+    "bulk_store": "Escolher loja",
+    "bulk_assign": "Atribuir",
+    "bulk_done": "{n} produtos atribuídos",
+    "bulk_error": "Falha na atribuição",
+    "form": {
+      "name": "Nome",
+      "name_ph": "ex. Supermercado Central",
+      "emoji": "Emoji",
+      "color": "Cor",
+      "address": "Endereço (opcional)",
+      "address_ph": "Rua Principal, 123",
+      "create": "Criar loja",
+      "edit": "Editar loja",
+      "cancel": "Cancelar",
+      "save": "Salvar"
+    }
+  },
+  "history": {
+    "title": "Histórico",
+    "search_ph": "Pesquisar…",
+    "search_label": "Pesquisar histórico",
+    "empty": "Nada comprado ainda.",
+    "no_results": "Nenhum resultado para \"{q}\".",
+    "load_error": "Não foi possível carregar o histórico"
+  },
+  "settings": {
+    "title": "Configurações",
+    "language": "Idioma",
+    "dark_mode": "Modo escuro",
+    "logout": "Sair",
+    "version": "Versão"
+  },
+  "admin": {
+    "users_title": "Gerenciamento de usuários",
+    "products_title": "Gerenciamento de produtos",
+    "role_admin": "Admin",
+    "role_member": "Membro",
+    "role_child": "Criança",
+    "save_role": "Salvar função",
+    "last_seen": "Última vez: {date}",
+    "role_for": "Função para {name}",
+    "product_search_ph": "Buscar produto…",
+    "product_search_label": "Buscar produto",
+    "product_edit": "Editar produto",
+    "product_create": "Criar produto",
+    "field_name_de": "Nome (DE)",
+    "field_name_en": "Nome (EN)",
+    "field_brand": "Marca",
+    "field_barcode": "Código de barras",
+    "field_category": "Categoria",
+    "field_preferred_stores": "Lojas preferidas",
+    "no_category": "– nenhuma –"
+  },
+  "errors": {
+    "sync": "Não foi possível sincronizar"
+  }
 }
