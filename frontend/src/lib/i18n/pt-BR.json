@@ -141,7 +141,8 @@
     "empty": "Nada comprado ainda.",
     "no_results": "Nenhum resultado para \"{q}\".",
     "load_error": "Não foi possível carregar o histórico",
-    "subtitle": "Toque + para repetir"
+    "subtitle": "Toque + para repetir",
+    "clear_search": "Limpar busca"
   },
   "settings": {
     "title": "Configurações",

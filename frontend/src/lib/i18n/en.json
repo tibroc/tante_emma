@@ -141,7 +141,8 @@
     "empty": "Nothing purchased yet.",
     "no_results": "No results for \"{q}\".",
     "load_error": "Could not load history",
-    "subtitle": "Tap + to repeat"
+    "subtitle": "Tap + to repeat",
+    "clear_search": "Clear search"
   },
   "settings": {
     "title": "Settings",

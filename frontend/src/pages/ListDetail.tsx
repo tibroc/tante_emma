@@ -381,6 +381,7 @@ export default function ListDetail() {
       {/* body */}
       <div
         className="scroll"
+        aria-live="polite"
         style={{ flex: 1, overflowY: 'auto', background: 'var(--surface-base)' }}
       >
         {list.status === 'loading' && (

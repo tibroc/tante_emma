@@ -141,7 +141,8 @@
     "empty": "Noch nichts eingekauft.",
     "no_results": "Keine Ergebnisse für \"{q}\".",
     "load_error": "Verlauf konnte nicht geladen werden",
-    "subtitle": "Tippe + zum Wiederholen"
+    "subtitle": "Tippe + zum Wiederholen",
+    "clear_search": "Suche leeren"
   },
   "settings": {
     "title": "Einstellungen",

@@ -129,7 +129,7 @@ export default function History() {
           {search && (
             <button
               onClick={() => setSearch('')}
-              aria-label="×"
+              aria-label={t('history.clear_search')}
               style={{
                 border: 'none',
                 background: 'transparent',
