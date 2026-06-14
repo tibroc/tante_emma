@@ -94,6 +94,7 @@ func main() {
 		r.Get("/api/lists/{id}", lists.Get)
 		r.Put("/api/lists/{id}", lists.Update)
 		r.Delete("/api/lists/{id}", lists.Delete)
+		r.Get("/api/lists/{id}/members", lists.GetMembers)
 		r.Get("/api/lists/{id}/share", lists.GetShares)
 		r.Post("/api/lists/{id}/share", lists.Share)
 		r.Delete("/api/lists/{id}/share/{uid}", lists.Unshare)

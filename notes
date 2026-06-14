@@ -1,0 +1,64 @@
+# Task: Refactor the Svelte frontend to React
+
+## Context
+This is an existing web-app prototype: a Go backend with a Svelte frontend.
+The backend stays as-is. I'm replacing the Svelte frontend with a React frontend
+so the UI interoperates cleanly with **Claude Design**, which I'll use to design
+and generate components from here on. React is the target specifically because
+Claude Design emits React, so I want the codebase shaped to receive that output
+with minimal friction.
+
+## Read these first — do NOT write code yet
+- `spec.md`        — product spec / functional requirements
+- `claude.md`      — project conventions and working notes
+- `ui.md`          — UI spec and design intent
+- `docs/REAC_MIGRATION.md` — the refactor plan I've already written; follow it
+- `frontend/design-ref/` — UI references exported from Claude
+  Design, copied into this feature branch
+
+After reading, summarize back to me:
+1. Your understanding of what the app does and its current Svelte structure.
+2. How the refactor plan sequences the work.
+3. Any contradictions or gaps you see between the docs.
+Wait for my confirmation before starting.
+
+## Goal & hard constraints
+- Achieve **feature and behavior parity** with the current Svelte frontend.
+- **Do not change the Go backend or its API contracts.** Match the existing
+  request/response shapes, routes, auth, and error handling exactly. If you
+  think the API needs to change, stop and ask.
+- Follow `docs/REAC_MIGRATION.md`. Where you'd deviate, explain why and get my OK first.
+- Work **incrementally** — one route/feature at a time, keeping the app runnable.
+  Don't do a big-bang rewrite in a single pass.
+
+## Stack (confirm before scaffolding)
+- React + [Vite] for the build, [TypeScript], [Tailwind] for styling.
+  I'm choosing these to match what Claude Design produces so its components drop
+  in with little rework. If you'd recommend otherwise given the references, say so.
+
+## Claude Design handoff — this needs to be durable
+I'll be bouncing between Claude Design (to design/generate UI) and you (to
+integrate it). Set the project up so that handoff is clean and repeatable:
+
+- Treat `frontend/design-ref/` as the source of truth for visual
+  design — colors, type scale, spacing, component look-and-feel. Extract design
+  tokens from it into a single shared place (Tailwind config / a tokens file) so
+  generated and hand-written components stay consistent.
+- Establish and document conventions a Claude-Design-generated component must
+  follow to fit our codebase: file/folder layout, naming, how it imports tokens,
+  how it receives data (props vs. data-fetching layer), and where API calls live
+  (keep them out of presentational components).
+- Define the **integration workflow** in writing: when I paste a new component
+  from Claude Design, what steps you take to wire it in (place file, swap
+  hardcoded values for tokens, connect to the backend, replace the Svelte
+  equivalent, verify parity).
+
+## Persist the conventions
+Once we agree on the stack and handoff conventions, update `claude.md` (or add a
+section) capturing: the target stack, the Svelte→React mapping decisions, the
+design-token setup, and the step-by-step Claude Design integration workflow — so
+future sessions and handoffs don't have to rediscover this.
+
+## First step
+Read everything above and the listed files, then give me your summary and a
+proposed order of work. Nothing else yet.

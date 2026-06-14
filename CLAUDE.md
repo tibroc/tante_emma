@@ -463,3 +463,112 @@ Current working state: [describe what exists so far]
 4. **IndexedDB + SvelteKit SSR** — guard all `idb` calls with `if (browser)` from `$app/environment`
 5. **OIDC with Authentik** — Authentik uses non-standard scopes sometimes; test `openid profile email` explicitly
 6. **SQLite WAL + Litestream** — Litestream needs `_journal_mode=WAL` and `_busy_timeout=5000`; set in DB connect string
+
+---
+
+## Frontend Migration: Svelte → React
+
+> The frontend is being migrated from SvelteKit to React so the UI interoperates
+> cleanly with **Claude Design** (which emits React). **The Go backend and its API
+> contracts do not change** — match request/response shapes, routes, auth, and
+> errors exactly. If the API seems to need a change, stop and ask. Plan of record:
+> `docs/REACT_MIGRATION.md`. A working, validated proof-of-concept lives in
+> `frontend-poc/` (throwaway — see below).
+
+### Target stack (validated by the PoC)
+
+- **Vite + React 18 + TypeScript** — client-rendered SPA (mirrors today's runtime). Strict TS, no `any`.
+- **React Router** — replaces SvelteKit file routing (9 routes incl. dynamic `lists/:id`).
+- **Zustand** — replaces Svelte `writable` stores (~1:1).
+- Keep the hand-rolled **`api.ts`** fetch wrapper (`credentials: 'include'`); don't add react-query.
+- **react-i18next** — replaces `svelte-i18n`; locale JSON (de/en/pt-BR) reused verbatim, `$_()` → `t()`.
+- **vite-plugin-pwa (Workbox)** — replaces SvelteKit `$service-worker`.
+- **@zxing/browser** (scanner) and **@dnd-kit/core** (shelf-order DnD) — unchanged / new respectively.
+- **NOT Next.js** (SSR/RSC is needless surface here).
+- **Styling: CSS custom-property tokens, NOT Tailwind.** Deliberate. Claude Design
+  emits inline `style={{}}` referencing CSS vars (`var(--accent)`, `var(--surface-base)`,
+  …), not utility classes. Adopting Tailwind would mean converting every generated
+  component — the opposite of frictionless handoff. Do not "fix" this back to Tailwind.
+
+### Design tokens (single source of truth)
+
+- The authoritative token values are in `frontend/design-ref/` — the `<style>` block of
+  `TanteEmma.html` (surfaces, borders, text, shadows, light/dark) plus the 5-theme accent
+  registry in `themes.jsx`. These **supersede** the hex tables in `SPEC.md`/`UI_DESIGN.md`
+  (design-ref uses warmer, purple-tinted neutrals).
+- Ported in the PoC to `frontend-poc/src/styles/tokens.css` (verbatim) + `lib/themes.ts`.
+- `--accent` / `--accent-600` are injected inline on the `.app` element per active theme;
+  everything else lives in `.app` / `.app[data-theme="dark"]`.
+- **Promoted "Tweaks":** only **light/dark/system** + the **5-theme accent picker** are real,
+  persisted product features. The design-ref's other knobs (type weight/scale, header
+  plain/gradient, the third "card" item view) are design-exploration scaffolding — dropped.
+  Keep **List + Tiles** views only (SPEC parity).
+
+### Svelte → React mapping
+
+| Svelte | React | Notes |
+|---|---|---|
+| `routes/**/+page.svelte` | React Router routes + page components | 9 routes; `lists/[id]` is the hardest |
+| `+layout.svelte` + `onMount` auth check | root layout + route guard + `useAuth` effect | |
+| `lib/stores/*.ts` (`writable`) | Zustand stores / local hooks | small surface |
+| `lib/offline/*.ts`, `ws.ts`, `api.ts`, `ulid.ts` | copy ~verbatim (plain TS) | swap `$env/dynamic/public`→`import.meta.env`, `$app/environment` `browser` guards |
+| `lib/offline/applyEvent.ts` (+ its test) | copy verbatim — pure reducer | the one real test; keep green |
+| `$_()` / svelte-i18n | `t()` / react-i18next | locale JSON reused |
+| `$service-worker` | vite-plugin-pwa | |
+| Svelte reactivity (`$:`) | `useMemo`/derived selectors | |
+
+### Backend API facts the frontend must honor (verified against handlers)
+
+- **Auth is the `session` cookie** (HttpOnly), set by `/auth/callback`. REST uses
+  `credentials:'include'`; **WS authenticates via the same cookie** (no `?token=` — SPEC §5.2
+  is stale). WS sends a `hello` frame with `conn_id`; echo it as **`X-Conn-ID`** on event
+  POSTs so the hub skips your own broadcast. `GET /api/auth/me` → current user; 401 = anon.
+- `GET /api/lists/:id` → `{ list, items }`. Items include `display_name`, `category_id`,
+  `category_color`, `category_icon`, `store_id`, `quantity`, `unit`, `checked` — but **no
+  category name, no store name, no brand**. Resolve names via `GET /api/categories`
+  (`{id,name_de,name_en,icon,color}`, no `sort_order`) and `GET /api/stores`.
+- `GET /api/lists/:id/members` → `[{user_id,name,avatar_url,is_owner}]`, the roster
+  (owner + shared users), readable by **anyone with list access** — used for the
+  overview member-avatar stacks. (Added during the migration with approval; share
+  *management* `POST/DELETE /api/lists/:id/share` stays owner/admin-only. The latter's
+  `GET .../share` is still owner/admin-gated and is used by the list detail share sheet.)
+- Events: `POST /api/lists/:id/events` accepts a single event or `{events:[...]}`; server
+  fills `id`/`list_id`/`user_id`/`server_ts`. `item.checked` payload = `{item_id, store_id?}`.
+  Child role may only send `item.added`/`item.checked`/`item.unchecked` (else 403).
+- **Remote `item.added` over WS carries only `{item_id, product_id}`** (no name) for product
+  adds → enrich on receipt via `GET /api/products/:id` (the PoC does this in `useList`).
+- Errors are `{ "error": "..." }` with appropriate status (401/403/404/422/500).
+- Timestamps are **milliseconds**.
+
+### Claude Design integration workflow (repeatable handoff)
+
+A generated component must, to drop in cleanly:
+1. **Be presentational** — receive data via props; **no `fetch`/`api`/store access inside**.
+   API calls live in hooks (`hooks/use*.ts`) or the page/route component, never in a
+   presentational component.
+2. **Use tokens** — no hardcoded hex/spacing; reference `var(--*)` (or values resolved from
+   `lib/themes.ts` / `categories.ts`). Inline `style={{}}` is fine and expected.
+3. **File/folder layout** — presentational pieces in `src/components/`, screens in
+   `src/screens/` (or route components), hooks in `src/hooks/`, contract types in
+   `src/lib/types.ts`, adapters in `src/lib/viewmodel.ts`. PascalCase component files.
+4. **Types** — props typed; data shapes come from `src/lib/types.ts` (which mirrors the Go
+   structs). Map backend rows → component props with a `viewmodel` adapter, not ad hoc.
+
+When pasting a new component from Claude Design:
+1. Drop the file into `src/components/` (or `screens/`), PascalCase name.
+2. Replace any hardcoded colors/spacing with `var(--*)` tokens; delete demo/mock data.
+3. Define/extend a `*VM` view-model + adapter in `lib/viewmodel.ts`; type props from `lib/types.ts`.
+4. Move any data access out into a hook; pass data + callbacks down as props.
+5. Wire events through the events API (`useList.submit`) — optimistic apply, `X-Conn-ID`, WS.
+6. Swap the Svelte equivalent at its route; delete the `.svelte` file once parity is confirmed.
+7. Verify parity: visual (vs `design-ref/screenshots-ref/`), behavior, i18n (de/en/pt-BR),
+   light + dark, and the real-time/offline paths.
+
+### The PoC (`frontend-poc/`)
+
+Throwaway standalone Vite-React app proving the riskiest paths against the **live backend**:
+OIDC login, load list, optimistic check/add/delete/edit, live product search, and real-time
+WS sync (incl. product-add enrichment) — at full design fidelity. **Not** the production app
+(no router, no offline/IndexedDB, no i18n, no PWA; one screen + minimal overview). Run notes
+and findings in `frontend-poc/README.md`. The real migration reuses its lib/components patterns
+but lands in `frontend/`. Delete `frontend-poc/` once the real migration absorbs it.

@@ -1,155 +1,142 @@
-import { dev } from '$app/environment';
-import { env } from '$env/dynamic/public';
-// Read at runtime so the same Docker image works across environments.
-const WS_BASE = env.PUBLIC_WS_URL ?? '';
+// ws.ts — WebSocket client, ported from the Svelte frontend's lib/ws.ts.
+// Framework-agnostic singleton: a React hook subscribes via onMessage().
+// Auth is the same `session` cookie used by REST (no ?token=). The server
+// sends a `hello` frame with conn_id, which we echo as X-Conn-ID on event
+// POSTs so the hub skips broadcasting our own events back to us.
 
-type WsMessage =
-	| { type: 'event'; event: unknown }
-	| { type: 'presence'; user_id: string; list_id: string; active: boolean }
-	| { type: 'hello'; conn_id: string }
-	| { type: 'ping' };
+import type { WsServerMessage } from './types';
 
-type MessageHandler = (msg: WsMessage) => void;
+// Same-origin ws:// URL (Vite proxies /ws to the backend in dev). Set
+// VITE_WS_URL for cross-origin deploys — equivalent to the old PUBLIC_WS_URL.
+function wsUrl(): string {
+  const base = import.meta.env.VITE_WS_URL;
+  if (base) return `${base}/ws`;
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${location.host}/ws`;
+}
+
+type MessageHandler = (msg: WsServerMessage) => void;
 
 let socket: WebSocket | null = null;
-// Server-assigned id for this WebSocket connection (from the 'hello' frame).
-// Echoed as X-Conn-ID on event POSTs so the hub skips our own broadcast.
 let connId: string | null = null;
-
-/** Header map identifying this connection, or empty if not yet known. */
-export function connHeaders(): Record<string, string> {
-	return connId ? { 'X-Conn-ID': connId } : {};
-}
 let reconnectDelay = 1000;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 const handlers = new Set<MessageHandler>();
 const reconnectHandlers = new Set<() => void>();
-// Tracks active subscriptions so they can be re-sent after reconnect.
 const activeSubscriptions = new Set<string>();
 
+/** Header identifying this connection, echoed on event POSTs to avoid self-echo. */
+export function connHeaders(): Record<string, string> {
+  return connId ? { 'X-Conn-ID': connId } : {};
+}
+
 function clearReconnectTimer() {
-	if (reconnectTimer !== null) {
-		clearTimeout(reconnectTimer);
-		reconnectTimer = null;
-	}
+  if (reconnectTimer !== null) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
 }
 
 function scheduleReconnect() {
-	clearReconnectTimer();
-	const delay = Math.min(reconnectDelay, 30_000);
-	reconnectTimer = setTimeout(connect, delay);
-	reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
+  clearReconnectTimer();
+  const delay = Math.min(reconnectDelay, 30_000);
+  reconnectTimer = setTimeout(connect, delay);
+  reconnectDelay = Math.min(reconnectDelay * 2, 30_000);
 }
 
 function connect() {
-	clearReconnectTimer();
-	// Don't open a second socket if one is already connecting or open.
-	if (
-		socket &&
-		(socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)
-	) {
-		return;
-	}
+  clearReconnectTimer();
+  if (
+    socket &&
+    (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)
+  ) {
+    return;
+  }
 
-	const ws = new WebSocket(`${WS_BASE}/ws`);
-	socket = ws;
+  const ws = new WebSocket(wsUrl());
+  socket = ws;
 
-	ws.addEventListener('open', () => {
-		// Ignore if this socket has since been replaced.
-		if (socket !== ws) return;
-		if (dev)
-			console.log(
-				'[ws] open → re-subscribe',
-				[...activeSubscriptions],
-				'fire',
-				reconnectHandlers.size,
-				'handlers'
-			);
-		reconnectDelay = 1000;
-		for (const listId of activeSubscriptions) {
-			ws.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
-		}
-		for (const h of reconnectHandlers) h();
-	});
+  ws.addEventListener('open', () => {
+    if (socket !== ws) return;
+    reconnectDelay = 1000;
+    for (const listId of activeSubscriptions) {
+      ws.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
+    }
+    for (const h of reconnectHandlers) h();
+  });
 
-	ws.addEventListener('message', (e: MessageEvent<string>) => {
-		let msg: WsMessage;
-		try {
-			msg = JSON.parse(e.data) as WsMessage;
-		} catch {
-			return;
-		}
-		if (msg.type === 'ping') {
-			if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'pong' }));
-			return;
-		}
-		if (msg.type === 'hello') {
-			connId = msg.conn_id;
-			return;
-		}
-		for (const h of handlers) h(msg);
-	});
+  ws.addEventListener('message', (e: MessageEvent<string>) => {
+    let msg: WsServerMessage;
+    try {
+      msg = JSON.parse(e.data) as WsServerMessage;
+    } catch {
+      return;
+    }
+    if (msg.type === 'ping') {
+      if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'pong' }));
+      return;
+    }
+    if (msg.type === 'hello') {
+      connId = msg.conn_id;
+      return;
+    }
+    for (const h of handlers) h(msg);
+  });
 
-	ws.addEventListener('close', () => {
-		// Only react if this is still the current socket (avoid stale closes
-		// scheduling extra reconnects).
-		if (socket !== ws) return;
-		socket = null;
-		scheduleReconnect();
-	});
+  ws.addEventListener('close', () => {
+    if (socket !== ws) return;
+    socket = null;
+    scheduleReconnect();
+  });
 
-	ws.addEventListener('error', () => ws.close());
+  ws.addEventListener('error', () => ws.close());
 }
 
 export function subscribe(listId: string) {
-	activeSubscriptions.add(listId);
-	if (socket?.readyState === WebSocket.OPEN) {
-		socket.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
-	}
-	// If not yet open, the open handler will replay all activeSubscriptions.
+  activeSubscriptions.add(listId);
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'subscribe', list_id: listId }));
+  }
 }
 
 export function unsubscribe(listId: string) {
-	activeSubscriptions.delete(listId);
-	if (socket?.readyState === WebSocket.OPEN) {
-		socket.send(JSON.stringify({ type: 'unsubscribe', list_id: listId }));
-	}
+  activeSubscriptions.delete(listId);
+  if (socket?.readyState === WebSocket.OPEN) {
+    socket.send(JSON.stringify({ type: 'unsubscribe', list_id: listId }));
+  }
 }
 
 export function onMessage(handler: MessageHandler): () => void {
-	handlers.add(handler);
-	return () => handlers.delete(handler);
+  handlers.add(handler);
+  return () => handlers.delete(handler);
 }
 
 export function onReconnect(handler: () => void): () => void {
-	reconnectHandlers.add(handler);
-	return () => reconnectHandlers.delete(handler);
+  reconnectHandlers.add(handler);
+  return () => reconnectHandlers.delete(handler);
 }
 
+let started = false;
 export function startWs() {
-	connect();
-
-	if (typeof window !== 'undefined') {
-		// A dead WebSocket often does not fire `close` when the network drops
-		// (half-open socket). Drive reconnects explicitly from the browser's
-		// online/offline events so onReconnect handlers run reliably.
-		window.addEventListener('online', () => {
-			if (dev) console.log('[ws] browser online → forcing reconnect');
-			reconnectDelay = 1000;
-			if (!socket || socket.readyState !== WebSocket.OPEN) {
-				// Detach the old socket so its close handler is a no-op, then connect.
-				const old = socket;
-				socket = null;
-				old?.close();
-				connect();
-			}
-		});
-		window.addEventListener('offline', () => {
-			if (dev) console.log('[ws] browser offline → closing socket');
-			clearReconnectTimer();
-			const old = socket;
-			socket = null;
-			old?.close();
-		});
-	}
+  if (started) {
+    connect();
+    return;
+  }
+  started = true;
+  connect();
+  window.addEventListener('online', () => {
+    reconnectDelay = 1000;
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      const old = socket;
+      socket = null;
+      old?.close();
+      connect();
+    }
+  });
+  window.addEventListener('offline', () => {
+    clearReconnectTimer();
+    const old = socket;
+    socket = null;
+    old?.close();
+  });
 }

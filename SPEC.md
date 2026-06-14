@@ -296,7 +296,8 @@ Lists
   GET  /api/lists/:id           → list + items (initial load)
   PUT  /api/lists/:id           → rename, change icon/color
   DEL  /api/lists/:id           → delete (admin/owner only)
-  POST /api/lists/:id/share     → share with user
+  GET  /api/lists/:id/members   → roster (owner + shared users); readable by anyone with list access
+  POST /api/lists/:id/share     → share with user (owner/admin)
   DEL  /api/lists/:id/share/:uid
 
 Items (via events, not direct CRUD)

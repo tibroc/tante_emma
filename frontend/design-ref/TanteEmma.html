@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TanteEmma — Einkaufsliste</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background:
+      radial-gradient(1200px 800px at 15% -5%, #fbe9fb 0%, transparent 55%),
+      radial-gradient(1100px 700px at 100% 105%, #e7fbf2 0%, transparent 50%),
+      #f3eef2;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+  #root { display: flex; align-items: center; justify-content: center; }
+
+  /* ── Design tokens ───────────────────────────────────────── */
+  .app {
+    /* accent is injected via --accent / --accent-600 on .app inline */
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --emerald-100: #d1fae5;
+
+    --surface-base: #ffffff;
+    --surface-raised: #f9f7f9;
+    --surface-overlay: #f1eef2;
+    --surface-sunken: #ece7ec;
+
+    --border-subtle: #ece6ec;
+    --border-default: #ddd5dd;
+
+    --text-primary: #1a141c;
+    --text-secondary: #6b6470;
+    --text-muted: #a39daa;
+
+    --accent-light: color-mix(in oklab, var(--accent) 14%, white);
+    --accent-tint:  color-mix(in oklab, var(--accent) 8%, white);
+
+    --shadow-sm: 0 1px 2px rgba(40,20,45,0.05);
+    --shadow-md: 0 4px 10px rgba(40,20,45,0.07), 0 1px 3px rgba(40,20,45,0.05);
+    --shadow-lg: 0 14px 30px rgba(40,20,45,0.12), 0 4px 10px rgba(40,20,45,0.06);
+    --shadow-pop: 0 10px 24px color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  .app[data-theme="dark"] {
+    --emerald-500: #34d399;
+    --emerald-600: #10b981;
+    --emerald-100: rgba(16,185,129,0.16);
+
+    --surface-base: #131017;
+    --surface-raised: #1c1822;
+    --surface-overlay: #251f2e;
+    --surface-sunken: #0d0b11;
+
+    --border-subtle: #2a2433;
+    --border-default: #3a3346;
+
+    --text-primary: #f4eff6;
+    --text-secondary: #b3aabd;
+    --text-muted: #756d80;
+
+    --accent-light: color-mix(in oklab, var(--accent) 24%, #131017);
+    --accent-tint:  color-mix(in oklab, var(--accent) 14%, #131017);
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.45);
+    --shadow-lg: 0 18px 40px rgba(0,0,0,0.55);
+    --shadow-pop: 0 10px 28px color-mix(in oklab, var(--accent) 40%, transparent);
+  }
+
+  .ff-display { font-family: 'Fraunces', Georgia, serif; }
+  .ff-body { font-family: 'DM Sans', system-ui, sans-serif; }
+
+  /* scrollbar hygiene inside the phone */
+  .scroll::-webkit-scrollbar { width: 0; height: 0; }
+  .scroll { scrollbar-width: none; }
+
+  @keyframes slideInItem {
+    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes checkPop {
+    0% { transform: scale(1); }
+    45% { transform: scale(0.82); }
+    100% { transform: scale(1); }
+  }
+  @keyframes drawCheck {
+    from { stroke-dashoffset: 30; }
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes suggIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes snackUp {
+    from { opacity: 0; transform: translate(-50%, 12px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="themes.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="app-pieces.jsx"></script>
+<script type="text/babel" src="app-chrome.jsx"></script>
+<script type="text/babel" src="screen-shell.jsx"></script>
+<script type="text/babel" src="screen-listen.jsx"></script>
+<script type="text/babel" src="screen-laden.jsx"></script>
+<script type="text/babel" src="screen-verlauf.jsx"></script>
+<script type="text/babel" src="screen-einstellungen.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

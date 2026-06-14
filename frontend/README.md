@@ -1,42 +1,53 @@
-# sv
+# TanteEmma — Frontend
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+React 18 + Vite + TypeScript SPA. Routing via React Router, state via Zustand,
+i18n via react-i18next (de/en/pt-BR), PWA via vite-plugin-pwa. Styling uses CSS
+custom-property design tokens (`src/styles/tokens.css`, from `design-ref/`) — no
+Tailwind, since that's what Claude Design emits.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+## Develop
 
 ```sh
-# recreate this project
-npx sv@0.16.1 create --template minimal --types ts --install npm frontend
+npm install
+npm run dev        # http://localhost:5173
 ```
 
-## Developing
+`npm run dev` proxies `/api`, `/auth`, and `/ws` to the Go backend on `:8080`, so
+everything is same-origin (the session cookie and WebSocket just work). Run the
+backend with `FRONTEND_URL=http://localhost:5173`,
+`OIDC_REDIRECT_URL=http://localhost:5173/auth/callback`, `SECURE_COOKIES=false`
+(see the repo root `.env.example`).
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Scripts
 
-```sh
-npm run dev
+| Command                             | What                                      |
+| ----------------------------------- | ----------------------------------------- |
+| `npm run dev`                       | Vite dev server (+ backend proxy)         |
+| `npm run build`                     | Type-check + production build → `dist/`   |
+| `npm run start`                     | Serve the built `dist/` (sirv, port 3000) |
+| `npm run test`                      | Vitest unit tests                         |
+| `npm run lint` / `format` / `check` | ESLint / Prettier / `tsc --noEmit`        |
 
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+The SPA talks to the backend same-origin in production (behind the reverse
+proxy); set `VITE_API_URL` / `VITE_WS_URL` at build time only for a cross-origin
+deploy.
+
+## Layout
+
+```
+src/
+  lib/         api, ws, ulid, applyEvent (+test), offline queue/sync,
+               themes, categories, viewmodel adapter, i18n, types
+  stores/      Zustand stores (list, sync, user, theme)
+  hooks/       useList (load + events + WS + offline), useTheme
+  components/  Icon, item views, sheets, add bar, scanner, headers, layout
+  pages/       login, lists overview, list detail, stores, history, settings, admin
 ```
 
-## Building
+## Claude Design integration
 
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+`design-ref/` is the visual source of truth. To wire in a generated component:
+drop it in `components/`, swap hardcoded values for `var(--*)` tokens, type its
+props from `lib/types.ts`, keep data-fetching in a hook (not the component), and
+verify parity (visual, i18n, light/dark). Full conventions are in the root
+`CLAUDE.md` → "Frontend Migration".

@@ -8,7 +8,7 @@ segmented Docker networks.
 
 ```
                          ┌──────── proxy network ────────┐
-   Internet ── 443 ──►  Caddy ──► frontend  (SvelteKit, :3000)
+   Internet ── 443 ──►  Caddy ──► frontend  (React SPA, :3000)
                           │   └──► backend   (Go API,    :8080)
                           │                       │
                           └───────────────────────┼─ backend network ─┐
@@ -18,7 +18,7 @@ segmented Docker networks.
 - **Caddy** is the only container with published ports. It terminates TLS and
   path-routes every request to one of the two app services.
 - **backend** serves `/api/*`, `/auth/*` (the OIDC flow) and `/ws` (WebSocket).
-- **frontend** serves everything else (the SvelteKit app shell + SSR).
+- **frontend** serves everything else (the static React SPA / app shell).
 - Because everything is on **one origin**, the browser talks to
   `https://shopping.example.com/api/...` and `wss://shopping.example.com/ws`;
   Caddy forwards those to the backend. No CORS, one certificate.
@@ -88,9 +88,9 @@ services:
   frontend:
     image: ghcr.io/youruser/tante_emma/frontend:latest
     restart: unless-stopped
-    # PUBLIC_API_URL / PUBLIC_WS_URL are left unset on purpose: the app then uses
-    # same-origin relative URLs, which is exactly what the single-domain Caddy
-    # setup wants. Set them only if you split the API onto another hostname.
+    # No API URL env needed: the React SPA uses same-origin relative URLs, exactly
+    # what the single-domain Caddy setup wants. For a split-hostname API, bake
+    # VITE_API_URL / VITE_WS_URL in as build args (build time, not runtime).
     networks:
       - proxy
     depends_on:

@@ -1,0 +1,187 @@
+/* tokens.css — design tokens ported verbatim from design-ref/TanteEmma.html.
+   This is the single source of truth for the PoC's visual design. Claude Design
+   components reference these via var(--*), so they drop in unchanged.
+   Tailwind is deliberately NOT used (the design ref emits inline styles + CSS
+   custom properties, not utility classes). */
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background:
+    radial-gradient(1200px 800px at 15% -5%, #fbe9fb 0%, transparent 55%),
+    radial-gradient(1100px 700px at 100% 105%, #e7fbf2 0%, transparent 50%), #f3eef2;
+  min-height: 100vh;
+}
+
+/* ── Design tokens ───────────────────────────────────────── */
+.app {
+  /* --accent / --accent-600 are injected inline on .app per active theme */
+  --emerald-500: #10b981;
+  --emerald-600: #059669;
+  --emerald-100: #d1fae5;
+
+  --surface-base: #ffffff;
+  --surface-raised: #f9f7f9;
+  --surface-overlay: #f1eef2;
+  --surface-sunken: #ece7ec;
+
+  --border-subtle: #ece6ec;
+  --border-default: #ddd5dd;
+
+  --text-primary: #1a141c;
+  --text-secondary: #6b6470;
+  --text-muted: #a39daa;
+
+  --accent-light: color-mix(in oklab, var(--accent) 14%, white);
+  --accent-tint: color-mix(in oklab, var(--accent) 8%, white);
+
+  --shadow-sm: 0 1px 2px rgba(40, 20, 45, 0.05);
+  --shadow-md: 0 4px 10px rgba(40, 20, 45, 0.07), 0 1px 3px rgba(40, 20, 45, 0.05);
+  --shadow-lg: 0 14px 30px rgba(40, 20, 45, 0.12), 0 4px 10px rgba(40, 20, 45, 0.06);
+  /* srgb (not oklab) so the accent glow stays a clean colored halo, not muddy. */
+  --shadow-pop: 0 7px 22px color-mix(in srgb, var(--accent) 42%, transparent);
+
+  color: var(--text-primary);
+  /* warm ambient wash (design-ref body matte); screens are transparent over it */
+  background:
+    radial-gradient(1200px 800px at 15% -5%, #fbe9fb 0%, transparent 55%),
+    radial-gradient(1100px 700px at 100% 105%, #e7fbf2 0%, transparent 50%), #f3eef2;
+}
+.app[data-theme='dark'] {
+  --emerald-500: #34d399;
+  --emerald-600: #10b981;
+  --emerald-100: rgba(16, 185, 129, 0.16);
+
+  --surface-base: #131017;
+  --surface-raised: #1c1822;
+  --surface-overlay: #251f2e;
+  --surface-sunken: #0d0b11;
+
+  --border-subtle: #2a2433;
+  --border-default: #3a3346;
+
+  --text-primary: #f4eff6;
+  --text-secondary: #b3aabd;
+  --text-muted: #756d80;
+
+  --accent-light: color-mix(in oklab, var(--accent) 24%, #131017);
+  --accent-tint: color-mix(in oklab, var(--accent) 14%, #131017);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 7px 24px color-mix(in srgb, var(--accent) 55%, transparent);
+
+  background:
+    radial-gradient(1200px 800px at 15% -5%, rgba(217, 70, 239, 0.1) 0%, transparent 55%),
+    radial-gradient(1100px 700px at 100% 105%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+    #0d0b11;
+}
+
+.ff-display {
+  font-family: 'Fraunces', Georgia, serif;
+}
+.ff-body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+/* Keyboard focus ring (WCAG 2.4.7). Only on keyboard focus, not pointer. */
+.app :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.scroll::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.scroll {
+  scrollbar-width: none;
+}
+
+@keyframes slideInItem {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes checkPop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(0.82);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes drawCheck {
+  from {
+    stroke-dashoffset: 30;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes suggIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes snackUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* PoC chrome: full-viewport app shell (no iOS device frame — that was a
+   design-ref presentation device, not a product feature). */
+#root {
+  height: 100vh;
+}
