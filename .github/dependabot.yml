@@ -1,18 +1,30 @@
 version: 2
 updates:
+  # ─── Go backend ─────────────────────────────────────────────────────────────
   - package-ecosystem: gomod
     directory: /backend
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "go"]
+    commit-message:
+      prefix: "chore(deps)"
     groups:
       go-deps:
         patterns: ["*"]
 
+  # ─── Frontend (npm) ─────────────────────────────────────────────────────────
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "frontend"]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
     groups:
+      # Group minor/patch bumps to cut PR noise; majors arrive individually.
       npm-devdeps:
         dependency-type: development
         update-types: ["minor", "patch"]
@@ -20,18 +32,28 @@ updates:
         dependency-type: production
         update-types: ["minor", "patch"]
 
+  # ─── GitHub Actions ─────────────────────────────────────────────────────────
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "ci"]
+    commit-message:
+      prefix: "ci(deps)"
     groups:
       actions:
         patterns: ["*"]
 
+  # ─── Docker base images (Dockerfile.backend / Dockerfile.frontend) ──────────
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "docker"]
+    commit-message:
+      prefix: "chore(deps)"
     groups:
       docker-images:
         patterns: ["*"]
