@@ -53,6 +53,12 @@ func SessionFromContext(ctx context.Context) *models.Session {
 	return s
 }
 
+// WithSession returns a context carrying the given session, as NewRequireAuth
+// would. Lets handlers be exercised in tests without the full auth middleware.
+func WithSession(ctx context.Context, sess *models.Session) context.Context {
+	return context.WithValue(ctx, sessionCtxKey, sess)
+}
+
 // NewRequireRole builds a middleware that enforces minimum role.
 // Role hierarchy: admin > member > child.
 func NewRequireRole(minRole models.Role) func(http.Handler) http.Handler {
