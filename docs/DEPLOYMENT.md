@@ -86,7 +86,7 @@ services:
       - backend
 
   frontend:
-    image: ghcr.io/youruser/tante_emma/frontend:latest
+    image: ghcr.io/tibroc/tante_emma/frontend:latest
     restart: unless-stopped
     # No API URL env needed: the React SPA uses same-origin relative URLs, exactly
     # what the single-domain Caddy setup wants. For a split-hostname API, bake
@@ -97,7 +97,7 @@ services:
       - backend
 
   backend:
-    image: ghcr.io/youruser/tante_emma/backend:latest
+    image: ghcr.io/tibroc/tante_emma/backend:latest
     restart: unless-stopped
     volumes:
       - tanteemma-data:/data

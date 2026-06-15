@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { api, ApiError } from '../lib/api';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { ThemeToggle } from '../components/Header';
 import type { Store, Category } from '../lib/types';
 import { useUserStore } from '../stores/userStore';
@@ -42,7 +42,9 @@ interface StoreForm {
   address: string;
 }
 
-const EMPTY_FORM: StoreForm = { name: '', icon: '🛒', color: '#6366f1', address: '' };
+const STORE_ICONS: IconName[] = ['store', 'cart', 'box', 'sparkle', 'pantry', 'produce'];
+
+const EMPTY_FORM: StoreForm = { name: '', icon: '', color: '#6366f1', address: '' };
 
 // ── shared inline styles ──
 const card: CSSProperties = {
@@ -183,7 +185,7 @@ export default function StoresPage() {
     setEditingId(s.id);
     setForm({
       name: s.name,
-      icon: s.icon ?? '🛒',
+      icon: (STORE_ICONS as string[]).includes(s.icon ?? '') ? s.icon! : '',
       color: s.color ?? '#6366f1',
       address: s.address ?? '',
     });
@@ -360,228 +362,245 @@ export default function StoresPage() {
       {/* scrollable content — bounded by header above and the app footer below */}
       <div className="scroll" style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ padding: '0 14px 24px' }}>
-      {error && (
-        <div
-          style={{
-            ...card,
-            background: 'var(--accent-light)',
-            border: '1px solid var(--border-default)',
-            color: 'var(--text-primary)',
-            padding: '12px 14px',
-            marginBottom: 14,
-            fontSize: 14,
-          }}
-        >
-          {t('stores.load_error')}
-        </div>
-      )}
+          {error && (
+            <div
+              style={{
+                ...card,
+                background: 'var(--accent-light)',
+                border: '1px solid var(--border-default)',
+                color: 'var(--text-primary)',
+                padding: '12px 14px',
+                marginBottom: 14,
+                fontSize: 14,
+              }}
+            >
+              {t('stores.load_error')}
+            </div>
+          )}
 
-      {/* empty state */}
-      {!error && stores.length === 0 && (
-        <div
-          style={{
-            ...card,
-            padding: '40px 20px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 14,
-          }}
-        >
-          <div style={{ color: 'var(--text-muted)' }}>
-            <Icon name="store" size={56} strokeWidth={1.4} />
-          </div>
-          <div style={{ color: 'var(--text-secondary)', fontSize: 15 }}>{t('stores.empty')}</div>
-          <button type="button" style={primaryBtn} onClick={openCreate}>
-            {t('stores.create_first')}
-          </button>
-        </div>
-      )}
+          {/* empty state */}
+          {!error && stores.length === 0 && (
+            <div
+              style={{
+                ...card,
+                padding: '40px 20px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 14,
+              }}
+            >
+              <div style={{ color: 'var(--text-muted)' }}>
+                <Icon name="store" size={56} strokeWidth={1.4} />
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: 15 }}>
+                {t('stores.empty')}
+              </div>
+              <button type="button" style={primaryBtn} onClick={openCreate}>
+                {t('stores.create_first')}
+              </button>
+            </div>
+          )}
 
-      {/* store list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {stores.map((s) => {
-          const expanded = expandedStore === s.id;
-          return (
-            <div key={s.id} style={card}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14 }}>
-                <div
-                  style={{
-                    width: 50,
-                    height: 50,
-                    borderRadius: 15,
-                    flexShrink: 0,
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: 24,
-                    color: '#fff',
-                    background: `linear-gradient(150deg, ${s.color || 'var(--accent)'}, color-mix(in oklab, ${s.color || '#6366f1'} 72%, black))`,
-                    boxShadow: `0 6px 14px color-mix(in oklab, ${s.color || '#6366f1'} 36%, transparent)`,
-                  }}
-                >
-                  {s.icon ? s.icon : <Icon name="store" size={26} strokeWidth={1.9} />}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: 'var(--text-primary)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    {s.name}
-                  </div>
-                  {s.address && (
+          {/* store list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {stores.map((s) => {
+              const expanded = expandedStore === s.id;
+              return (
+                <div key={s.id} style={card}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 14 }}>
                     <div
                       style={{
-                        fontSize: 13,
-                        color: 'var(--text-muted)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
+                        width: 50,
+                        height: 50,
+                        borderRadius: 15,
+                        flexShrink: 0,
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontSize: 24,
+                        color: '#fff',
+                        background: `linear-gradient(150deg, ${s.color || 'var(--accent)'}, color-mix(in oklab, ${s.color || '#6366f1'} 72%, black))`,
+                        boxShadow: `0 6px 14px color-mix(in oklab, ${s.color || '#6366f1'} 36%, transparent)`,
                       }}
                     >
-                      {s.address}
+                      <Icon
+                        name={
+                          (STORE_ICONS as string[]).includes(s.icon ?? '')
+                            ? (s.icon as IconName)
+                            : 'store'
+                        }
+                        size={26}
+                        strokeWidth={1.9}
+                      />
                     </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  style={iconBtn}
-                  aria-label={t('stores.form.edit')}
-                  onClick={() => openEdit(s)}
-                >
-                  <Icon name="pencil" size={18} />
-                </button>
-                <button
-                  type="button"
-                  style={iconBtn}
-                  aria-label="delete"
-                  onClick={() => deleteStore(s)}
-                >
-                  <Icon name="trash" size={18} />
-                </button>
-              </div>
-
-              <div style={{ padding: '0 14px 14px' }}>
-                <button
-                  type="button"
-                  style={{ ...ghostBtn, width: '100%', justifyContent: 'space-between' }}
-                  onClick={() => toggleShelf(s.id)}
-                >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <Icon name="sliders" size={16} />
-                    {t('stores.shelf_order')}
-                  </span>
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      transition: 'transform 150ms',
-                      transform: expanded ? 'rotate(180deg)' : 'none',
-                    }}
-                  >
-                    <Icon name="chevron-down" size={18} />
-                  </span>
-                </button>
-
-                {expanded && (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>
-                      {t('stores.shelf_hint')}
-                    </div>
-                    {shelfLoading ? (
-                      <div style={{ color: 'var(--text-muted)', fontSize: 14, padding: '8px 0' }}>
-                        {t('list.loading')}
-                      </div>
-                    ) : shelf.length === 0 ? (
-                      <div style={{ color: 'var(--text-muted)', fontSize: 14, padding: '8px 0' }}>
-                        {t('stores.no_categories')}
-                      </div>
-                    ) : (
-                      <DndContext
-                        sensors={sensors}
-                        collisionDetection={closestCenter}
-                        onDragEnd={(ev) => onShelfDragEnd(s.id, ev)}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 600,
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
                       >
-                        <SortableContext
-                          items={shelf.map((r) => r.category_id)}
-                          strategy={verticalListSortingStrategy}
+                        {s.name}
+                      </div>
+                      {s.address && (
+                        <div
+                          style={{
+                            fontSize: 13,
+                            color: 'var(--text-muted)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
                         >
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {shelf.map((row) => (
-                              <ShelfItem
-                                key={row.category_id}
-                                row={row}
-                                autoLabel={t('stores.auto')}
-                              />
-                            ))}
+                          {s.address}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      style={iconBtn}
+                      aria-label={t('stores.form.edit')}
+                      onClick={() => openEdit(s)}
+                    >
+                      <Icon name="pencil" size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      style={iconBtn}
+                      aria-label="delete"
+                      onClick={() => deleteStore(s)}
+                    >
+                      <Icon name="trash" size={18} />
+                    </button>
+                  </div>
+
+                  <div style={{ padding: '0 14px 14px' }}>
+                    <button
+                      type="button"
+                      style={{ ...ghostBtn, width: '100%', justifyContent: 'space-between' }}
+                      onClick={() => toggleShelf(s.id)}
+                    >
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Icon name="sliders" size={16} />
+                        {t('stores.shelf_order')}
+                      </span>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          transition: 'transform 150ms',
+                          transform: expanded ? 'rotate(180deg)' : 'none',
+                        }}
+                      >
+                        <Icon name="chevron-down" size={18} />
+                      </span>
+                    </button>
+
+                    {expanded && (
+                      <div style={{ marginTop: 12 }}>
+                        <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 10 }}>
+                          {t('stores.shelf_hint')}
+                        </div>
+                        {shelfLoading ? (
+                          <div
+                            style={{ color: 'var(--text-muted)', fontSize: 14, padding: '8px 0' }}
+                          >
+                            {t('list.loading')}
                           </div>
-                        </SortableContext>
-                      </DndContext>
+                        ) : shelf.length === 0 ? (
+                          <div
+                            style={{ color: 'var(--text-muted)', fontSize: 14, padding: '8px 0' }}
+                          >
+                            {t('stores.no_categories')}
+                          </div>
+                        ) : (
+                          <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={(ev) => onShelfDragEnd(s.id, ev)}
+                          >
+                            <SortableContext
+                              items={shelf.map((r) => r.category_id)}
+                              strategy={verticalListSortingStrategy}
+                            >
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {shelf.map((row) => (
+                                  <ShelfItem
+                                    key={row.category_id}
+                                    row={row}
+                                    autoLabel={t('stores.auto')}
+                                  />
+                                ))}
+                              </div>
+                            </SortableContext>
+                          </DndContext>
+                        )}
+                      </div>
                     )}
                   </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* admin bulk tool */}
+          {isAdmin && stores.length > 0 && categories.length > 0 && (
+            <div style={{ ...card, padding: 16, marginTop: 18 }}>
+              <h2
+                className="ff-display"
+                style={{ margin: '0 0 4px', fontSize: 18, color: 'var(--text-primary)' }}
+              >
+                {t('stores.bulk_title')}
+              </h2>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
+                {t('stores.bulk_hint')}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <select
+                  style={inputStyle}
+                  value={bulkCategory}
+                  onChange={(e) => setBulkCategory(e.target.value)}
+                >
+                  <option value="">{t('stores.bulk_category')}</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name_de}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  style={inputStyle}
+                  value={bulkStore}
+                  onChange={(e) => setBulkStore(e.target.value)}
+                >
+                  <option value="">{t('stores.bulk_store')}</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  style={{
+                    ...primaryBtn,
+                    opacity: bulkBusy || !bulkCategory || !bulkStore ? 0.6 : 1,
+                  }}
+                  disabled={bulkBusy || !bulkCategory || !bulkStore}
+                  onClick={bulkAssign}
+                >
+                  {t('stores.bulk_assign')}
+                </button>
+                {bulkMsg && (
+                  <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{bulkMsg}</div>
                 )}
               </div>
             </div>
-          );
-        })}
-      </div>
-
-      {/* admin bulk tool */}
-      {isAdmin && stores.length > 0 && categories.length > 0 && (
-        <div style={{ ...card, padding: 16, marginTop: 18 }}>
-          <h2
-            className="ff-display"
-            style={{ margin: '0 0 4px', fontSize: 18, color: 'var(--text-primary)' }}
-          >
-            {t('stores.bulk_title')}
-          </h2>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 14 }}>
-            {t('stores.bulk_hint')}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <select
-              style={inputStyle}
-              value={bulkCategory}
-              onChange={(e) => setBulkCategory(e.target.value)}
-            >
-              <option value="">{t('stores.bulk_category')}</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name_de}
-                </option>
-              ))}
-            </select>
-            <select
-              style={inputStyle}
-              value={bulkStore}
-              onChange={(e) => setBulkStore(e.target.value)}
-            >
-              <option value="">{t('stores.bulk_store')}</option>
-              {stores.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              style={{ ...primaryBtn, opacity: bulkBusy || !bulkCategory || !bulkStore ? 0.6 : 1 }}
-              disabled={bulkBusy || !bulkCategory || !bulkStore}
-              onClick={bulkAssign}
-            >
-              {t('stores.bulk_assign')}
-            </button>
-            {bulkMsg && (
-              <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{bulkMsg}</div>
-            )}
-          </div>
-        </div>
-      )}
+          )}
         </div>
       </div>
 
@@ -652,13 +671,32 @@ export default function StoresPage() {
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>{t('stores.form.emoji')}</label>
-                  <input
-                    style={{ ...inputStyle, textAlign: 'center', fontSize: 22 }}
-                    value={form.icon}
-                    maxLength={2}
-                    onChange={(e) => setForm((f) => ({ ...f, icon: e.target.value }))}
-                  />
+                  <label style={labelStyle}>{t('stores.form.icon')}</label>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {STORE_ICONS.map((ic) => {
+                      const on = form.icon === ic;
+                      return (
+                        <button
+                          key={ic}
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, icon: ic }))}
+                          style={{
+                            flex: 1,
+                            height: 42,
+                            borderRadius: 11,
+                            border: `2px solid ${on ? 'var(--accent)' : 'var(--border-subtle)'}`,
+                            background: on ? 'var(--accent-light)' : 'var(--surface-raised)',
+                            color: on ? 'var(--accent)' : 'var(--text-secondary)',
+                            display: 'grid',
+                            placeItems: 'center',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <Icon name={ic} size={19} strokeWidth={1.9} />
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={labelStyle}>{t('stores.form.color')}</label>

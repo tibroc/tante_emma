@@ -119,7 +119,7 @@
     "form": {
       "name": "Name",
       "name_ph": "e.g. Tesco High Street",
-      "emoji": "Emoji",
+      "icon": "Icon",
       "color": "Color",
       "address": "Address (optional)",
       "address_ph": "123 Main St",

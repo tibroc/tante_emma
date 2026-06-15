@@ -170,8 +170,7 @@ export default function ListDetail() {
   const presenceUsers = presence.map((uid) => members[uid] ?? { id: uid, name: uid });
 
   const userId = useUserStore((s) => s.user?.id);
-  const canEditList =
-    !isChild && (role === 'admin' || userId === list.list?.owner_id);
+  const canEditList = !isChild && (role === 'admin' || userId === list.list?.owner_id);
 
   const submitListEvent = async (type: string, payload: Record<string, unknown>) => {
     await api.post(`/api/lists/${id}/events`, {

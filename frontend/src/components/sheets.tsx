@@ -351,7 +351,8 @@ export function ListEditSheet({
     setSaving(true);
     const trimmed = name.trim();
     if (trimmed && trimmed !== list.name) await onRename(trimmed).catch(() => {});
-    if (selectedColor !== (list.color || LIST_COLORS[0])) await onRecolor(selectedColor).catch(() => {});
+    if (selectedColor !== (list.color || LIST_COLORS[0]))
+      await onRecolor(selectedColor).catch(() => {});
     setSaving(false);
     onClose();
   };
@@ -384,8 +385,11 @@ export function ListEditSheet({
     animation: 'sheetUp .3s cubic-bezier(.2,.9,.3,1)',
   };
   const handle: CSSProperties = {
-    width: 38, height: 4, borderRadius: 4,
-    background: 'var(--border-default)', margin: '0 auto 18px',
+    width: 38,
+    height: 4,
+    borderRadius: 4,
+    background: 'var(--border-default)',
+    margin: '0 auto 18px',
   };
 
   return (
@@ -425,17 +429,29 @@ export function ListEditSheet({
                 aria-label={c}
                 aria-pressed={on}
                 style={{
-                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                  cursor: 'pointer', padding: 3, background: 'transparent',
-                  display: 'grid', placeItems: 'center',
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  flexShrink: 0,
+                  cursor: 'pointer',
+                  padding: 3,
+                  background: 'transparent',
+                  display: 'grid',
+                  placeItems: 'center',
                   border: `2.5px solid ${on ? c : 'transparent'}`,
                 }}
               >
-                <span style={{
-                  width: '100%', height: '100%', borderRadius: '50%',
-                  display: 'grid', placeItems: 'center', color: '#fff',
-                  background: `linear-gradient(150deg, ${c}, ${cDark})`,
-                }}>
+                <span
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: '#fff',
+                    background: `linear-gradient(150deg, ${c}, ${cDark})`,
+                  }}
+                >
                   {on && <Icon name="check" size={18} strokeWidth={3} />}
                 </span>
               </button>
@@ -449,11 +465,17 @@ export function ListEditSheet({
             onClick={handleSave}
             disabled={saving}
             style={{
-              flex: 1, height: 50, borderRadius: 14, border: 'none',
-              cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1,
+              flex: 1,
+              height: 50,
+              borderRadius: 14,
+              border: 'none',
+              cursor: saving ? 'default' : 'pointer',
+              opacity: saving ? 0.7 : 1,
               background: `linear-gradient(145deg, ${accent}, ${accentDark})`,
-              color: '#fff', fontFamily: "'DM Sans', sans-serif",
-              fontSize: 15.5, fontWeight: 700,
+              color: '#fff',
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 15.5,
+              fontWeight: 700,
             }}
           >
             {t('list_edit.save')}
@@ -464,11 +486,21 @@ export function ListEditSheet({
               onClick={handleDelete}
               disabled={saving}
               style={{
-                flex: 1, height: 50, borderRadius: 14, border: 'none',
-                cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1,
-                background: '#ef4444', color: '#fff',
-                fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                flex: 1,
+                height: 50,
+                borderRadius: 14,
+                border: 'none',
+                cursor: saving ? 'default' : 'pointer',
+                opacity: saving ? 0.7 : 1,
+                background: '#ef4444',
+                color: '#fff',
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 15,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 7,
               }}
             >
               <Icon name="trash" size={18} strokeWidth={2} />
@@ -479,9 +511,16 @@ export function ListEditSheet({
               onClick={() => setConfirmDelete(true)}
               aria-label={t('list_edit.delete')}
               style={{
-                width: 50, height: 50, flexShrink: 0, borderRadius: 14, cursor: 'pointer',
+                width: 50,
+                height: 50,
+                flexShrink: 0,
+                borderRadius: 14,
+                cursor: 'pointer',
                 border: '1px solid color-mix(in oklab, #ef4444 30%, transparent)',
-                background: 'transparent', color: '#ef4444', display: 'grid', placeItems: 'center',
+                background: 'transparent',
+                color: '#ef4444',
+                display: 'grid',
+                placeItems: 'center',
               }}
             >
               <Icon name="trash" size={20} strokeWidth={2} />
@@ -505,7 +544,9 @@ export function NewListSheet({
   const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { inputRef.current?.focus(); }, []);
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   const handleCreate = async () => {
     const trimmed = name.trim();
@@ -519,23 +560,36 @@ export function NewListSheet({
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 300,
-        display: 'flex', alignItems: 'flex-end',
-        background: 'rgba(20,10,24,0.42)', backdropFilter: 'blur(2px)',
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        display: 'flex',
+        alignItems: 'flex-end',
+        background: 'rgba(20,10,24,0.42)',
+        backdropFilter: 'blur(2px)',
         animation: 'fadeIn .2s ease',
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '100%', background: 'var(--surface-base)',
+          width: '100%',
+          background: 'var(--surface-base)',
           borderRadius: '26px 26px 0 0',
           padding: '12px 20px calc(22px + env(safe-area-inset-bottom))',
           boxShadow: 'var(--shadow-lg)',
           animation: 'sheetUp .3s cubic-bezier(.2,.9,.3,1)',
         }}
       >
-        <div style={{ width: 38, height: 4, borderRadius: 4, background: 'var(--border-default)', margin: '0 auto 18px' }} />
+        <div
+          style={{
+            width: 38,
+            height: 4,
+            borderRadius: 4,
+            background: 'var(--border-default)',
+            margin: '0 auto 18px',
+          }}
+        />
         <FieldLabel>{t('lists.new_name_label')}</FieldLabel>
         <input
           ref={inputRef}
@@ -543,18 +597,30 @@ export function NewListSheet({
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           placeholder={t('lists.new_name_ph')}
-          style={{ ...inputStyle, width: '100%', height: 48, marginBottom: 14, fontSize: 16, fontWeight: 600 }}
+          style={{
+            ...inputStyle,
+            width: '100%',
+            height: 48,
+            marginBottom: 14,
+            fontSize: 16,
+            fontWeight: 600,
+          }}
         />
         <button
           onClick={handleCreate}
           disabled={creating || !name.trim()}
           style={{
-            width: '100%', height: 50, borderRadius: 14, border: 'none',
+            width: '100%',
+            height: 50,
+            borderRadius: 14,
+            border: 'none',
             cursor: creating || !name.trim() ? 'default' : 'pointer',
             opacity: creating || !name.trim() ? 0.5 : 1,
             background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
-            color: '#fff', fontFamily: "'DM Sans', sans-serif",
-            fontSize: 15.5, fontWeight: 700,
+            color: '#fff',
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 15.5,
+            fontWeight: 700,
           }}
         >
           {t('lists.create_label')}

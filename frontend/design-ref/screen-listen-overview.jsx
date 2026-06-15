@@ -20,6 +20,7 @@ function MemberStack({ members, size = 26 }) {
 }
 
 function ListCard({ list, frWeight, onOpen, onMenu }) {
+  const [fav, setFav] = React.useState(!!list.fav);
   const open = list.items.length;
   const done = list.checked.length;
   const total = open + done;
@@ -35,10 +36,9 @@ function ListCard({ list, frWeight, onOpen, onMenu }) {
       boxShadow: 'var(--shadow-md)', position: 'relative',
     }}>
       {/* accent header band */}
-      <div style={{ position: 'relative', padding: '15px 16px 14px',
+      <div style={{ position: 'relative', overflow: 'hidden', padding: '15px 16px 14px',
         background: `linear-gradient(135deg, ${list.accent}, ${a600})` }}>
-        <div style={{ position: 'absolute', top: -24, right: -16, width: 96, height: 96, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.12)' }} />
+        {/* (decorative circle removed — relying on the gradient alone) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
           <div style={{ width: 44, height: 44, borderRadius: 14, flexShrink: 0, display: 'grid',
             placeItems: 'center', color: '#fff', background: 'rgba(255,255,255,0.2)',
@@ -53,9 +53,15 @@ function ListCard({ list, frWeight, onOpen, onMenu }) {
               {open} offen{done ? ` · ${done} erledigt` : ''}</div>
           </div>
           <MemberStack members={list.members} />
+          <button onClick={(e) => { e.stopPropagation(); setFav(f => !f); }}
+            aria-label={fav ? 'Favorit entfernen' : 'Als Favorit markieren'} aria-pressed={fav} style={{
+            width: 32, height: 32, borderRadius: 10, flexShrink: 0, cursor: 'pointer', display: 'grid',
+            placeItems: 'center', border: 'none', background: 'rgba(255,255,255,0.18)', color: '#fff' }}>
+            <Icon name="star" size={17} strokeWidth={2} fill={fav ? 'currentColor' : 'none'} />
+          </button>
           <button onClick={(e) => { e.stopPropagation(); onMenu(); }} aria-label="Optionen" style={{
             width: 32, height: 32, borderRadius: 10, flexShrink: 0, cursor: 'pointer', display: 'grid',
-            placeItems: 'center', border: 'none', background: 'rgba(255,255,255,0.18)', color: '#fff', marginLeft: -2 }}>
+            placeItems: 'center', border: 'none', background: 'rgba(255,255,255,0.18)', color: '#fff' }}>
             <Icon name="dots" size={19} strokeWidth={2.2} />
           </button>
         </div>

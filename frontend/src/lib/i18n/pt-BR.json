@@ -119,7 +119,7 @@
     "form": {
       "name": "Nome",
       "name_ph": "ex. Supermercado Central",
-      "emoji": "Emoji",
+      "icon": "Ícone",
       "color": "Cor",
       "address": "Endereço (opcional)",
       "address_ph": "Rua Principal, 123",

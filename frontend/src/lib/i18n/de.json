@@ -119,7 +119,7 @@
     "form": {
       "name": "Name",
       "name_ph": "z.B. Rewe Hauptstraße",
-      "emoji": "Emoji",
+      "icon": "Symbol",
       "color": "Farbe",
       "address": "Adresse (optional)",
       "address_ph": "Musterstraße 1",
