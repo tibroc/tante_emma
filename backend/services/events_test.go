@@ -346,7 +346,7 @@ func TestProcessEvent_UnknownTypeErrors(t *testing.T) {
 
 func TestProcessEvent_KnownNoopTypesDoNotError(t *testing.T) {
 	noopTypes := []string{
-		"list.created", "list.renamed", "list.deleted",
+		"list.created",
 		"list.shared", "list.unshared",
 		"store.created", "store.updated",
 		"shelf_order.updated", "shelf_order.learned",
@@ -361,6 +361,66 @@ func TestProcessEvent_KnownNoopTypesDoNotError(t *testing.T) {
 			t.Errorf("ProcessEvent(%q) should be a no-op (no error), got: %v", typ, err)
 		}
 		tx.Rollback() //nolint:errcheck
+	}
+}
+
+func TestProcessListRenamed(t *testing.T) {
+	d := newTestDB(t)
+	exec(t, d, `INSERT INTO users (id, oidc_sub, name, role, locale, created_at) VALUES ('u1','s','U','member','de',0)`)
+	exec(t, d, `INSERT INTO lists (id, name, type, owner_id, created_at, updated_at) VALUES ('l1','Old','group','u1',0,0)`)
+
+	payload, _ := json.Marshal(models.ListRenamedPayload{Name: "New"})
+	listID := "l1"
+	processInTx(t, d, &models.Event{Type: "list.renamed", ListID: &listID, UserID: "u1", Payload: payload})
+
+	var name string
+	if err := d.QueryRow(`SELECT name FROM lists WHERE id='l1'`).Scan(&name); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if name != "New" {
+		t.Errorf("list name = %q, want %q", name, "New")
+	}
+}
+
+func TestProcessListUpdated(t *testing.T) {
+	d := newTestDB(t)
+	exec(t, d, `INSERT INTO users (id, oidc_sub, name, role, locale, created_at) VALUES ('u1','s','U','member','de',0)`)
+	exec(t, d, `INSERT INTO lists (id, name, type, owner_id, color, created_at, updated_at) VALUES ('l1','L','group','u1','#old',0,0)`)
+
+	payload, _ := json.Marshal(models.ListUpdatedPayload{Color: "#new"})
+	listID := "l1"
+	processInTx(t, d, &models.Event{Type: "list.updated", ListID: &listID, UserID: "u1", Payload: payload})
+
+	var color string
+	if err := d.QueryRow(`SELECT COALESCE(color,'') FROM lists WHERE id='l1'`).Scan(&color); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if color != "#new" {
+		t.Errorf("list color = %q, want %q", color, "#new")
+	}
+}
+
+func TestProcessListDeleted(t *testing.T) {
+	d := newTestDB(t)
+	exec(t, d, `INSERT INTO users (id, oidc_sub, name, role, locale, created_at) VALUES ('u1','s','U','member','de',0)`)
+	exec(t, d, `INSERT INTO lists (id, name, type, owner_id, created_at, updated_at) VALUES ('l1','L','group','u1',0,0)`)
+	exec(t, d, `INSERT INTO list_items (id, list_id, name_override, checked, added_by, added_at) VALUES ('i1','l1','item',0,'u1',0)`)
+
+	listID := "l1"
+	processInTx(t, d, &models.Event{Type: "list.deleted", ListID: &listID, UserID: "u1", Payload: json.RawMessage(`{}`)})
+
+	var n int
+	if err := d.QueryRow(`SELECT COUNT(*) FROM lists WHERE id='l1'`).Scan(&n); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("list still exists after list.deleted")
+	}
+	if err := d.QueryRow(`SELECT COUNT(*) FROM list_items WHERE list_id='l1'`).Scan(&n); err != nil {
+		t.Fatalf("query: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("list_items still exist after list.deleted")
 	}
 }
 

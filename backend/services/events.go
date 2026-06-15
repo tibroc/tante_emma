@@ -27,8 +27,17 @@ func ProcessEvent(tx *sql.Tx, event *models.Event) error {
 		return processListCleared(tx, *event)
 	case "item.updated":
 		return processItemUpdated(tx, *event)
-	case "list.created", "list.renamed", "list.deleted",
-		"list.shared", "list.unshared",
+	case "list.renamed":
+		return processListRenamed(tx, *event)
+	case "list.updated":
+		return processListUpdated(tx, *event)
+	case "list.deleted":
+		return processListDeleted(tx, *event)
+	case "list.favorited":
+		return processListFavorited(tx, *event)
+	case "list.unfavorited":
+		return processListUnfavorited(tx, *event)
+	case "list.created", "list.shared", "list.unshared",
 		"store.created", "store.updated",
 		"shelf_order.updated", "shelf_order.learned",
 		"product.created", "product.updated":
@@ -211,6 +220,72 @@ func lookupProductCategory(tx *sql.Tx, productID string) *string {
 	}
 	if cat.Valid && cat.String != "" {
 		return &cat.String
+	}
+	return nil
+}
+
+func processListRenamed(tx *sql.Tx, ev models.Event) error {
+	var p models.ListRenamedPayload
+	if err := json.Unmarshal(ev.Payload, &p); err != nil || p.Name == "" {
+		return fmt.Errorf("listRenamed: invalid payload")
+	}
+	now := time.Now().UnixMilli()
+	_, err := tx.Exec(`UPDATE lists SET name=?, updated_at=? WHERE id=?`, p.Name, now, *ev.ListID)
+	return err
+}
+
+func processListUpdated(tx *sql.Tx, ev models.Event) error {
+	var p models.ListUpdatedPayload
+	if err := json.Unmarshal(ev.Payload, &p); err != nil {
+		return fmt.Errorf("listUpdated: %w", err)
+	}
+	now := time.Now().UnixMilli()
+	// CASE WHEN preserves the existing column value when the payload field is empty.
+	_, err := tx.Exec(`
+		UPDATE lists SET
+			color=CASE WHEN ?1!='' THEN ?1 ELSE color END,
+			icon=CASE WHEN  ?2!='' THEN ?2 ELSE icon  END,
+			updated_at=?3
+		WHERE id=?4`, p.Color, p.Icon, now, *ev.ListID)
+	return err
+}
+
+func processListFavorited(tx *sql.Tx, ev models.Event) error {
+	_, err := tx.Exec(`
+		INSERT OR IGNORE INTO user_list_favorites (user_id, list_id, favorited_at)
+		VALUES (?, ?, ?)`, ev.UserID, *ev.ListID, time.Now().UnixMilli())
+	if err != nil {
+		return fmt.Errorf("listFavorited: %w", err)
+	}
+	return nil
+}
+
+func processListUnfavorited(tx *sql.Tx, ev models.Event) error {
+	_, err := tx.Exec(
+		`DELETE FROM user_list_favorites WHERE user_id=? AND list_id=?`,
+		ev.UserID, *ev.ListID)
+	if err != nil {
+		return fmt.Errorf("listUnfavorited: %w", err)
+	}
+	return nil
+}
+
+func processListDeleted(tx *sql.Tx, ev models.Event) error {
+	listID := *ev.ListID
+	// Delete child rows in FK-dependency order before the parent row.
+	// events includes the list.deleted event we just inserted — that's intentional;
+	// we don't need to persist it since the list is gone.
+	for _, stmt := range []string{
+		`DELETE FROM list_items            WHERE list_id = ?`,
+		`DELETE FROM list_shares           WHERE list_id = ?`,
+		`DELETE FROM purchase_history      WHERE list_id = ?`,
+		`DELETE FROM user_list_favorites   WHERE list_id = ?`,
+		`DELETE FROM events                WHERE list_id = ?`,
+		`DELETE FROM lists                 WHERE id      = ?`,
+	} {
+		if _, err := tx.Exec(stmt, listID); err != nil {
+			return fmt.Errorf("listDeleted: %w", err)
+		}
 	}
 	return nil
 }

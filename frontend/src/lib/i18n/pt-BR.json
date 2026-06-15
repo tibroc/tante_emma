@@ -31,11 +31,7 @@
     "clear_checked": "Limpar todos",
     "tile_view": "Visualização em grade",
     "list_view": "Visualização em lista",
-    "share": "Compartilhar",
-    "active_store": "Comprando em:",
-    "active_store_label": "Loja ativa para esta compra",
-    "select_store": "Selecionar loja",
-    "no_store": "– sem loja –"
+    "share": "Compartilhar"
   },
   "add_item": {
     "placeholder": "Adicionar…",
@@ -174,6 +170,22 @@
     "field_category": "Categoria",
     "field_preferred_stores": "Lojas preferidas",
     "no_category": "– nenhuma –"
+  },
+  "favorites": {
+    "section": "★ Favoritos"
+  },
+  "list_edit": {
+    "title": "Editar lista",
+    "name_label": "Nome",
+    "name_ph": "Nome da lista…",
+    "color_label": "Cor",
+    "save": "Salvar",
+    "delete": "Excluir lista",
+    "confirm_delete": "Excluir lista mesmo?",
+    "confirm_body": "Esta ação não pode ser desfeita.",
+    "confirm_ok": "Excluir",
+    "confirm_cancel": "Cancelar",
+    "edit_aria": "Editar lista"
   },
   "errors": {
     "sync": "Não foi possível sincronizar"

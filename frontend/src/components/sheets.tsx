@@ -1,11 +1,13 @@
-// sheets.tsx — EmptyState, Snackbar, DetailSheet. Ported from design-ref/app.jsx.
-// DetailSheet is wired to item.updated (debounced) + item.deleted.
+// sheets.tsx — EmptyState, Snackbar, DetailSheet, ListEditSheet.
+// Ported from design-ref/app.jsx. DetailSheet is wired to item.updated
+// (debounced) + item.deleted. ListEditSheet handles list rename/recolor/delete.
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { CatChip } from './primitives';
 import { resolveCategoryIcon } from '../lib/categories';
-import type { ListItem, Store } from '../lib/types';
+import { LIST_COLORS } from '../lib/constants';
+import type { List, ListItem, Store } from '../lib/types';
 import type { CategoryLookup } from '../lib/viewmodel';
 
 // Backend stores unit codes; labels come from units.<code> per locale.
@@ -312,6 +314,226 @@ export function DetailSheet({
           <Icon name="trash" size={18} strokeWidth={2} />
           {t('item.delete')}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── List edit sheet ────────────────────────────────────────────────────────
+
+export function ListEditSheet({
+  list,
+  onRename,
+  onRecolor,
+  onDelete,
+  onClose,
+}: {
+  list: List;
+  onRename: (name: string) => Promise<void>;
+  onRecolor: (color: string) => Promise<void>;
+  onDelete: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState(list.name);
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  const handleRename = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || trimmed === list.name || saving) return;
+    setSaving(true);
+    await onRename(trimmed).catch(() => {});
+    setSaving(false);
+  };
+
+  const handleRecolor = async (color: string) => {
+    if (color === list.color || saving) return;
+    setSaving(true);
+    await onRecolor(color).catch(() => {});
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    setSaving(true);
+    await onDelete().catch(() => {});
+    setSaving(false);
+  };
+
+  const dangerBtn: CSSProperties = {
+    width: '100%',
+    padding: '13px',
+    borderRadius: 14,
+    cursor: saving ? 'default' : 'pointer',
+    border: '1px solid color-mix(in oklab, #ef4444 30%, transparent)',
+    background: 'transparent',
+    color: '#ef4444',
+    fontSize: 15,
+    fontWeight: 600,
+    fontFamily: "'DM Sans', sans-serif",
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    opacity: saving ? 0.6 : 1,
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 300,
+        display: 'flex',
+        alignItems: 'flex-end',
+        background: 'rgba(20,10,24,0.42)',
+        backdropFilter: 'blur(2px)',
+        animation: 'fadeIn .2s ease',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: '100%',
+          background: 'var(--surface-base)',
+          borderRadius: '26px 26px 0 0',
+          padding: '12px 20px calc(24px + env(safe-area-inset-bottom))',
+          boxShadow: 'var(--shadow-lg)',
+          animation: 'sheetUp .3s cubic-bezier(.2,.9,.3,1)',
+        }}
+      >
+        {/* drag handle */}
+        <div
+          style={{
+            width: 38,
+            height: 4,
+            borderRadius: 4,
+            background: 'var(--border-default)',
+            margin: '0 auto 20px',
+          }}
+        />
+
+        {!confirmDelete ? (
+          <>
+            <div
+              className="ff-display"
+              style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 20 }}
+            >
+              {t('list_edit.title')}
+            </div>
+
+            {/* rename */}
+            <FieldLabel>{t('list_edit.name_label')}</FieldLabel>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
+              <input
+                ref={inputRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+                placeholder={t('list_edit.name_ph')}
+                style={inputStyle}
+              />
+              <button
+                onClick={handleRename}
+                disabled={saving || !name.trim() || name.trim() === list.name}
+                style={{
+                  flexShrink: 0,
+                  height: 44,
+                  padding: '0 18px',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif",
+                  cursor: saving || !name.trim() || name.trim() === list.name ? 'default' : 'pointer',
+                  opacity: saving || !name.trim() || name.trim() === list.name ? 0.5 : 1,
+                }}
+              >
+                {t('list_edit.save')}
+              </button>
+            </div>
+
+            {/* color swatches */}
+            <FieldLabel>{t('list_edit.color_label')}</FieldLabel>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+              {LIST_COLORS.map((c) => {
+                const active = (list.color || LIST_COLORS[0]) === c;
+                return (
+                  <button
+                    key={c}
+                    onClick={() => handleRecolor(c)}
+                    disabled={saving}
+                    aria-label={c}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      background: c,
+                      border: active ? `3px solid var(--text-primary)` : '3px solid transparent',
+                      outline: active ? `2px solid ${c}` : 'none',
+                      outlineOffset: 2,
+                      cursor: saving ? 'default' : 'pointer',
+                      flexShrink: 0,
+                      boxShadow: 'var(--shadow-sm)',
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* delete */}
+            <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0 18px' }} />
+            <button style={dangerBtn} disabled={saving} onClick={() => setConfirmDelete(true)}>
+              <Icon name="trash" size={18} strokeWidth={2} />
+              {t('list_edit.delete')}
+            </button>
+          </>
+        ) : (
+          /* delete confirmation */
+          <>
+            <div
+              className="ff-display"
+              style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}
+            >
+              {t('list_edit.confirm_delete')}
+            </div>
+            <div style={{ fontSize: 14.5, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.5 }}>
+              {t('list_edit.confirm_body')}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                style={{
+                  flex: 1,
+                  padding: '13px',
+                  borderRadius: 14,
+                  border: '1px solid var(--border-subtle)',
+                  background: 'var(--surface-raised)',
+                  color: 'var(--text-secondary)',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  fontFamily: "'DM Sans', sans-serif",
+                  cursor: 'pointer',
+                }}
+              >
+                {t('list_edit.confirm_cancel')}
+              </button>
+              <button style={{ ...dangerBtn, flex: 1 }} disabled={saving} onClick={handleDelete}>
+                <Icon name="trash" size={18} strokeWidth={2} />
+                {t('list_edit.confirm_ok')}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

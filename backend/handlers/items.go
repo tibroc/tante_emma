@@ -25,10 +25,20 @@ type Items struct {
 // Children participate in shopping (add items, tick them off) but cannot delete
 // items, clear the list, or edit item details. This is the server-side security
 // boundary; the UI hides the same actions but must not be relied on.
+// Favorites are personal preferences, so all roles (including children) may toggle them.
 var childAllowedEventTypes = map[string]bool{
-	"item.added":     true,
-	"item.checked":   true,
-	"item.unchecked": true,
+	"item.added":       true,
+	"item.checked":     true,
+	"item.unchecked":   true,
+	"list.favorited":   true,
+	"list.unfavorited": true,
+}
+
+// noBroadcastTypes are events that must NOT be forwarded to other WS subscribers
+// because they encode per-user personal state (not shared list mutations).
+var noBroadcastTypes = map[string]bool{
+	"list.favorited":   true,
+	"list.unfavorited": true,
 }
 
 // SubmitEvents accepts a batch of events, processes them, and broadcasts.
@@ -73,6 +83,24 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 				respondErr(w, http.StatusForbidden, "forbidden")
 				return
 			}
+		}
+	}
+
+	// List-management events (rename / recolor / delete) require the caller to be
+	// the list owner or an admin. Check once per batch — all events in a batch
+	// target the same list.
+	listMgmtTypes := map[string]bool{
+		"list.renamed": true,
+		"list.updated": true,
+		"list.deleted": true,
+	}
+	for _, ev := range events {
+		if listMgmtTypes[ev.Type] {
+			if !isListOwnerOrAdmin(r.Context(), h.DB, sess, listID) {
+				respondErr(w, http.StatusForbidden, "forbidden")
+				return
+			}
+			break
 		}
 	}
 
@@ -142,9 +170,13 @@ func (h *Items) SubmitEvents(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Broadcast each processed event to other subscribers.
+	// Broadcast each processed event to other subscribers, except personal-preference
+	// events (list.favorited / list.unfavorited) which are per-user and never shared.
 	connID := r.Header.Get("X-Conn-ID")
 	for _, ev := range processed {
+		if noBroadcastTypes[ev.Type] {
+			continue
+		}
 		payload, _ := json.Marshal(map[string]any{"type": "event", "event": ev})
 		h.Hub.Broadcast <- ws.BroadcastMsg{
 			ListID:  listID,

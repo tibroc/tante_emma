@@ -7,9 +7,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
+import { ulid } from '../lib/ulid';
+import { LIST_COLORS } from '../lib/constants';
 import { Icon } from '../components/Icon';
 import { LargeTitleHeader, ThemeToggle } from '../components/Header';
 import { PresenceAvatars } from '../components/PresenceAvatars';
+import { ListEditSheet } from '../components/sheets';
 import { useTheme } from '../hooks/useTheme';
 import { useUserStore } from '../stores/userStore';
 import type { List, ListDetail, Category } from '../lib/types';
@@ -53,15 +56,23 @@ function ListCard({
   list,
   data,
   edited,
+  canEdit,
+  entering,
   onOpen,
+  onEdit,
+  onToggleFavorite,
 }: {
   list: List;
   data?: Enriched;
   edited: string;
+  canEdit: boolean;
+  entering: boolean;
   onOpen: () => void;
+  onEdit: () => void;
+  onToggleFavorite: () => void;
 }) {
   const { t } = useTranslation();
-  const color = list.color || 'var(--accent)';
+  const color = list.color || LIST_COLORS[0];
   const dark = `color-mix(in oklab, ${color} 72%, black)`;
   const total = (data?.open ?? 0) + (data?.done ?? 0);
   const pct = total ? Math.round(((data?.done ?? 0) / total) * 100) : 0;
@@ -69,132 +80,211 @@ function ListCard({
     ? `${t('lists.open', { n: data.open })}${data.done ? ` · ${t('lists.done', { n: data.done })}` : ''}`
     : '';
 
+  // Layout: star button always top-right. Edit button (owner/admin only) sits
+  // to the left of the star. Row content reserves paddingRight to stay clear.
+  const starRight = 12;
+  const editRight = 50; // 12 + 32 (star) + 6 (gap)
+  const rowPaddingRight = canEdit ? 90 : 44;
+
   return (
-    <button
-      onClick={onOpen}
+    <div
       style={{
-        width: '100%',
-        textAlign: 'left',
-        cursor: 'pointer',
-        padding: 0,
-        border: 'none',
+        position: 'relative',
         borderRadius: 22,
         overflow: 'hidden',
         background: 'var(--surface-base)',
         boxShadow: 'var(--shadow-md)',
+        animation: entering ? 'favEnter 0.25s ease' : 'none',
       }}
     >
-      {/* accent header band */}
-      <div
+      {/* main tap target — opens the list */}
+      <button
+        onClick={onOpen}
         style={{
-          position: 'relative',
-          padding: 16,
-          background: `linear-gradient(135deg, ${color}, ${dark})`,
+          display: 'block',
+          width: '100%',
+          textAlign: 'left',
+          cursor: 'pointer',
+          padding: 0,
+          border: 'none',
+          background: 'transparent',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
+        {/* accent header band */}
+        <div
+          style={{
+            position: 'relative',
+            padding: 16,
+            background: `linear-gradient(135deg, ${color}, ${dark})`,
+          }}
+        >
+          {/* paddingRight clears the absolutely-positioned action buttons */}
           <div
             style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              flexShrink: 0,
-              display: 'grid',
-              placeItems: 'center',
-              fontSize: 22,
-              color: '#fff',
-              background: 'rgba(255,255,255,0.2)',
-              border: '1.5px solid rgba(255,255,255,0.32)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              paddingRight: rowPaddingRight,
             }}
           >
-            {list.icon || '🛒'}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
             <div
-              className="ff-display"
               style={{
-                fontSize: 19,
-                fontWeight: 600,
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                flexShrink: 0,
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 22,
                 color: '#fff',
-                letterSpacing: '-0.01em',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                background: 'rgba(255,255,255,0.2)',
+                border: '1.5px solid rgba(255,255,255,0.32)',
               }}
             >
-              {list.name}
+              {list.icon || '🛒'}
             </div>
-            {countLine && (
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div
+                className="ff-display"
                 style={{
-                  fontSize: 12.5,
-                  fontWeight: 500,
-                  color: 'rgba(255,255,255,0.85)',
-                  marginTop: 1,
+                  fontSize: 19,
+                  fontWeight: 600,
+                  color: '#fff',
+                  letterSpacing: '-0.01em',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
-                {countLine}
+                {list.name}
               </div>
-            )}
+              {countLine && (
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    color: 'rgba(255,255,255,0.85)',
+                    marginTop: 1,
+                  }}
+                >
+                  {countLine}
+                </div>
+              )}
+            </div>
+            {data?.members && data.members.length > 0 && <PresenceAvatars users={data.members} />}
           </div>
-          {data?.members && data.members.length > 0 && <PresenceAvatars users={data.members} />}
-          <Icon name="chevron-right" size={20} style={{ color: 'rgba(255,255,255,0.9)' }} />
         </div>
-      </div>
 
-      {/* body: progress + categories + edited */}
-      <div style={{ padding: '13px 16px 15px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-          <div
-            style={{
-              flex: 1,
-              height: 7,
-              borderRadius: 4,
-              background: 'var(--surface-overlay)',
-              overflow: 'hidden',
-            }}
-          >
+        {/* body: progress + categories + edited */}
+        <div style={{ padding: '13px 16px 15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <div
               style={{
-                width: `${pct}%`,
-                height: '100%',
+                flex: 1,
+                height: 7,
                 borderRadius: 4,
-                background: `linear-gradient(90deg, ${color}, ${dark})`,
-                transition: 'width .3s',
+                background: 'var(--surface-overlay)',
+                overflow: 'hidden',
               }}
-            />
-          </div>
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          >
-            {pct}%
-          </span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            {(data?.catColors ?? []).map((c, i) => (
-              <span key={i} style={{ width: 8, height: 8, borderRadius: 3, background: c }} />
-            ))}
-            <span
-              style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 3 }}
             >
-              {t('lists.categories', { n: data?.catColors.length ?? 0 })}
+              <div
+                style={{
+                  width: `${pct}%`,
+                  height: '100%',
+                  borderRadius: 4,
+                  background: `linear-gradient(90deg, ${color}, ${dark})`,
+                  transition: 'width .3s',
+                }}
+              />
+            </div>
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: 'var(--text-muted)',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {pct}%
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <Icon name="clock" size={13} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-              {edited}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              {(data?.catColors ?? []).map((c, i) => (
+                <span key={i} style={{ width: 8, height: 8, borderRadius: 3, background: c }} />
+              ))}
+              <span
+                style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 3 }}
+              >
+                {t('lists.categories', { n: data?.catColors.length ?? 0 })}
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="clock" size={13} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
+                {edited}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-    </button>
+      </button>
+
+      {/* star button — always present, top-right corner */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+        aria-label={list.is_favorite ? 'Unfavorite' : 'Favorite'}
+        aria-pressed={list.is_favorite}
+        style={{
+          position: 'absolute',
+          top: 12,
+          right: starRight,
+          width: 32,
+          height: 32,
+          minWidth: 44,
+          minHeight: 44,
+          margin: -6,
+          borderRadius: 10,
+          border: 'none',
+          background: 'transparent',
+          color: list.is_favorite ? 'var(--accent)' : 'rgba(255,255,255,0.7)',
+          display: 'grid',
+          placeItems: 'center',
+          cursor: 'pointer',
+          transition: 'color 0.15s',
+        }}
+      >
+        <Icon
+          name={list.is_favorite ? 'star-filled' : 'star-outline'}
+          size={20}
+          strokeWidth={1.75}
+        />
+      </button>
+
+      {/* edit button — owner/admin only, left of the star */}
+      {canEdit && (
+        <button
+          onClick={onEdit}
+          aria-label={t('list_edit.edit_aria')}
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: editRight,
+            width: 32,
+            height: 32,
+            borderRadius: 10,
+            border: 'none',
+            background: 'rgba(255,255,255,0.22)',
+            color: '#fff',
+            display: 'grid',
+            placeItems: 'center',
+            cursor: 'pointer',
+            backdropFilter: 'blur(4px)',
+          }}
+        >
+          <Icon name="dots-horizontal" size={18} />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -208,6 +298,8 @@ export default function ListsOverview() {
   const [error, setError] = useState<string>();
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [editingList, setEditingList] = useState<List | null>(null);
+  const [enteringFavId, setEnteringFavId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -268,8 +360,10 @@ export default function ListsOverview() {
     const name = newName.trim();
     if (!name || creating) return;
     setCreating(true);
+    // Cycle through LIST_COLORS based on how many lists already exist.
+    const color = LIST_COLORS[(lists?.length ?? 0) % LIST_COLORS.length];
     try {
-      const created = await api.post<List>('/api/lists', { name, type: 'group' });
+      const created = await api.post<List>('/api/lists', { name, type: 'group', color });
       setNewName('');
       navigate(`/lists/${created.id}`);
     } catch (e) {
@@ -279,7 +373,77 @@ export default function ListsOverview() {
     }
   };
 
+  // Submit a list-management event, then patch local state so the UI reflects
+  // the change without a full reload.
+  const submitListEvent = async (
+    listId: string,
+    type: string,
+    payload: Record<string, unknown>,
+  ) => {
+    await api.post(`/api/lists/${listId}/events`, {
+      id: ulid(),
+      type,
+      payload,
+      client_ts: Date.now(),
+    });
+  };
+
+  const handleRename = async (listId: string, name: string) => {
+    await submitListEvent(listId, 'list.renamed', { name });
+    setLists((prev) => prev?.map((l) => (l.id === listId ? { ...l, name } : l)) ?? null);
+    setEditingList((prev) => (prev?.id === listId ? { ...prev, name } : prev));
+  };
+
+  const handleRecolor = async (listId: string, color: string) => {
+    await submitListEvent(listId, 'list.updated', { color });
+    setLists((prev) => prev?.map((l) => (l.id === listId ? { ...l, color } : l)) ?? null);
+    setEditingList((prev) => (prev?.id === listId ? { ...prev, color } : prev));
+  };
+
+  const handleDelete = async (listId: string) => {
+    await submitListEvent(listId, 'list.deleted', {});
+    setLists((prev) => prev?.filter((l) => l.id !== listId) ?? null);
+    setEditingList(null);
+  };
+
+  const sortLists = (arr: List[]) =>
+    [...arr].sort((a, b) => {
+      if (a.is_favorite !== b.is_favorite) return a.is_favorite ? -1 : 1;
+      return b.created_at - a.created_at;
+    });
+
+  const toggleFavorite = async (list: List) => {
+    const newFav = !list.is_favorite;
+    // Optimistic: flip the flag immediately.
+    setLists((prev) => prev?.map((l) => (l.id === list.id ? { ...l, is_favorite: newFav } : l)) ?? null);
+    // If favoriting, trigger the slide-in animation and re-sort after it starts.
+    if (newFav) {
+      setEnteringFavId(list.id);
+      setTimeout(() => {
+        setLists((prev) => (prev ? sortLists(prev) : null));
+        setTimeout(() => setEnteringFavId(null), 300);
+      }, 50);
+    } else {
+      setLists((prev) => (prev ? sortLists(prev) : null));
+    }
+    try {
+      await api.post(`/api/lists/${list.id}/events`, {
+        id: ulid(),
+        type: newFav ? 'list.favorited' : 'list.unfavorited',
+        payload: {},
+        client_ts: Date.now(),
+      });
+    } catch {
+      // Revert on failure.
+      setLists((prev) =>
+        prev ? sortLists(prev.map((l) => (l.id === list.id ? { ...l, is_favorite: !newFav } : l))) : null,
+      );
+    }
+  };
+
   const totalOpen = lists ? lists.reduce((n, l) => n + (enriched[l.id]?.open ?? 0), 0) : 0;
+  const isAdminOrOwner = (list: List) =>
+    user?.role === 'admin' || user?.id === list.owner_id;
 
   return (
     <div
@@ -357,18 +521,46 @@ export default function ListsOverview() {
               </div>
             </div>
           )}
+          {lists && lists.some((l) => l.is_favorite) && (
+            <div
+              style={{
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: '0.06em',
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+                padding: '4px 4px 0',
+              }}
+            >
+              {t('favorites.section')}
+            </div>
+          )}
           {lists?.map((l) => (
             <ListCard
               key={l.id}
               list={l}
               data={enriched[l.id]}
               edited={relativeTime(l.updated_at, i18n.language)}
+              canEdit={isAdminOrOwner(l)}
+              entering={enteringFavId === l.id}
               onOpen={() => navigate(`/lists/${l.id}`)}
+              onEdit={() => setEditingList(l)}
+              onToggleFavorite={() => void toggleFavorite(l)}
             />
           ))}
         </div>
         <div style={{ height: 16 }} />
       </div>
+
+      {editingList && (
+        <ListEditSheet
+          list={editingList}
+          onRename={(name) => handleRename(editingList.id, name)}
+          onRecolor={(color) => handleRecolor(editingList.id, color)}
+          onDelete={() => handleDelete(editingList.id)}
+          onClose={() => setEditingList(null)}
+        />
+      )}
     </div>
   );
 }

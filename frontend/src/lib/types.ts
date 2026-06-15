@@ -27,6 +27,7 @@ export interface List {
   archived: boolean;
   created_at: number;
   updated_at: number;
+  is_favorite: boolean;
 }
 
 // item rows nested in GET /api/lists/:id -> { list, items }

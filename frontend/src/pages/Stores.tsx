@@ -294,15 +294,23 @@ export default function StoresPage() {
   }
 
   return (
-    <div style={{ background: 'transparent', minHeight: '100%', padding: '16px 14px 96px' }}>
-      {/* header */}
+    <div
+      style={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        background: 'transparent',
+      }}
+    >
+      {/* header — fixed; scroll happens in the region below */}
       <div
         style={{
+          flexShrink: 0,
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'space-between',
           gap: 12,
-          marginBottom: 16,
+          padding: 'calc(16px + env(safe-area-inset-top)) 14px 16px',
         }}
       >
         <div style={{ minWidth: 0 }}>
@@ -349,6 +357,9 @@ export default function StoresPage() {
         </div>
       </div>
 
+      {/* scrollable content — bounded by header above and the app footer below */}
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ padding: '0 14px 24px' }}>
       {error && (
         <div
           style={{
@@ -571,6 +582,8 @@ export default function StoresPage() {
           </div>
         </div>
       )}
+        </div>
+      </div>
 
       {/* create/edit dialog */}
       {dialogOpen && (

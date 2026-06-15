@@ -56,3 +56,20 @@ type ListClearedPayload struct {
 	StoreID      *string `json:"store_id,omitempty"`
 	SessionStart int64   `json:"session_start,omitempty"`
 }
+
+type ListRenamedPayload struct {
+	Name string `json:"name"`
+}
+
+// ListUpdatedPayload carries metadata changes (color, icon). Zero values mean
+// "no change" for that field — the backend uses CASE WHEN to only overwrite
+// non-empty values.
+type ListUpdatedPayload struct {
+	Color string `json:"color,omitempty"`
+	Icon  string `json:"icon,omitempty"`
+}
+
+type ListDeletedPayload struct{}
+
+type ListFavoritedPayload struct{}
+type ListUnfavoritedPayload struct{}

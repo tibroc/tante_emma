@@ -8,15 +8,16 @@ const (
 )
 
 type List struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Type      ListType `json:"type"`
-	OwnerID   string   `json:"owner_id"`
-	Icon      string   `json:"icon,omitempty"`
-	Color     string   `json:"color,omitempty"`
-	Archived  bool     `json:"archived"`
-	CreatedAt int64    `json:"created_at"`
-	UpdatedAt int64    `json:"updated_at"`
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	Type       ListType `json:"type"`
+	OwnerID    string   `json:"owner_id"`
+	Icon       string   `json:"icon,omitempty"`
+	Color      string   `json:"color,omitempty"`
+	Archived   bool     `json:"archived"`
+	CreatedAt  int64    `json:"created_at"`
+	UpdatedAt  int64    `json:"updated_at"`
+	IsFavorite bool     `json:"is_favorite"`
 }
 
 type ListShare struct {

@@ -31,11 +31,7 @@
     "clear_checked": "Alle löschen",
     "tile_view": "Kachelansicht",
     "list_view": "Listenansicht",
-    "share": "Teilen",
-    "active_store": "Einkauf bei:",
-    "active_store_label": "Aktiver Laden für diesen Einkauf",
-    "select_store": "Laden auswählen",
-    "no_store": "– kein Laden –"
+    "share": "Teilen"
   },
   "add_item": {
     "placeholder": "Hinzufügen…",
@@ -174,6 +170,22 @@
     "field_category": "Kategorie",
     "field_preferred_stores": "Bevorzugte Läden",
     "no_category": "– keine –"
+  },
+  "favorites": {
+    "section": "★ Favoriten"
+  },
+  "list_edit": {
+    "title": "Liste bearbeiten",
+    "name_label": "Name",
+    "name_ph": "Listenname…",
+    "color_label": "Farbe",
+    "save": "Speichern",
+    "delete": "Liste löschen",
+    "confirm_delete": "Liste wirklich löschen?",
+    "confirm_body": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "confirm_ok": "Löschen",
+    "confirm_cancel": "Abbrechen",
+    "edit_aria": "Liste bearbeiten"
   },
   "errors": {
     "sync": "Konnte nicht synchronisiert werden"

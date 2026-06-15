@@ -12,7 +12,7 @@ import { AddBar } from '../components/AddBar';
 import { PresenceAvatars } from '../components/PresenceAvatars';
 import { ItemRow, ItemTile, CategoryHeader, type ItemView } from '../components/ItemViews';
 import { SwipeRow } from '../components/SwipeRow';
-import { DetailSheet, EmptyState, Snackbar } from '../components/sheets';
+import { DetailSheet, EmptyState, Snackbar, ListEditSheet } from '../components/sheets';
 import { toItemVM, type ItemVM } from '../lib/viewmodel';
 import { useList, UNSORTED_SHELF_POSITION } from '../hooks/useList';
 import { useUserStore } from '../stores/userStore';
@@ -41,9 +41,11 @@ export default function ListDetail() {
   const { items, categories, storesLookup, storeList, members, presence } = list;
 
   const [sortMode, setSortMode] = useState<SortMode>('category');
+  // The active store pill is both the filter/ordering control and the "shopping
+  // session" store that drives clear-checked shelf-order learning. (There used to
+  // be a separate dropdown for the latter — merged into the pills.)
   const [filterStoreId, setFilterStoreId] = useState<string | null>(null);
   const [shelfOrder, setShelfOrder] = useState<Map<string, number>>(new Map());
-  const [activeStoreId, setActiveStoreId] = useState<string | null>(null);
   const sessionStart = useRef<number>(Date.now());
   const [view, setView] = useState<ItemView>(
     () => (localStorage.getItem(`view-mode-${id}`) as ItemView) || 'row',
@@ -53,6 +55,7 @@ export default function ListDetail() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [shares, setShares] = useState<Set<string>>(new Set());
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
   const [snack, setSnack] = useState<{ item: ListItem } | null>(null);
   const snackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -113,7 +116,11 @@ export default function ListDetail() {
 
   const onStoreFilter = async (storeId: string | null) => {
     setFilterStoreId(storeId);
+    // Selecting a store starts a fresh shopping session at it; deselecting
+    // reverts to default category ordering (categories.sort_order).
+    sessionStart.current = Date.now();
     if (storeId) setShelfOrder(await list.loadShelfOrder(storeId));
+    else setShelfOrder(new Map());
   };
 
   const removeWithUndo = (itemId: string) => {
@@ -161,6 +168,35 @@ export default function ListDetail() {
   };
 
   const presenceUsers = presence.map((uid) => members[uid] ?? { id: uid, name: uid });
+
+  const userId = useUserStore((s) => s.user?.id);
+  const canEditList =
+    !isChild && (role === 'admin' || userId === list.list?.owner_id);
+
+  const submitListEvent = async (type: string, payload: Record<string, unknown>) => {
+    await api.post(`/api/lists/${id}/events`, {
+      id: ulid(),
+      type,
+      payload,
+      client_ts: Date.now(),
+    });
+  };
+
+  const handleListRename = async (name: string) => {
+    await submitListEvent('list.renamed', { name });
+    // The WS broadcast will update the header via the next reload; patch optimistically.
+    list.reload();
+  };
+
+  const handleListRecolor = async (color: string) => {
+    await submitListEvent('list.updated', { color });
+    list.reload();
+  };
+
+  const handleListDelete = async () => {
+    await submitListEvent('list.deleted', {});
+    navigate('/lists', { replace: true });
+  };
 
   const renderItem = (vm: ItemVM) => {
     if (view === 'tile')
@@ -272,6 +308,15 @@ export default function ListDetail() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <PresenceAvatars users={presenceUsers} />
+            {canEditList && (
+              <button
+                onClick={() => setEditSheetOpen(true)}
+                aria-label={t('list_edit.edit_aria')}
+                style={iconBtn}
+              >
+                <Icon name="dots-horizontal" size={18} />
+              </button>
+            )}
             {!isChild && (
               <button onClick={openShare} aria-label={t('list.share')} style={iconBtn}>
                 <Icon name="users" size={18} />
@@ -324,7 +369,7 @@ export default function ListDetail() {
             <button
               key={m}
               onClick={() => {
-                setFilterStoreId(null);
+                void onStoreFilter(null);
                 setSortMode(m);
               }}
               style={pillStyle(!filterStoreId && sortMode === m)}
@@ -343,39 +388,6 @@ export default function ListDetail() {
             </button>
           ))}
         </div>
-
-        {storeList.length > 0 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 18px 12px' }}>
-            <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 600 }}>
-              {t('list.active_store')}
-            </span>
-            <select
-              aria-label={t('list.active_store_label')}
-              value={activeStoreId ?? ''}
-              onChange={(e) => {
-                setActiveStoreId(e.target.value || null);
-                sessionStart.current = Date.now();
-              }}
-              style={{
-                flex: 1,
-                height: 36,
-                borderRadius: 10,
-                border: '1px solid var(--border-subtle)',
-                background: 'var(--surface-raised)',
-                color: 'var(--text-primary)',
-                fontSize: 13.5,
-                padding: '0 10px',
-              }}
-            >
-              <option value="">{t('list.no_store')}</option>
-              {storeList.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       {/* body */}
@@ -485,7 +497,7 @@ export default function ListDetail() {
               </button>
               {!isChild && (
                 <button
-                  onClick={() => list.clearChecked(activeStoreId, sessionStart.current)}
+                  onClick={() => list.clearChecked(filterStoreId, sessionStart.current)}
                   style={{
                     border: 'none',
                     background: 'transparent',
@@ -520,6 +532,15 @@ export default function ListDetail() {
       </div>
 
       {snack && <Snackbar name={snack.item.display_name} onUndo={undo} />}
+      {editSheetOpen && list.list && (
+        <ListEditSheet
+          list={list.list}
+          onRename={handleListRename}
+          onRecolor={handleListRecolor}
+          onDelete={handleListDelete}
+          onClose={() => setEditSheetOpen(false)}
+        />
+      )}
       {detailItem && (
         <DetailSheet
           item={detailItem}

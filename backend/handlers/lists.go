@@ -20,16 +20,21 @@ type Lists struct {
 	DB *sql.DB
 }
 
-// GetAll returns all lists visible to the authenticated user (owned + shared).
+// GetAll returns all lists visible to the authenticated user (owned + shared),
+// ordered favorites-first (per user), then by creation date descending.
 func (h *Lists) GetAll(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())
 	rows, err := h.DB.QueryContext(r.Context(), `
 		SELECT DISTINCT l.id, l.name, l.type, l.owner_id, COALESCE(l.icon,''), COALESCE(l.color,''),
-		       l.archived, l.created_at, l.updated_at
+		       l.archived, l.created_at, l.updated_at,
+		       CASE WHEN ulf.user_id IS NOT NULL THEN 1 ELSE 0 END AS is_favorite,
+		       COALESCE(ulf.favorited_at, 0) AS favorited_at
 		  FROM lists l
-		  LEFT JOIN list_shares ls ON ls.list_id = l.id AND ls.user_id = ?
+		  LEFT JOIN list_shares ls  ON ls.list_id  = l.id   AND ls.user_id  = ?
+		  LEFT JOIN user_list_favorites ulf ON ulf.list_id = l.id AND ulf.user_id = ?
 		 WHERE (l.owner_id = ? OR ls.user_id = ?) AND l.archived = 0
-		 ORDER BY l.updated_at DESC`, sess.UserID, sess.UserID, sess.UserID)
+		 ORDER BY is_favorite DESC, ulf.favorited_at DESC, l.created_at DESC`,
+		sess.UserID, sess.UserID, sess.UserID, sess.UserID)
 	if err != nil {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
@@ -39,11 +44,14 @@ func (h *Lists) GetAll(w http.ResponseWriter, r *http.Request) {
 	result := make([]models.List, 0)
 	for rows.Next() {
 		var l models.List
+		var isFav int
+		var favAt int64
 		if err := rows.Scan(&l.ID, &l.Name, &l.Type, &l.OwnerID, &l.Icon, &l.Color,
-			&l.Archived, &l.CreatedAt, &l.UpdatedAt); err != nil {
+			&l.Archived, &l.CreatedAt, &l.UpdatedAt, &isFav, &favAt); err != nil {
 			respondErr(w, http.StatusInternalServerError, "scan error")
 			return
 		}
+		l.IsFavorite = isFav == 1
 		result = append(result, l)
 	}
 	respond(w, http.StatusOK, result)
@@ -53,9 +61,10 @@ func (h *Lists) GetAll(w http.ResponseWriter, r *http.Request) {
 func (h *Lists) Create(w http.ResponseWriter, r *http.Request) {
 	sess := middleware.SessionFromContext(r.Context())
 	var req struct {
-		Name string `json:"name"`
-		Type string `json:"type"`
-		Icon string `json:"icon"`
+		Name  string `json:"name"`
+		Type  string `json:"type"`
+		Icon  string `json:"icon"`
+		Color string `json:"color"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Name == "" {
 		respondErr(w, http.StatusBadRequest, "name required")
@@ -68,16 +77,16 @@ func (h *Lists) Create(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UnixMilli()
 	id := ulid.Make().String()
 	_, err := h.DB.ExecContext(r.Context(), `
-		INSERT INTO lists (id, name, type, owner_id, icon, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id, req.Name, req.Type, sess.UserID, req.Icon, now, now,
+		INSERT INTO lists (id, name, type, owner_id, icon, color, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, req.Name, req.Type, sess.UserID, req.Icon, req.Color, now, now,
 	)
 	if err != nil {
 		respondErr(w, http.StatusInternalServerError, "db error")
 		return
 	}
 	l := models.List{ID: id, Name: req.Name, Type: models.ListType(req.Type),
-		OwnerID: sess.UserID, Icon: req.Icon, CreatedAt: now, UpdatedAt: now}
+		OwnerID: sess.UserID, Icon: req.Icon, Color: req.Color, CreatedAt: now, UpdatedAt: now}
 	respond(w, http.StatusCreated, l)
 }
 
@@ -314,6 +323,9 @@ func (h *Lists) Unshare(w http.ResponseWriter, r *http.Request) {
 	uid := chi.URLParam(r, "uid")
 	_, _ = h.DB.ExecContext(r.Context(),
 		`DELETE FROM list_shares WHERE list_id=? AND user_id=?`, listID, uid)
+	// Remove the user's favorite for this list so the row doesn't dangle.
+	_, _ = h.DB.ExecContext(r.Context(),
+		`DELETE FROM user_list_favorites WHERE list_id=? AND user_id=?`, listID, uid)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -373,12 +385,7 @@ func (h *Lists) canAccess(r *http.Request, userID, listID string) bool {
 }
 
 func (h *Lists) isOwnerOrAdmin(r *http.Request, sess *models.Session, listID string) bool {
-	if sess.Role == models.RoleAdmin {
-		return true
-	}
-	var ownerID string
-	_ = h.DB.QueryRowContext(r.Context(), `SELECT owner_id FROM lists WHERE id=?`, listID).Scan(&ownerID)
-	return ownerID == sess.UserID
+	return isListOwnerOrAdmin(r.Context(), h.DB, sess, listID)
 }
 
 func (h *Lists) loadItems(r *http.Request, listID string) ([]models.ListItem, error) {

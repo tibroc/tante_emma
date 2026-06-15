@@ -34,7 +34,10 @@ export type IconName =
   | 'users'
   | 'box'
   | 'logout'
-  | 'globe';
+  | 'globe'
+  | 'dots-horizontal'
+  | 'star-outline'
+  | 'star-filled';
 
 interface IconProps {
   name: IconName | string;
@@ -280,6 +283,26 @@ export function Icon({ name, size = 24, strokeWidth = 1.75, style, className }: 
         <svg {...common}>
           <circle cx="12" cy="12" r="8.2" />
           <path d="M3.8 12h16.4M12 3.8c2.3 2.2 3.5 5.1 3.5 8.2S14.3 18 12 20.2C9.7 18 8.5 15.1 8.5 12S9.7 6 12 3.8Z" />
+        </svg>
+      );
+    case 'dots-horizontal':
+      return (
+        <svg {...common}>
+          <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+          <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case 'star-outline':
+      return (
+        <svg {...common}>
+          <path d="M12 2.5l2.8 5.7 6.3.9-4.6 4.4 1.1 6.3L12 16.8l-5.6 3 1.1-6.3L3 9.1l6.3-.9L12 2.5Z" />
+        </svg>
+      );
+    case 'star-filled':
+      return (
+        <svg {...common} fill="currentColor">
+          <path d="M12 2.5l2.8 5.7 6.3.9-4.6 4.4 1.1 6.3L12 16.8l-5.6 3 1.1-6.3L3 9.1l6.3-.9L12 2.5Z" />
         </svg>
       );
     default:

@@ -31,11 +31,7 @@
     "clear_checked": "Clear all",
     "tile_view": "Tile view",
     "list_view": "List view",
-    "share": "Share",
-    "active_store": "Shopping at:",
-    "active_store_label": "Active store for this shopping trip",
-    "select_store": "Select store",
-    "no_store": "– no store –"
+    "share": "Share"
   },
   "add_item": {
     "placeholder": "Add item…",
@@ -174,6 +170,22 @@
     "field_category": "Category",
     "field_preferred_stores": "Preferred stores",
     "no_category": "– none –"
+  },
+  "favorites": {
+    "section": "★ Favorites"
+  },
+  "list_edit": {
+    "title": "Edit list",
+    "name_label": "Name",
+    "name_ph": "List name…",
+    "color_label": "Color",
+    "save": "Save",
+    "delete": "Delete list",
+    "confirm_delete": "Really delete list?",
+    "confirm_body": "This action cannot be undone.",
+    "confirm_ok": "Delete",
+    "confirm_cancel": "Cancel",
+    "edit_aria": "Edit list"
   },
   "errors": {
     "sync": "Could not sync"

@@ -3,7 +3,21 @@ package handlers
 import (
 	"context"
 	"database/sql"
+
+	"github.com/tante-emma/tanteemma/models"
 )
+
+// isListOwnerOrAdmin reports whether the session user may perform owner-level
+// operations on the list (rename, recolor, delete). Admins always pass; others
+// must own the list.
+func isListOwnerOrAdmin(ctx context.Context, db *sql.DB, sess *models.Session, listID string) bool {
+	if sess.Role == models.RoleAdmin {
+		return true
+	}
+	var ownerID string
+	_ = db.QueryRowContext(ctx, `SELECT owner_id FROM lists WHERE id=?`, listID).Scan(&ownerID)
+	return ownerID == sess.UserID
+}
 
 // canAccessList reports whether userID may read or write the given list,
 // i.e. they own it or it has been shared with them. This is the single
