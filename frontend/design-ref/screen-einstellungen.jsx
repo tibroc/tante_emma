@@ -37,7 +37,7 @@ function Row({ icon, iconColor, label, right, onClick, last }) {
   );
 }
 
-function EinstellungenScreen({ t, setTweak }) {
+function EinstellungenScreen({ t, setTweak, onLogout }) {
   const [lang, setLang] = React.useState('Deutsch');
   const frWeight = FR_WEIGHT[t.typeWeight];
   const langs = ['Deutsch', 'English', 'Português'];
@@ -139,7 +139,7 @@ function EinstellungenScreen({ t, setTweak }) {
 
           {/* logout */}
           <Group>
-            <button onClick={() => {}} style={{ width: '100%', display: 'flex', alignItems: 'center',
+            <button onClick={onLogout} style={{ width: '100%', display: 'flex', alignItems: 'center',
               justifyContent: 'center', gap: 9, padding: '15px', minHeight: 54, cursor: 'pointer',
               background: 'transparent', border: 'none', color: '#ef4444', fontSize: 15.5, fontWeight: 600,
               fontFamily: "'DM Sans', sans-serif" }}>

@@ -336,6 +336,7 @@ export function ListEditSheet({
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState(list.name);
+  const [selectedColor, setSelectedColor] = useState(list.color || LIST_COLORS[0]);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -345,19 +346,14 @@ export function ListEditSheet({
     inputRef.current?.select();
   }, []);
 
-  const handleRename = async () => {
+  const handleSave = async () => {
+    if (saving) return;
+    setSaving(true);
     const trimmed = name.trim();
-    if (!trimmed || trimmed === list.name || saving) return;
-    setSaving(true);
-    await onRename(trimmed).catch(() => {});
+    if (trimmed && trimmed !== list.name) await onRename(trimmed).catch(() => {});
+    if (selectedColor !== (list.color || LIST_COLORS[0])) await onRecolor(selectedColor).catch(() => {});
     setSaving(false);
-  };
-
-  const handleRecolor = async (color: string) => {
-    if (color === list.color || saving) return;
-    setSaving(true);
-    await onRecolor(color).catch(() => {});
-    setSaving(false);
+    onClose();
   };
 
   const handleDelete = async () => {
@@ -366,174 +362,203 @@ export function ListEditSheet({
     setSaving(false);
   };
 
-  const dangerBtn: CSSProperties = {
-    width: '100%',
-    padding: '13px',
-    borderRadius: 14,
-    cursor: saving ? 'default' : 'pointer',
-    border: '1px solid color-mix(in oklab, #ef4444 30%, transparent)',
-    background: 'transparent',
-    color: '#ef4444',
-    fontSize: 15,
-    fontWeight: 600,
-    fontFamily: "'DM Sans', sans-serif",
+  const accent = selectedColor;
+  const accentDark = `color-mix(in oklab, ${accent} 72%, black)`;
+
+  const sheetOverlay: CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 300,
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    opacity: saving ? 0.6 : 1,
+    alignItems: 'flex-end',
+    background: 'rgba(20,10,24,0.42)',
+    backdropFilter: 'blur(2px)',
+    animation: 'fadeIn .2s ease',
+  };
+  const sheetPanel: CSSProperties = {
+    width: '100%',
+    background: 'var(--surface-base)',
+    borderRadius: '26px 26px 0 0',
+    padding: '12px 20px calc(22px + env(safe-area-inset-bottom))',
+    boxShadow: 'var(--shadow-lg)',
+    animation: 'sheetUp .3s cubic-bezier(.2,.9,.3,1)',
+  };
+  const handle: CSSProperties = {
+    width: 38, height: 4, borderRadius: 4,
+    background: 'var(--border-default)', margin: '0 auto 18px',
+  };
+
+  return (
+    <div onClick={onClose} style={sheetOverlay}>
+      <div onClick={(e) => e.stopPropagation()} style={sheetPanel}>
+        <div style={handle} />
+
+        {/* rename */}
+        <FieldLabel>{t('list_edit.name_label')}</FieldLabel>
+        <input
+          ref={inputRef}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+          placeholder={t('list_edit.name_ph')}
+          style={{
+            ...inputStyle,
+            width: '100%',
+            height: 48,
+            marginBottom: 18,
+            border: `1.5px solid ${accent}`,
+            fontSize: 16,
+            fontWeight: 600,
+          }}
+        />
+
+        {/* color swatches — circular 44px with gradient fill + checkmark when selected */}
+        <FieldLabel>{t('list_edit.color_label')}</FieldLabel>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 22 }}>
+          {LIST_COLORS.map((c) => {
+            const on = selectedColor === c;
+            const cDark = `color-mix(in oklab, ${c} 72%, black)`;
+            return (
+              <button
+                key={c}
+                onClick={() => setSelectedColor(c)}
+                aria-label={c}
+                aria-pressed={on}
+                style={{
+                  width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                  cursor: 'pointer', padding: 3, background: 'transparent',
+                  display: 'grid', placeItems: 'center',
+                  border: `2.5px solid ${on ? c : 'transparent'}`,
+                }}
+              >
+                <span style={{
+                  width: '100%', height: '100%', borderRadius: '50%',
+                  display: 'grid', placeItems: 'center', color: '#fff',
+                  background: `linear-gradient(150deg, ${c}, ${cDark})`,
+                }}>
+                  {on && <Icon name="check" size={18} strokeWidth={3} />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* save + delete row */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            style={{
+              flex: 1, height: 50, borderRadius: 14, border: 'none',
+              cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1,
+              background: `linear-gradient(145deg, ${accent}, ${accentDark})`,
+              color: '#fff', fontFamily: "'DM Sans', sans-serif",
+              fontSize: 15.5, fontWeight: 700,
+            }}
+          >
+            {t('list_edit.save')}
+          </button>
+
+          {confirmDelete ? (
+            <button
+              onClick={handleDelete}
+              disabled={saving}
+              style={{
+                flex: 1, height: 50, borderRadius: 14, border: 'none',
+                cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1,
+                background: '#ef4444', color: '#fff',
+                fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+              }}
+            >
+              <Icon name="trash" size={18} strokeWidth={2} />
+              {t('list_edit.confirm_ok')}
+            </button>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              aria-label={t('list_edit.delete')}
+              style={{
+                width: 50, height: 50, flexShrink: 0, borderRadius: 14, cursor: 'pointer',
+                border: '1px solid color-mix(in oklab, #ef4444 30%, transparent)',
+                background: 'transparent', color: '#ef4444', display: 'grid', placeItems: 'center',
+              }}
+            >
+              <Icon name="trash" size={20} strokeWidth={2} />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function NewListSheet({
+  onCreate,
+  onClose,
+}: {
+  onCreate: (name: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const [name, setName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const handleCreate = async () => {
+    const trimmed = name.trim();
+    if (!trimmed || creating) return;
+    setCreating(true);
+    await onCreate(trimmed).catch(() => {});
+    setCreating(false);
   };
 
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 300,
-        display: 'flex',
-        alignItems: 'flex-end',
-        background: 'rgba(20,10,24,0.42)',
-        backdropFilter: 'blur(2px)',
+        position: 'fixed', inset: 0, zIndex: 300,
+        display: 'flex', alignItems: 'flex-end',
+        background: 'rgba(20,10,24,0.42)', backdropFilter: 'blur(2px)',
         animation: 'fadeIn .2s ease',
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: '100%',
-          background: 'var(--surface-base)',
+          width: '100%', background: 'var(--surface-base)',
           borderRadius: '26px 26px 0 0',
-          padding: '12px 20px calc(24px + env(safe-area-inset-bottom))',
+          padding: '12px 20px calc(22px + env(safe-area-inset-bottom))',
           boxShadow: 'var(--shadow-lg)',
           animation: 'sheetUp .3s cubic-bezier(.2,.9,.3,1)',
         }}
       >
-        {/* drag handle */}
-        <div
-          style={{
-            width: 38,
-            height: 4,
-            borderRadius: 4,
-            background: 'var(--border-default)',
-            margin: '0 auto 20px',
-          }}
+        <div style={{ width: 38, height: 4, borderRadius: 4, background: 'var(--border-default)', margin: '0 auto 18px' }} />
+        <FieldLabel>{t('lists.new_name_label')}</FieldLabel>
+        <input
+          ref={inputRef}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+          placeholder={t('lists.new_name_ph')}
+          style={{ ...inputStyle, width: '100%', height: 48, marginBottom: 14, fontSize: 16, fontWeight: 600 }}
         />
-
-        {!confirmDelete ? (
-          <>
-            <div
-              className="ff-display"
-              style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 20 }}
-            >
-              {t('list_edit.title')}
-            </div>
-
-            {/* rename */}
-            <FieldLabel>{t('list_edit.name_label')}</FieldLabel>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 22 }}>
-              <input
-                ref={inputRef}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-                placeholder={t('list_edit.name_ph')}
-                style={inputStyle}
-              />
-              <button
-                onClick={handleRename}
-                disabled={saving || !name.trim() || name.trim() === list.name}
-                style={{
-                  flexShrink: 0,
-                  height: 44,
-                  padding: '0 18px',
-                  borderRadius: 12,
-                  border: 'none',
-                  background: 'var(--accent)',
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 600,
-                  fontFamily: "'DM Sans', sans-serif",
-                  cursor: saving || !name.trim() || name.trim() === list.name ? 'default' : 'pointer',
-                  opacity: saving || !name.trim() || name.trim() === list.name ? 0.5 : 1,
-                }}
-              >
-                {t('list_edit.save')}
-              </button>
-            </div>
-
-            {/* color swatches */}
-            <FieldLabel>{t('list_edit.color_label')}</FieldLabel>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-              {LIST_COLORS.map((c) => {
-                const active = (list.color || LIST_COLORS[0]) === c;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => handleRecolor(c)}
-                    disabled={saving}
-                    aria-label={c}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      background: c,
-                      border: active ? `3px solid var(--text-primary)` : '3px solid transparent',
-                      outline: active ? `2px solid ${c}` : 'none',
-                      outlineOffset: 2,
-                      cursor: saving ? 'default' : 'pointer',
-                      flexShrink: 0,
-                      boxShadow: 'var(--shadow-sm)',
-                    }}
-                  />
-                );
-              })}
-            </div>
-
-            {/* delete */}
-            <div style={{ height: 1, background: 'var(--border-subtle)', margin: '4px 0 18px' }} />
-            <button style={dangerBtn} disabled={saving} onClick={() => setConfirmDelete(true)}>
-              <Icon name="trash" size={18} strokeWidth={2} />
-              {t('list_edit.delete')}
-            </button>
-          </>
-        ) : (
-          /* delete confirmation */
-          <>
-            <div
-              className="ff-display"
-              style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}
-            >
-              {t('list_edit.confirm_delete')}
-            </div>
-            <div style={{ fontSize: 14.5, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.5 }}>
-              {t('list_edit.confirm_body')}
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                style={{
-                  flex: 1,
-                  padding: '13px',
-                  borderRadius: 14,
-                  border: '1px solid var(--border-subtle)',
-                  background: 'var(--surface-raised)',
-                  color: 'var(--text-secondary)',
-                  fontSize: 15,
-                  fontWeight: 600,
-                  fontFamily: "'DM Sans', sans-serif",
-                  cursor: 'pointer',
-                }}
-              >
-                {t('list_edit.confirm_cancel')}
-              </button>
-              <button style={{ ...dangerBtn, flex: 1 }} disabled={saving} onClick={handleDelete}>
-                <Icon name="trash" size={18} strokeWidth={2} />
-                {t('list_edit.confirm_ok')}
-              </button>
-            </div>
-          </>
-        )}
+        <button
+          onClick={handleCreate}
+          disabled={creating || !name.trim()}
+          style={{
+            width: '100%', height: 50, borderRadius: 14, border: 'none',
+            cursor: creating || !name.trim() ? 'default' : 'pointer',
+            opacity: creating || !name.trim() ? 0.5 : 1,
+            background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
+            color: '#fff', fontFamily: "'DM Sans', sans-serif",
+            fontSize: 15.5, fontWeight: 700,
+          }}
+        >
+          {t('lists.create_label')}
+        </button>
       </div>
     </div>
   );

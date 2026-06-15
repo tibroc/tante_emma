@@ -286,6 +286,7 @@ export function Icon({ name, size = 24, strokeWidth = 1.75, style, className }: 
         </svg>
       );
     case 'dots-horizontal':
+    case 'dots':
       return (
         <svg {...common}>
           <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />

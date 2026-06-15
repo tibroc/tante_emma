@@ -12,7 +12,7 @@ import { LIST_COLORS } from '../lib/constants';
 import { Icon } from '../components/Icon';
 import { LargeTitleHeader, ThemeToggle } from '../components/Header';
 import { PresenceAvatars } from '../components/PresenceAvatars';
-import { ListEditSheet } from '../components/sheets';
+import { ListEditSheet, NewListSheet } from '../components/sheets';
 import { useTheme } from '../hooks/useTheme';
 import { useUserStore } from '../stores/userStore';
 import type { List, ListDetail, Category } from '../lib/types';
@@ -80,210 +80,128 @@ function ListCard({
     ? `${t('lists.open', { n: data.open })}${data.done ? ` · ${t('lists.done', { n: data.done })}` : ''}`
     : '';
 
-  // Layout: star button always top-right. Edit button (owner/admin only) sits
-  // to the left of the star. Row content reserves paddingRight to stay clear.
-  const starRight = 12;
-  const editRight = 50; // 12 + 32 (star) + 6 (gap)
-  const rowPaddingRight = canEdit ? 90 : 44;
-
   return (
     <div
+      onClick={onOpen}
       style={{
-        position: 'relative',
         borderRadius: 22,
         overflow: 'hidden',
         background: 'var(--surface-base)',
         boxShadow: 'var(--shadow-md)',
+        cursor: 'pointer',
         animation: entering ? 'favEnter 0.25s ease' : 'none',
       }}
     >
-      {/* main tap target — opens the list */}
-      <button
-        onClick={onOpen}
+      {/* accent header band */}
+      <div
         style={{
-          display: 'block',
-          width: '100%',
-          textAlign: 'left',
-          cursor: 'pointer',
-          padding: 0,
-          border: 'none',
-          background: 'transparent',
+          position: 'relative',
+          padding: '15px 16px 14px',
+          background: `linear-gradient(135deg, ${color}, ${dark})`,
         }}
       >
-        {/* accent header band */}
-        <div
-          style={{
-            position: 'relative',
-            padding: 16,
-            background: `linear-gradient(135deg, ${color}, ${dark})`,
-          }}
-        >
-          {/* paddingRight clears the absolutely-positioned action buttons */}
+        {/* decorative circle */}
+        <div style={{
+          position: 'absolute', top: -24, right: -16,
+          width: 96, height: 96, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.12)',
+        }} />
+
+        {/* content row — all action buttons live inline here */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative' }}>
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              paddingRight: rowPaddingRight,
+              width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+              display: 'grid', placeItems: 'center', fontSize: 22,
+              color: '#fff', background: 'rgba(255,255,255,0.2)',
+              border: '1.5px solid rgba(255,255,255,0.32)',
             }}
           >
-            <div
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                flexShrink: 0,
-                display: 'grid',
-                placeItems: 'center',
-                fontSize: 22,
-                color: '#fff',
-                background: 'rgba(255,255,255,0.2)',
-                border: '1.5px solid rgba(255,255,255,0.32)',
-              }}
-            >
-              {list.icon || '🛒'}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                className="ff-display"
-                style={{
-                  fontSize: 19,
-                  fontWeight: 600,
-                  color: '#fff',
-                  letterSpacing: '-0.01em',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {list.name}
-              </div>
-              {countLine && (
-                <div
-                  style={{
-                    fontSize: 12.5,
-                    fontWeight: 500,
-                    color: 'rgba(255,255,255,0.85)',
-                    marginTop: 1,
-                  }}
-                >
-                  {countLine}
-                </div>
-              )}
-            </div>
-            {data?.members && data.members.length > 0 && <PresenceAvatars users={data.members} />}
+            {list.icon || '🛒'}
           </div>
-        </div>
 
-        {/* body: progress + categories + edited */}
-        <div style={{ padding: '13px 16px 15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              className="ff-display"
+              style={{
+                fontSize: 19, fontWeight: 600, color: '#fff',
+                letterSpacing: '-0.01em', whiteSpace: 'nowrap',
+                overflow: 'hidden', textOverflow: 'ellipsis',
+              }}
+            >
+              {list.name}
+            </div>
+            {countLine && (
+              <div style={{ fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.85)', marginTop: 1 }}>
+                {countLine}
+              </div>
+            )}
+          </div>
+
+          {data?.members && data.members.length > 0 && <PresenceAvatars users={data.members} />}
+
+          {/* star — always shown, stops card click from propagating */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            aria-label={list.is_favorite ? 'Unfavorite' : 'Favorite'}
+            aria-pressed={list.is_favorite}
+            style={{
+              width: 32, height: 32, flexShrink: 0, borderRadius: 10,
+              border: 'none', background: 'transparent', cursor: 'pointer',
+              display: 'grid', placeItems: 'center', transition: 'color 0.15s',
+              color: list.is_favorite ? 'var(--accent)' : 'rgba(255,255,255,0.65)',
+            }}
+          >
+            <Icon name={list.is_favorite ? 'star-filled' : 'star-outline'} size={20} strokeWidth={1.75} />
+          </button>
+
+          {/* "..." — owner/admin only */}
+          {canEdit && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onEdit(); }}
+              aria-label={t('list_edit.edit_aria')}
+              style={{
+                width: 32, height: 32, flexShrink: 0, borderRadius: 10,
+                border: 'none', background: 'rgba(255,255,255,0.18)', cursor: 'pointer',
+                display: 'grid', placeItems: 'center', color: '#fff', marginLeft: -2,
+              }}
+            >
+              <Icon name="dots" size={19} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* body: progress bar + category dots + clock */}
+      <div style={{ padding: '13px 16px 15px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+          <div style={{ flex: 1, height: 7, borderRadius: 4, background: 'var(--surface-overlay)', overflow: 'hidden' }}>
             <div
               style={{
-                flex: 1,
-                height: 7,
-                borderRadius: 4,
-                background: 'var(--surface-overlay)',
-                overflow: 'hidden',
+                width: `${pct}%`, height: '100%', borderRadius: 4,
+                background: `linear-gradient(90deg, ${color}, ${dark})`, transition: 'width .3s',
               }}
-            >
-              <div
-                style={{
-                  width: `${pct}%`,
-                  height: '100%',
-                  borderRadius: 4,
-                  background: `linear-gradient(90deg, ${color}, ${dark})`,
-                  transition: 'width .3s',
-                }}
-              />
-            </div>
-            <span
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {pct}%
+            />
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+            {pct}%
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            {(data?.catColors ?? []).map((c, i) => (
+              <span key={i} style={{ width: 8, height: 8, borderRadius: 3, background: c }} />
+            ))}
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 3 }}>
+              {t('lists.categories', { n: data?.catColors.length ?? 0 })}
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              {(data?.catColors ?? []).map((c, i) => (
-                <span key={i} style={{ width: 8, height: 8, borderRadius: 3, background: c }} />
-              ))}
-              <span
-                style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500, marginLeft: 3 }}
-              >
-                {t('lists.categories', { n: data?.catColors.length ?? 0 })}
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <Icon name="clock" size={13} style={{ color: 'var(--text-muted)' }} />
-              <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>
-                {edited}
-              </span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="clock" size={13} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontSize: 11.5, color: 'var(--text-muted)', fontWeight: 500 }}>{edited}</span>
           </div>
         </div>
-      </button>
-
-      {/* star button — always present, top-right corner */}
-      <button
-        onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
-        aria-label={list.is_favorite ? 'Unfavorite' : 'Favorite'}
-        aria-pressed={list.is_favorite}
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: starRight,
-          width: 32,
-          height: 32,
-          minWidth: 44,
-          minHeight: 44,
-          margin: -6,
-          borderRadius: 10,
-          border: 'none',
-          background: 'transparent',
-          color: list.is_favorite ? 'var(--accent)' : 'rgba(255,255,255,0.7)',
-          display: 'grid',
-          placeItems: 'center',
-          cursor: 'pointer',
-          transition: 'color 0.15s',
-        }}
-      >
-        <Icon
-          name={list.is_favorite ? 'star-filled' : 'star-outline'}
-          size={20}
-          strokeWidth={1.75}
-        />
-      </button>
-
-      {/* edit button — owner/admin only, left of the star */}
-      {canEdit && (
-        <button
-          onClick={onEdit}
-          aria-label={t('list_edit.edit_aria')}
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: editRight,
-            width: 32,
-            height: 32,
-            borderRadius: 10,
-            border: 'none',
-            background: 'rgba(255,255,255,0.22)',
-            color: '#fff',
-            display: 'grid',
-            placeItems: 'center',
-            cursor: 'pointer',
-            backdropFilter: 'blur(4px)',
-          }}
-        >
-          <Icon name="dots-horizontal" size={18} />
-        </button>
-      )}
+      </div>
     </div>
   );
 }
@@ -296,8 +214,7 @@ export default function ListsOverview() {
   const [lists, setLists] = useState<List[] | null>(null);
   const [enriched, setEnriched] = useState<Record<string, Enriched>>({});
   const [error, setError] = useState<string>();
-  const [newName, setNewName] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [newListOpen, setNewListOpen] = useState(false);
   const [editingList, setEditingList] = useState<List | null>(null);
   const [enteringFavId, setEnteringFavId] = useState<string | null>(null);
 
@@ -356,20 +273,13 @@ export default function ListsOverview() {
     };
   }, []);
 
-  const createList = async () => {
-    const name = newName.trim();
-    if (!name || creating) return;
-    setCreating(true);
-    // Cycle through LIST_COLORS based on how many lists already exist.
+  const createList = async (name: string) => {
     const color = LIST_COLORS[(lists?.length ?? 0) % LIST_COLORS.length];
     try {
       const created = await api.post<List>('/api/lists', { name, type: 'group', color });
-      setNewName('');
       navigate(`/lists/${created.id}`);
     } catch (e) {
       setError(String((e as Error)?.message ?? e));
-    } finally {
-      setCreating(false);
     }
   };
 
@@ -457,53 +367,31 @@ export default function ListsOverview() {
       <LargeTitleHeader
         title={t('lists.title')}
         subtitle={lists ? t('lists.summary', { lists: lists.length, open: totalOpen }) : undefined}
-        trailing={<ThemeToggle dark={dark} onToggle={toggleDark} />}
-      />
-
-      <div className="scroll" style={{ flex: 1, overflowY: 'auto' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 16px 8px' }}>
-          {user?.role !== 'child' && (
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && createList()}
-                placeholder={t('lists.new_name_ph')}
-                aria-label={t('lists.new_name_label')}
-                style={{
-                  flex: 1,
-                  height: 46,
-                  borderRadius: 14,
-                  border: '1px solid var(--border-subtle)',
-                  background: 'var(--surface-overlay)',
-                  padding: '0 14px',
-                  fontSize: 15,
-                  color: 'var(--text-primary)',
-                  outline: 'none',
-                }}
-              />
+        trailing={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <ThemeToggle dark={dark} onToggle={toggleDark} />
+            {user?.role !== 'child' && (
               <button
-                onClick={createList}
-                disabled={creating || !newName.trim()}
+                onClick={() => setNewListOpen(true)}
                 aria-label={t('lists.create_label')}
                 style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: 14,
-                  border: 'none',
-                  cursor: creating || !newName.trim() ? 'default' : 'pointer',
-                  background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
+                  width: 36, height: 36, borderRadius: 11, border: 'none',
+                  cursor: 'pointer', display: 'grid', placeItems: 'center',
                   color: '#fff',
-                  display: 'grid',
-                  placeItems: 'center',
-                  opacity: creating || !newName.trim() ? 0.5 : 1,
+                  background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
                   boxShadow: 'var(--shadow-pop)',
                 }}
               >
                 <Icon name="plus" size={20} strokeWidth={2.4} />
               </button>
-            </div>
-          )}
+            )}
+          </div>
+        }
+      />
+
+      <div className="scroll" style={{ flex: 1, overflowY: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 16px 8px' }}>
+          {/* (no inline create form — use the "+" header button or the dashed card) */}
 
           {error && <div style={{ color: '#ef4444', fontSize: 14 }}>{error}</div>}
           {!lists && !error && (
@@ -548,10 +436,33 @@ export default function ListsOverview() {
               onToggleFavorite={() => void toggleFavorite(l)}
             />
           ))}
+
+          {/* dashed "add list" card — hidden for children */}
+          {user?.role !== 'child' && (
+            <button
+              onClick={() => setNewListOpen(true)}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: 9, width: '100%', padding: '16px', borderRadius: 22, cursor: 'pointer',
+                color: 'var(--text-secondary)', background: 'transparent',
+                border: '1.5px dashed var(--border-default)',
+                fontFamily: "'DM Sans', sans-serif", fontSize: 14.5, fontWeight: 600,
+              }}
+            >
+              <Icon name="plus" size={18} strokeWidth={2.2} />
+              {t('lists.create_label')}
+            </button>
+          )}
         </div>
         <div style={{ height: 16 }} />
       </div>
 
+      {newListOpen && (
+        <NewListSheet
+          onCreate={async (name) => { await createList(name); setNewListOpen(false); }}
+          onClose={() => setNewListOpen(false)}
+        />
+      )}
       {editingList && (
         <ListEditSheet
           list={editingList}

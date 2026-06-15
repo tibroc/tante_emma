@@ -227,8 +227,16 @@ function App() {
       members: ['mk'], edited: 'gerade eben', items: [], checked: [] }]);
     setActiveListId(id);
   };
+  const renameList = (id, name) => patchList(id, l => ({ ...l, name: name.trim() || l.name, edited: 'gerade eben' }));
+  const setListAccent = (id, accent) => patchList(id, l => ({ ...l, accent }));
+  const deleteList = (id) => {
+    setLists(prev => prev.filter(l => l.id !== id));
+    if (activeListId === id) setActiveListId(null);
+  };
 
-  const accentVars = { '--accent': t.accent, '--accent-600': accent600(t.accent),
+  // active list themes the whole app; overview/other contexts use global accent
+  const effAccent = active ? active.accent : t.accent;
+  const accentVars = { '--accent': effAccent, '--accent-600': accent600(effAccent),
     '--surface-inverse': t.dark ? '#2b2333' : '#221b27' };
 
   return (
@@ -251,7 +259,8 @@ function App() {
                 onOpenDetail={setDetail} onClearChecked={clearChecked} />
             ) : (
               <ListsOverviewScreen t={t} setTweak={setTweak} lists={lists}
-                onOpenList={(id) => { setActiveListId(id); setCollapsed({}); }} onAddList={addList} />
+                onOpenList={(id) => { setActiveListId(id); setCollapsed({}); }} onAddList={addList}
+                onRename={renameList} onDelete={deleteList} onSetAccent={setListAccent} />
             )
           )}
           {tab === 'stores' && <LadenScreen t={t} setTweak={setTweak} items={lists.flatMap(l => l.items)} />}

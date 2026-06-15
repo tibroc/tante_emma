@@ -61,10 +61,11 @@ function Icon({ name, size = 24, strokeWidth = 1.75, style = {}, className }) {
       return <svg {...common}><rect x="4" y="5" width="16" height="6" rx="2"/><rect x="4" y="13" width="16" height="6" rx="2"/></svg>;
     case 'pencil':
       return <svg {...common}><P d="M16.5 4.5 19.5 7.5 9 18l-3.8.8.8-3.8Z"/><P d="m14.5 6.5 3 3"/></svg>;
-    case 'sliders':
-      return <svg {...common}><P d="M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="9" r="2"/><circle cx="18" cy="15" r="2"/></svg>;
+    case 'sliders':      return <svg {...common}><P d="M6 4v6M6 14v6M12 4v3M12 11v9M18 4v9M18 17v3"/><circle cx="6" cy="12" r="2"/><circle cx="12" cy="9" r="2"/><circle cx="18" cy="15" r="2"/></svg>;
     case 'sparkle':
       return <svg {...common}><P d="M12 4c.5 3.5 1.5 4.5 5 5-3.5.5-4.5 1.5-5 5-.5-3.5-1.5-4.5-5-5 3.5-.5 4.5-1.5 5-5Z"/></svg>;
+    case 'dots':
+      return <svg {...common}><circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/></svg>;
     case 'sun':
       return <svg {...common}><circle cx="12" cy="12" r="4"/><P d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6M18.4 18.4l-1.6-1.6M7.2 7.2 5.6 5.6"/></svg>;
     case 'moon':
@@ -77,6 +78,14 @@ function Icon({ name, size = 24, strokeWidth = 1.75, style = {}, className }) {
       return <svg {...common}><P d="M14 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H14"/><P d="M17 8.5 21 12l-4 3.5M21 12H9.5"/></svg>;
     case 'globe':
       return <svg {...common}><circle cx="12" cy="12" r="8.2"/><P d="M3.8 12h16.4M12 3.8c2.3 2.2 3.5 5.1 3.5 8.2S14.3 18 12 20.2C9.7 18 8.5 15.1 8.5 12S9.7 6 12 3.8Z"/></svg>;
+    case 'mail':
+      return <svg {...common}><rect x="3.5" y="5.5" width="17" height="13" rx="2.2"/><P d="m4.5 7 7.5 5.5L19.5 7"/></svg>;
+    case 'lock':
+      return <svg {...common}><rect x="5" y="10.5" width="14" height="9" rx="2.2"/><P d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/><circle cx="12" cy="15" r="1.1"/></svg>;
+    case 'eye':
+      return <svg {...common}><P d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>;
+    case 'eye-off':
+      return <svg {...common}><P d="M9.6 5.9A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.4 3.1M6.2 7.6A15.7 15.7 0 0 0 2.5 12S6 18.5 12 18.5a9.4 9.4 0 0 0 3.8-.8"/><P d="M9.9 9.9a3 3 0 0 0 4.2 4.2M3.5 3.5l17 17"/></svg>;
     default:
       return <svg {...common}><circle cx="12" cy="12" r="8"/></svg>;
   }

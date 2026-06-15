@@ -311,6 +311,7 @@ export default function Settings() {
                           display: 'grid',
                           placeItems: 'center',
                           border: `2.5px solid ${on ? th.accent : 'transparent'}`,
+                          transition: 'border-color .15s',
                         }}
                       >
                         <span
