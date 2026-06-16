@@ -12,13 +12,17 @@ html,
 body {
   margin: 0;
   padding: 0;
+  /* Prevent body-level scroll on iOS Safari. Without this the browser lets
+     momentum scrolling reach the body even when a child has overflow:auto,
+     which causes the fixed header/nav to scroll off screen. */
+  overflow: hidden;
+  height: 100%;
 }
 body {
   font-family: 'DM Sans', system-ui, sans-serif;
   background:
     radial-gradient(1200px 800px at 15% -5%, #fbe9fb 0%, transparent 55%),
     radial-gradient(1100px 700px at 100% 105%, #e7fbf2 0%, transparent 50%), #f3eef2;
-  min-height: 100vh;
 }
 
 /* ── Design tokens ───────────────────────────────────────── */
@@ -106,6 +110,9 @@ body {
 }
 .scroll {
   scrollbar-width: none;
+  /* Contain momentum scroll to this element; prevents rubber-band scroll
+     from propagating to the body and pushing the fixed header/nav off screen. */
+  overscroll-behavior: contain;
 }
 
 @keyframes slideInItem {
@@ -190,9 +197,10 @@ body {
   }
 }
 
-/* PoC chrome: full-viewport app shell (no iOS device frame — that was a
-   design-ref presentation device, not a product feature). */
+/* Full-viewport app shell. overflow:hidden ensures no scroll bar appears on
+   the root element; all scrolling happens inside designated .scroll containers. */
 #root {
-  height: 100vh; /* fallback for browsers without dynamic viewport units */
-  height: 100dvh; /* track the *visible* viewport so the bottom nav never sits behind mobile browser chrome */
+  height: 100vh; /* fallback */
+  height: 100dvh; /* tracks the *visible* viewport, excluding mobile browser chrome */
+  overflow: hidden;
 }

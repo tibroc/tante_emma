@@ -6,9 +6,9 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { Icon } from '../components/Icon';
 import { CatChip } from '../components/primitives';
-import { BackHeader } from '../components/Header';
 import { resolveCategoryIcon } from '../lib/categories';
 import { useUserStore } from '../stores/userStore';
+import { useSetHeader } from '../hooks/useSetHeader';
 import type { Category, Store, Suggestion, Product } from '../lib/types';
 
 // Product in lib/types has no barcode / preferred stores; the detail endpoint does.
@@ -54,6 +54,44 @@ export default function AdminProductsPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isAdmin = user?.role === 'admin';
+
+  useSetHeader({
+    left: (
+      <button
+        onClick={() => navigate('/settings')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          border: 'none',
+          background: 'transparent',
+          cursor: 'pointer',
+          padding: '0 4px',
+          color: 'var(--accent)',
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 14,
+          fontWeight: 600,
+          minHeight: 44,
+        }}
+      >
+        <Icon
+          name="chevron-right"
+          size={20}
+          strokeWidth={2.2}
+          style={{ transform: 'rotate(180deg)' }}
+        />
+        {t('settings.title')}
+      </button>
+    ),
+    title: (
+      <span
+        className="ff-display"
+        style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}
+      >
+        {t('admin.products_title')}
+      </span>
+    ),
+  });
 
   // Bootstrap: load categories + stores (best-effort).
   useEffect(() => {
@@ -185,12 +223,6 @@ export default function AdminProductsPage() {
         color: 'var(--text-primary)',
       }}
     >
-      <BackHeader
-        title={t('admin.products_title')}
-        backLabel={t('settings.title')}
-        onBack={() => navigate('/settings')}
-      />
-
       {/* Search + create row */}
       <div style={{ flexShrink: 0, padding: '0 16px 12px' }}>
         <div style={{ display: 'flex', gap: 10 }}>

@@ -8,8 +8,9 @@ import { api } from '../lib/api';
 import { ulid } from '../lib/ulid';
 import { connHeaders } from '../lib/ws';
 import { Icon } from '../components/Icon';
-import { LargeTitleHeader, ThemeToggle } from '../components/Header';
+import { ThemeToggle } from '../components/Header';
 import { useTheme } from '../hooks/useTheme';
+import { useSetHeader } from '../hooks/useSetHeader';
 import { resolveCategoryIcon } from '../lib/categories';
 
 interface HistoryEntry {
@@ -30,6 +31,18 @@ export default function History() {
   const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
   const [added, setAdded] = useState<Record<string, boolean>>({});
+
+  useSetHeader({
+    title: (
+      <span
+        className="ff-display"
+        style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}
+      >
+        {t('history.title')}
+      </span>
+    ),
+    right: <ThemeToggle dark={dark} onToggle={toggleDark} />,
+  });
 
   useEffect(() => {
     api
@@ -84,12 +97,6 @@ export default function History() {
         background: 'transparent',
       }}
     >
-      <LargeTitleHeader
-        title={t('history.title')}
-        subtitle={t('history.subtitle')}
-        trailing={<ThemeToggle dark={dark} onToggle={toggleDark} />}
-      />
-
       <div
         style={{
           flexShrink: 0,

@@ -17,6 +17,7 @@ import { toItemVM, type ItemVM } from '../lib/viewmodel';
 import { useList, UNSORTED_SHELF_POSITION } from '../hooks/useList';
 import { useUserStore } from '../stores/userStore';
 import { useTheme } from '../hooks/useTheme';
+import { useSetHeader } from '../hooks/useSetHeader';
 import type { ListItem } from '../lib/types';
 
 type SortMode = 'category' | 'date' | 'alpha';
@@ -250,6 +251,87 @@ export default function ListDetail() {
     color: on ? 'var(--accent)' : 'var(--text-secondary)',
   });
 
+  // Populate the shared fixed header shell (defined once in Layout).
+  useSetHeader({
+    left: (
+      <button
+        onClick={() => navigate('/lists')}
+        aria-label={t('nav.lists')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          border: 'none',
+          background: 'transparent',
+          cursor: 'pointer',
+          padding: '0 4px',
+          color: 'var(--accent)',
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 14,
+          fontWeight: 600,
+          minHeight: 44,
+        }}
+      >
+        <Icon
+          name="chevron-right"
+          size={20}
+          strokeWidth={2.2}
+          style={{ transform: 'rotate(180deg)' }}
+        />
+        {t('nav.lists')}
+      </button>
+    ),
+    title: (
+      <span
+        className="ff-display"
+        style={{
+          fontSize: 18,
+          fontWeight: 600,
+          letterSpacing: '-0.01em',
+          color: 'var(--text-primary)',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: '100%',
+        }}
+      >
+        {list.list?.name ?? '…'}
+      </span>
+    ),
+    right: (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <PresenceAvatars users={presenceUsers} />
+        {canEditList && (
+          <button
+            onClick={() => setEditSheetOpen(true)}
+            aria-label={t('list_edit.edit_aria')}
+            style={iconBtn}
+          >
+            <Icon name="dots-horizontal" size={18} />
+          </button>
+        )}
+        {!isChild && (
+          <button onClick={openShare} aria-label={t('list.share')} style={iconBtn}>
+            <Icon name="users" size={18} />
+          </button>
+        )}
+        <button
+          onClick={() => setView((v) => (v === 'row' ? 'card' : v === 'card' ? 'tile' : 'row'))}
+          aria-label={view === 'tile' ? t('list.list_view') : t('list.tile_view')}
+          style={iconBtn}
+        >
+          <Icon
+            name={view === 'tile' ? 'grid' : view === 'card' ? 'card-rows' : 'rows'}
+            size={18}
+          />
+        </button>
+        <button onClick={toggleDark} aria-label="Theme" style={iconBtn}>
+          <Icon name={dark ? 'sun' : 'moon'} size={18} />
+        </button>
+      </div>
+    ),
+  });
+
   return (
     <div
       style={{
@@ -261,140 +343,56 @@ export default function ListDetail() {
         overflow: 'hidden',
       }}
     >
-      {/* header */}
-      <div
-        style={{
-          flexShrink: 0,
-          paddingTop: 'calc(12px + env(safe-area-inset-top))',
-          background: 'linear-gradient(180deg, var(--accent-tint), var(--surface-base) 78%)',
-          position: 'relative',
-          zIndex: 30,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '4px 18px 14px',
-          }}
-        >
-          <button
-            onClick={() => navigate('/lists')}
-            aria-label="Listen"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              padding: 0,
-              color: 'var(--accent)',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 15.5,
-              fontWeight: 600,
-              marginLeft: -6,
-            }}
-          >
-            <Icon
-              name="chevron-right"
-              size={20}
-              strokeWidth={2.2}
-              style={{ transform: 'rotate(180deg)' }}
-            />
-            {t('nav.lists')}
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <PresenceAvatars users={presenceUsers} />
-            {canEditList && (
-              <button
-                onClick={() => setEditSheetOpen(true)}
-                aria-label={t('list_edit.edit_aria')}
-                style={iconBtn}
-              >
-                <Icon name="dots-horizontal" size={18} />
-              </button>
-            )}
-            {!isChild && (
-              <button onClick={openShare} aria-label={t('list.share')} style={iconBtn}>
-                <Icon name="users" size={18} />
-              </button>
-            )}
-            <button
-              onClick={() => setView((v) => (v === 'row' ? 'card' : v === 'card' ? 'tile' : 'row'))}
-              aria-label={view === 'tile' ? t('list.list_view') : t('list.tile_view')}
-              style={iconBtn}
-            >
-              <Icon
-                name={view === 'tile' ? 'grid' : view === 'card' ? 'card-rows' : 'rows'}
-                size={18}
-              />
-            </button>
-            <button onClick={toggleDark} aria-label="Theme" style={iconBtn}>
-              <Icon name={dark ? 'sun' : 'moon'} size={18} />
-            </button>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '0 18px 14px' }}>
-          <h1
-            className="ff-display"
-            style={{
-              margin: 0,
-              fontSize: 30,
-              fontWeight: 600,
-              letterSpacing: '-0.02em',
-              color: 'var(--text-primary)',
-            }}
-          >
-            {list.list?.name ?? '…'}
-          </h1>
-          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-muted)' }}>
-            {activeVMs.length}
-          </span>
-        </div>
-        <AddBar
-          listId={id}
-          onAdd={(payload, optimistic) => list.submit('item.added', payload, optimistic)}
-        />
-
-        {/* sort + store filter pills */}
-        <div
-          className="scroll"
-          style={{ display: 'flex', gap: 8, padding: '0 16px 12px', overflowX: 'auto' }}
-          aria-label={t('sort.aria_label')}
-        >
-          {(['category', 'date', 'alpha'] as SortMode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => {
-                void onStoreFilter(null);
-                setSortMode(m);
-              }}
-              style={pillStyle(!filterStoreId && sortMode === m)}
-            >
-              {t(`sort.${m}`)}
-            </button>
-          ))}
-          {storesWithItems.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => onStoreFilter(filterStoreId === s.id ? null : s.id)}
-              style={pillStyle(filterStoreId === s.id)}
-            >
-              <Icon name="store" size={14} strokeWidth={2} />
-              {s.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* body */}
+      {/* body — AddBar + sort pills are sticky so they remain visible while items scroll */}
       <div
         className="scroll"
         aria-live="polite"
         style={{ flex: 1, overflowY: 'auto', background: 'var(--surface-base)' }}
       >
+        {/* Sticky search/add bar — sticks to top of scroll container as list scrolls */}
+        <div
+          style={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 20,
+            background: 'linear-gradient(180deg, var(--accent-tint) 0%, var(--surface-base) 100%)',
+          }}
+        >
+          <AddBar
+            listId={id}
+            onAdd={(payload, optimistic) => list.submit('item.added', payload, optimistic)}
+          />
+          {/* Sort + store filter pills */}
+          <div
+            className="scroll"
+            style={{ display: 'flex', gap: 8, padding: '0 16px 10px', overflowX: 'auto' }}
+            aria-label={t('sort.aria_label')}
+          >
+            {(['category', 'date', 'alpha'] as SortMode[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => {
+                  void onStoreFilter(null);
+                  setSortMode(m);
+                }}
+                style={pillStyle(!filterStoreId && sortMode === m)}
+              >
+                {t(`sort.${m}`)}
+              </button>
+            ))}
+            {storesWithItems.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onStoreFilter(filterStoreId === s.id ? null : s.id)}
+                style={pillStyle(filterStoreId === s.id)}
+              >
+                <Icon name="store" size={14} strokeWidth={2} />
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {list.status === 'loading' && (
           <div style={{ padding: 24, color: 'var(--text-muted)' }}>{t('list.loading')}</div>
         )}
