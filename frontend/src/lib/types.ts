@@ -98,6 +98,25 @@ export interface Suggestion {
   score: number;
 }
 
+// ── Personal Access Tokens ──
+// GET /api/tokens -> AccessToken[] ; DELETE /api/tokens/:id
+export type TokenScope = 'read' | 'write';
+
+export interface AccessToken {
+  id: string;
+  name: string;
+  token_prefix: string; // e.g. "tem_a1b2c3d4"
+  scopes: TokenScope[];
+  last_used_at: number | null; // ms, null = never used
+  expires_at: number | null; // ms, null = no expiry
+  created_at: number; // ms
+}
+
+// POST /api/tokens -> CreatedToken (raw_token present only in this one response)
+export interface CreatedToken extends AccessToken {
+  raw_token: string;
+}
+
 // ── Events (POST /api/lists/:id/events ; GET .../events?since=) ──
 // The client sends id/type/payload/client_ts; the server fills
 // list_id/user_id/server_ts (and id if omitted).
