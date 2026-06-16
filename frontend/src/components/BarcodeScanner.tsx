@@ -1,6 +1,12 @@
 // BarcodeScanner.tsx — full-screen camera overlay, ported from the Svelte
 // component. Dynamically imports @zxing/browser (kept out of the main bundle),
 // prefers the rear camera, and reports decoded text via onScan.
+//
+// TODO: The scanner redesign (result/edit/unknown sheets, reticle animation,
+// torch toggle) was reverted because it drifted from the design-ref. When
+// re-implementing, use createPortal(…, document.body) so the overlay escapes
+// the AddBar's positioned/overflow ancestors and renders truly full-screen.
+// Refer to design-ref/ and the revert commit for what the previous attempt did.
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
