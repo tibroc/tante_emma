@@ -57,11 +57,13 @@ func main() {
 	requireAdmin := middleware.NewRequireRole("admin")
 	requireWriteScope := middleware.NewRequireWriteScope()
 
-	// Abuse mitigation (SEC-5): cap request bodies, throttle the auth flow and the
-	// Open Food Facts proxy per client.
+	// Abuse mitigation: cap request bodies, throttle the auth flow and the
+	// Open Food Facts proxy per client IP. PAT requests get an additional per-token
+	// limit so one compromised token cannot flood the server.
 	const maxRequestBody = 1 << 20               // 1 MiB — generous for event batches, bounds memory
 	authLimit := middleware.RateLimit(30, 10)    // login/callback/logout
 	barcodeLimit := middleware.RateLimit(60, 20) // outbound OFF lookups
+	patRateLimit := middleware.TokenRateLimit(100, 100) // per PAT token
 
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
@@ -90,6 +92,8 @@ func main() {
 		// Gate every mutating request on the "write" scope. Cookie sessions and
 		// write-scoped tokens pass; read-only tokens get 403 on POST/PUT/DELETE.
 		r.Use(requireWriteScope)
+		// Per-token rate limit for PAT requests; cookie sessions are exempt.
+		r.Use(patRateLimit)
 
 		r.Get("/api/auth/me", auth.Me)
 
