@@ -33,8 +33,8 @@ const TABS: { to: string; icon: IconName; key: string }[] = [
 
 // These CSS-variable-based values are the single source of truth for shell height.
 // Any component that needs to know header/nav height should reference these.
-export const HEADER_H = 'calc(52px + env(safe-area-inset-top))';
-export const NAV_H = 'calc(64px + env(safe-area-inset-bottom))';
+export const HEADER_H = 'calc(64px + env(safe-area-inset-top))';
+export const NAV_H = 'calc(76px + env(safe-area-inset-bottom))';
 
 export default function Layout() {
   const { t } = useTranslation();
@@ -122,8 +122,12 @@ export default function Layout() {
           right: 0,
           zIndex: 100,
           height: HEADER_H,
-          background: 'var(--surface-base)',
-          borderBottom: '1px solid var(--border-subtle)',
+          // Transparent so the app-level gradient (from .app) shows through.
+          // Pages with a white background (e.g. ListDetail) naturally fill this
+          // area; pages with transparent bg (ListsOverview, Settings, History)
+          // let the gradient wash show. No content sits behind this bar — <main>
+          // starts at top: HEADER_H — so transparency is always safe.
+          background: 'transparent',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-end',
@@ -131,26 +135,25 @@ export default function Layout() {
       >
         <div
           style={{
-            height: 52,
+            height: 64,
             display: 'flex',
             alignItems: 'center',
-            padding: '0 6px',
+            padding: '0 8px',
             gap: 4,
           }}
         >
-          {/* left slot — back button or empty; min-width so title stays centred */}
-          <div style={{ flexShrink: 0, minWidth: 60, display: 'flex', alignItems: 'center' }}>
-            {headerLeft}
-          </div>
+          {/* left slot — back button or empty */}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{headerLeft}</div>
 
-          {/* title slot — centred, clips if too long */}
+          {/* title slot — left-aligned to match design-ref */}
           <div
             style={{
               flex: 1,
               minWidth: 0,
               display: 'flex',
-              justifyContent: 'center',
+              justifyContent: 'flex-start',
               alignItems: 'center',
+              paddingLeft: 4,
             }}
           >
             {headerTitle}
@@ -160,7 +163,6 @@ export default function Layout() {
           <div
             style={{
               flexShrink: 0,
-              minWidth: 60,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'flex-end',
@@ -170,7 +172,6 @@ export default function Layout() {
             {headerRight}
           </div>
         </div>
-        {/* end inner 52px row */}
       </div>
 
       {/* ── Offline banner (fixed, stacks immediately below the header) ─────── */}
@@ -274,7 +275,12 @@ export default function Layout() {
           height: NAV_H,
           display: 'flex',
           alignItems: 'flex-start',
-          padding: '8px 10px env(safe-area-inset-bottom)',
+          paddingTop: 10,
+          paddingLeft: 10,
+          paddingRight: 10,
+          // max() ensures a comfortable gap above the home indicator even when
+          // env(safe-area-inset-bottom) is 0 (desktop / non-notch devices).
+          paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
           borderTop: '1px solid var(--border-subtle)',
           background: 'var(--surface-base)',
         }}
