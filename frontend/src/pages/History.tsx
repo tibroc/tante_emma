@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
-import { ulid } from '../lib/ulid';
+import { ulid, nowMs } from '../lib/ulid';
 import { connHeaders } from '../lib/ws';
 import { Icon } from '../components/Icon';
 import { ThemeToggle } from '../components/Header';
@@ -59,7 +59,7 @@ export default function History() {
       id: ulid(),
       type: 'item.added',
       payload: { item_id: ulid(), name_override: e.name_snapshot },
-      client_ts: Date.now(),
+      client_ts: nowMs(),
     };
     try {
       await api.post(`/api/lists/${e.list_id}/events`, event, connHeaders());

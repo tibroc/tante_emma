@@ -9,6 +9,9 @@ export default tseslint.config(
   { ignores: ['dist', 'design-ref', 'node_modules', 'static', 'dev-dist'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  // react-hooks v7 ships its rules (incl. the React Compiler ruleset) as a flat
+  // config; spreading `.recommended.rules` is the legacy (eslintrc) shape.
+  reactHooks.configs.flat['recommended-latest'],
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -16,11 +19,9 @@ export default tseslint.config(
       globals: { ...globals.browser, ...globals.node },
     },
     plugins: {
-      'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
       '@typescript-eslint/no-unused-vars': [
         'warn',

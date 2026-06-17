@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
-import { ulid } from '../lib/ulid';
+import { ulid, nowMs } from '../lib/ulid';
 import { LIST_COLORS } from '../lib/constants';
 import { Icon, type IconName } from '../components/Icon';
 import { ThemeToggle } from '../components/Header';
@@ -384,7 +384,7 @@ export default function ListsOverview() {
       id: ulid(),
       type,
       payload,
-      client_ts: Date.now(),
+      client_ts: nowMs(),
     });
   };
 
@@ -429,12 +429,7 @@ export default function ListsOverview() {
       setLists((prev) => (prev ? sortLists(prev) : null));
     }
     try {
-      await api.post(`/api/lists/${list.id}/events`, {
-        id: ulid(),
-        type: newFav ? 'list.favorited' : 'list.unfavorited',
-        payload: {},
-        client_ts: Date.now(),
-      });
+      await submitListEvent(list.id, newFav ? 'list.favorited' : 'list.unfavorited', {});
     } catch {
       // Revert on failure.
       setLists((prev) =>
