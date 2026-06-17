@@ -595,10 +595,10 @@ function ResultUnknown({
             className="ff-display"
             style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)' }}
           >
-            Unbekanntes Produkt
+            {barcode ? 'Unbekanntes Produkt' : 'Manuell hinzufügen'}
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 3 }}>
-            Nicht in der Datenbank – bitte benennen.
+            {barcode ? 'Nicht in der Datenbank – bitte benennen.' : 'Gib den Artikel von Hand ein.'}
           </div>
         </div>
       </div>
@@ -1094,6 +1094,32 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
           >
             {cameraError ? 'Kamera nicht verfügbar' : <>Barcode in den Rahmen halten</>}
           </p>
+          <button
+            onClick={() => {
+              setProduct(null);
+              setBarcode(null);
+              setCount(1);
+              setPhase('unknown');
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '11px 18px',
+              borderRadius: 13,
+              border: '1px solid rgba(255,255,255,0.22)',
+              background: 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(8px)',
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            <Icon name="keyboard" size={18} />
+            Manuell hinzufügen
+          </button>
         </div>
       )}
 

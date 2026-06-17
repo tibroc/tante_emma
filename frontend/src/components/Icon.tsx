@@ -40,7 +40,8 @@ export type IconName =
   | 'star-filled'
   | 'zap'
   | 'zap-off'
-  | 'barcode';
+  | 'barcode'
+  | 'keyboard';
 
 interface IconProps {
   name: IconName | string;
@@ -326,6 +327,13 @@ export function Icon({ name, size = 24, strokeWidth = 1.75, style, className }: 
       return (
         <svg {...common} strokeWidth={1.5}>
           <path d="M4 6v12M7 6v12M10 6v12M13 6v12M16 6v12M19 6v12M6 6H4M9 6H7M12 6H10M15 6H13M18 6H16M21 6H19M6 18H4M9 18H7M12 18H10M15 18H13M18 18H16M21 18H19" />
+        </svg>
+      );
+    case 'keyboard':
+      return (
+        <svg {...common}>
+          <rect x="3" y="6.5" width="18" height="11" rx="2" />
+          <path d="M7 10h.01M10.5 10h.01M14 10h.01M17.5 10h.01M7 13h.01M17.5 13h.01M10 13.2h4" />
         </svg>
       );
     default:
