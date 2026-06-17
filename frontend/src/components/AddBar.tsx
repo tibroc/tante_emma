@@ -55,12 +55,11 @@ export function AddBar({ listId, onAdd }: AddBarProps) {
   const query = q.trim();
   const open = focus && query.length > 0;
 
-  // Debounced live search against the backend.
+  // Debounced live search against the backend. The empty-query case is derived
+  // (see `results`) rather than cleared via setState, so the effect never sets
+  // state synchronously during its run.
   useEffect(() => {
-    if (!query) {
-      setMatches([]);
-      return;
-    }
+    if (!query) return;
     const handle = setTimeout(() => {
       api
         .get<Suggestion[]>(
@@ -72,7 +71,8 @@ export function AddBar({ listId, onAdd }: AddBarProps) {
     return () => clearTimeout(handle);
   }, [query, listId]);
 
-  const exact = matches.some((m) => m.display_name.toLowerCase() === query.toLowerCase());
+  const results = query ? matches : [];
+  const exact = results.some((m) => m.display_name.toLowerCase() === query.toLowerCase());
 
   const commitSuggestion = (s: Suggestion) => {
     const id = ulid();
@@ -104,7 +104,7 @@ export function AddBar({ listId, onAdd }: AddBarProps) {
   };
 
   const commitTop = () => {
-    if (matches[0]) commitSuggestion(matches[0]);
+    if (results[0]) commitSuggestion(results[0]);
     else commitFreeText();
   };
 
@@ -221,7 +221,7 @@ export function AddBar({ listId, onAdd }: AddBarProps) {
             animation: 'suggIn .16s ease',
           }}
         >
-          {matches.map((s) => (
+          {results.map((s) => (
             <button
               key={s.product_id}
               onMouseDown={(e) => e.preventDefault()}

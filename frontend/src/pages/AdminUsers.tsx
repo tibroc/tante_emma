@@ -77,7 +77,6 @@ export default function AdminUsersPage() {
       return;
     }
     let cancelled = false;
-    setLoading(true);
     api
       .get<AdminUser[]>('/api/users')
       .then((data) => {

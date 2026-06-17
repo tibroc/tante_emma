@@ -736,16 +736,46 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
       .catch(() => {});
   }, []);
 
+  // Defined above the camera effect because that effect's decode callback calls
+  // it; the React Compiler lint rules check source order, not JS hoisting.
+  async function handleScanResult(code: string) {
+    setLocked(true);
+    if (navigator.vibrate) navigator.vibrate([8, 40, 12]);
+    setBarcode(code);
+    setCount(1);
+
+    try {
+      const p = await api.get<Product>(`/api/products/barcode/${encodeURIComponent(code)}`);
+      // enrich with display_name for the sheet
+      const enriched: ScannedProduct = {
+        ...p,
+        display_name: p.name_de || p.name_en || p.name_pt || code,
+      };
+      setProduct(enriched);
+      // short delay so the green check is visible before the sheet comes up
+      setTimeout(() => setPhase('result'), 360);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setProduct(null);
+        setTimeout(() => setPhase('unknown'), 360);
+      } else {
+        // on network error, let user retry
+        setLocked(false);
+        scanOnce.current = false;
+      }
+    }
+  }
+
   // start camera when in scan phase
   useEffect(() => {
     if (phase !== 'scan') return;
-    setLocked(false);
     scanOnce.current = false;
     let cancelled = false;
 
     (async () => {
       try {
         const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        if (!cancelled) setLocked(false);
         const reader = new BrowserMultiFormatReader();
         if (cancelled || !videoRef.current) return;
 
@@ -786,36 +816,7 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
       trackRef.current?.stop();
       trackRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
-
-  const handleScanResult = async (code: string) => {
-    setLocked(true);
-    if (navigator.vibrate) navigator.vibrate([8, 40, 12]);
-    setBarcode(code);
-    setCount(1);
-
-    try {
-      const p = await api.get<Product>(`/api/products/barcode/${encodeURIComponent(code)}`);
-      // enrich with display_name for the sheet
-      const enriched: ScannedProduct = {
-        ...p,
-        display_name: p.name_de || p.name_en || p.name_pt || code,
-      };
-      setProduct(enriched);
-      // short delay so the green check is visible before the sheet comes up
-      setTimeout(() => setPhase('result'), 360);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 404) {
-        setProduct(null);
-        setTimeout(() => setPhase('unknown'), 360);
-      } else {
-        // on network error, let user retry
-        setLocked(false);
-        scanOnce.current = false;
-      }
-    }
-  };
 
   const toggleTorch = async () => {
     if (!trackRef.current) return;

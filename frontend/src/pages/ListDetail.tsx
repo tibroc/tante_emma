@@ -47,7 +47,11 @@ export default function ListDetail() {
   // be a separate dropdown for the latter — merged into the pills.)
   const [filterStoreId, setFilterStoreId] = useState<string | null>(null);
   const [shelfOrder, setShelfOrder] = useState<Map<string, number>>(new Map());
-  const sessionStart = useRef<number>(Date.now());
+  // Marks when the current shopping session began; drives clear-checked
+  // shelf-order learning. Re-stamped whenever the active store filter changes
+  // (incl. initial mount) — see the effect below. Kept in an effect, not render
+  // or the handler, so the impure Date.now() stays out of render/compiled paths.
+  const sessionStart = useRef<number>(0);
   const [view, setView] = useState<ItemView>(
     () => (localStorage.getItem(`view-mode-${id}`) as ItemView) || 'row',
   );
@@ -63,6 +67,12 @@ export default function ListDetail() {
   useEffect(() => {
     localStorage.setItem(`view-mode-${id}`, view);
   }, [view, id]);
+
+  // (Re)start the shopping session whenever the active store filter changes
+  // (and on mount). Impure Date.now() lives here rather than in render.
+  useEffect(() => {
+    sessionStart.current = Date.now();
+  }, [filterStoreId]);
 
   const itemMatchesStore = (it: ListItem, storeId: string) =>
     it.store_id === storeId || (it.preferred_store_ids?.includes(storeId) ?? false);
@@ -118,8 +128,8 @@ export default function ListDetail() {
   const onStoreFilter = async (storeId: string | null) => {
     setFilterStoreId(storeId);
     // Selecting a store starts a fresh shopping session at it; deselecting
-    // reverts to default category ordering (categories.sort_order).
-    sessionStart.current = Date.now();
+    // reverts to default category ordering (categories.sort_order). The session
+    // timestamp is re-stamped by the effect keyed on filterStoreId.
     if (storeId) setShelfOrder(await list.loadShelfOrder(storeId));
     else setShelfOrder(new Map());
   };
