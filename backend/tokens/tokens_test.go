@@ -34,7 +34,10 @@ func TestGenerate_ShapeAndUniqueness(t *testing.T) {
 }
 
 func TestHash_StableAndDistinct(t *testing.T) {
-	if Hash("tem_abc") != Hash("tem_abc") {
+	// Hash the same input twice via separate calls (not one literal expression,
+	// which staticcheck SA4000 would flag) to assert determinism.
+	const in = "tem_abc"
+	if h1, h2 := Hash(in), Hash(in); h1 != h2 {
 		t.Error("Hash is not deterministic")
 	}
 	if Hash("tem_abc") == Hash("tem_abd") {
