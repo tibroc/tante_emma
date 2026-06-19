@@ -37,7 +37,10 @@ export type IconName =
   | 'globe'
   | 'dots-horizontal'
   | 'star-outline'
-  | 'star-filled';
+  | 'star-filled'
+  | 'zap'
+  | 'zap-off'
+  | 'barcode';
 
 interface IconProps {
   name: IconName | string;
@@ -304,6 +307,25 @@ export function Icon({ name, size = 24, strokeWidth = 1.75, style, className }: 
       return (
         <svg {...common} fill="currentColor">
           <path d="M12 2.5l2.8 5.7 6.3.9-4.6 4.4 1.1 6.3L12 16.8l-5.6 3 1.1-6.3L3 9.1l6.3-.9L12 2.5Z" />
+        </svg>
+      );
+    case 'zap':
+      return (
+        <svg {...common}>
+          <path d="M13 2 4.5 13.5H12L11 22l8.5-11.5H12Z" />
+        </svg>
+      );
+    case 'zap-off':
+      return (
+        <svg {...common}>
+          <path d="M13 2 4.5 13.5H12L11 22l8.5-11.5H12Z" opacity="0.35" />
+          <path d="M3 3l18 18" />
+        </svg>
+      );
+    case 'barcode':
+      return (
+        <svg {...common} strokeWidth={1.5}>
+          <path d="M4 6v12M7 6v12M10 6v12M13 6v12M16 6v12M19 6v12M6 6H4M9 6H7M12 6H10M15 6H13M18 6H16M21 6H19M6 18H4M9 18H7M12 18H10M15 18H13M18 18H16M21 18H19" />
         </svg>
       );
     default:

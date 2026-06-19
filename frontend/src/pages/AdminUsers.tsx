@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
+import { Icon } from '../components/Icon';
 import { useUserStore } from '../stores/userStore';
-import { BackHeader } from '../components/Header';
+import { useSetHeader } from '../hooks/useSetHeader';
 
 interface AdminUser {
   id: string;
@@ -28,6 +29,44 @@ export default function AdminUsersPage() {
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
+
+  useSetHeader({
+    left: (
+      <button
+        onClick={() => navigate('/settings')}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 2,
+          border: 'none',
+          background: 'transparent',
+          cursor: 'pointer',
+          padding: '0 4px',
+          color: 'var(--accent)',
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 14,
+          fontWeight: 600,
+          minHeight: 44,
+        }}
+      >
+        <Icon
+          name="chevron-right"
+          size={20}
+          strokeWidth={2.2}
+          style={{ transform: 'rotate(180deg)' }}
+        />
+        {t('settings.title')}
+      </button>
+    ),
+    title: (
+      <span
+        className="ff-display"
+        style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}
+      >
+        {t('admin.users_title')}
+      </span>
+    ),
+  });
   const [saving, setSaving] = useState<string | null>(null);
 
   const isAdmin = user?.role === 'admin';
@@ -38,7 +77,6 @@ export default function AdminUsersPage() {
       return;
     }
     let cancelled = false;
-    setLoading(true);
     api
       .get<AdminUser[]>('/api/users')
       .then((data) => {
@@ -82,12 +120,6 @@ export default function AdminUsersPage() {
         color: 'var(--text-primary)',
       }}
     >
-      <BackHeader
-        title={t('admin.users_title')}
-        backLabel={t('settings.title')}
-        onBack={() => navigate('/settings')}
-      />
-
       <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 24px' }}>
         {loading ? (
           <p style={{ color: 'var(--text-muted)', padding: '24px 4px' }}>{t('list.loading')}</p>

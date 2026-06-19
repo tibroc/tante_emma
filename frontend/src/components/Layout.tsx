@@ -1,6 +1,13 @@
 // Layout.tsx — authenticated shell: auth gate (GET /api/auth/me → userStore +
-// start WS, redirect to /login on 401), bottom navigation, offline banner, and
-// the PWA install prompt. Mirrors the Svelte +layout.svelte.
+// start WS, redirect to /login on 401), fixed header shell + fixed bottom nav,
+// offline banner, and the PWA install prompt.
+//
+// Shell dimensions (constants used everywhere):
+//   HEADER_H = 52px + env(safe-area-inset-top)
+//   NAV_H    = 64px + env(safe-area-inset-bottom)
+//
+// Pages slot into the header via useSetHeader (left / title / right slots).
+// Scrollable content sits between the two fixed bars.
 import { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +16,7 @@ import { startWs } from '../lib/ws';
 import { Icon, type IconName } from './Icon';
 import { useUserStore } from '../stores/userStore';
 import { useSyncStore } from '../stores/syncStore';
+import { useHeaderStore } from '../stores/headerStore';
 import type { User } from '../lib/types';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -23,12 +31,20 @@ const TABS: { to: string; icon: IconName; key: string }[] = [
   { to: '/settings', icon: 'gear', key: 'nav.settings' },
 ];
 
+// These CSS-variable-based values are the single source of truth for shell height.
+// Any component that needs to know header/nav height should reference these.
+export const HEADER_H = 'calc(64px + env(safe-area-inset-top))';
+export const NAV_H = 'calc(76px + env(safe-area-inset-bottom))';
+
 export default function Layout() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const setUser = useUserStore((s) => s.setUser);
   const syncStatus = useSyncStore((s) => s.status);
+  const headerLeft = useHeaderStore((s) => s.left);
+  const headerTitle = useHeaderStore((s) => s.title);
+  const headerRight = useHeaderStore((s) => s.right);
   const [authState, setAuthState] = useState<'checking' | 'ok' | 'fail'>('checking');
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
@@ -53,7 +69,6 @@ export default function Layout() {
     return () => {
       cancelled = true;
     };
-    // run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -88,39 +103,125 @@ export default function Layout() {
     );
   }
 
+  // The shell uses two position:fixed bars (header + nav) and a content region
+  // that fills the space between them. This is the most reliable approach on
+  // mobile: fixed bars never participate in the scroll layout, so no amount of
+  // body/rubber-band scroll can push them off screen.
   return (
-    <div
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'transparent',
-      }}
-    >
+    <>
+      {/* ── Fixed top header shell ──────────────────────────────────────────── */}
+      {/* Two-level structure: outer div reserves the safe-area-inset-top height
+          so the status bar area stays clear; inner 52px row holds the actual
+          header content. This ensures header slots never overlap the notch/island
+          on iPhones, and alignItems:center applies only to the 52px visible row. */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          height: HEADER_H,
+          // Transparent so the app-level gradient (from .app) shows through.
+          // Pages with a white background (e.g. ListDetail) naturally fill this
+          // area; pages with transparent bg (ListsOverview, Settings, History)
+          // let the gradient wash show. No content sits behind this bar — <main>
+          // starts at top: HEADER_H — so transparency is always safe.
+          background: 'transparent',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <div
+          style={{
+            height: 64,
+            display: 'flex',
+            alignItems: 'center',
+            padding: '0 8px',
+            gap: 4,
+          }}
+        >
+          {/* left slot — back button or empty */}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{headerLeft}</div>
+
+          {/* title slot — left-aligned to match design-ref */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              display: 'flex',
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+              paddingLeft: 4,
+            }}
+          >
+            {headerTitle}
+          </div>
+
+          {/* right slot — action buttons */}
+          <div
+            style={{
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 4,
+            }}
+          >
+            {headerRight}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Offline banner (fixed, stacks immediately below the header) ─────── */}
       {syncStatus === 'offline' && (
         <div
           style={{
-            flexShrink: 0,
+            position: 'fixed',
+            top: HEADER_H,
+            left: 0,
+            right: 0,
+            zIndex: 99,
             background: '#f59e0b',
             color: '#1a141c',
             textAlign: 'center',
             fontSize: 12,
             fontWeight: 600,
-            padding: '6px 12px',
+            padding: '5px 12px',
           }}
         >
           {t('status.offline')}
         </div>
       )}
 
-      <main style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      {/* ── Scrollable content area ──────────────────────────────────────────── */}
+      {/* Use padding-top/bottom (not margin) so that position:sticky children  */}
+      {/* inside pages work relative to this element's scroll viewport.          */}
+      <main
+        style={{
+          position: 'fixed',
+          top: HEADER_H,
+          bottom: NAV_H,
+          left: 0,
+          right: 0,
+          overflow: 'hidden',
+          // Offline banner pushes page content down; the banner is 28px tall.
+          // We compensate with a CSS var so pages themselves don't need to know.
+        }}
+      >
         <Outlet />
       </main>
 
+      {/* ── PWA install prompt (above the nav bar) ───────────────────────────── */}
       {installEvent && (
         <div
           style={{
-            flexShrink: 0,
+            position: 'fixed',
+            bottom: NAV_H,
+            left: 0,
+            right: 0,
+            zIndex: 99,
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -162,12 +263,24 @@ export default function Layout() {
         </div>
       )}
 
+      {/* ── Fixed bottom navigation bar ─────────────────────────────────────── */}
       <nav
         aria-label={t('nav.aria_label')}
         style={{
-          flexShrink: 0,
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100,
+          height: NAV_H,
           display: 'flex',
-          padding: '8px 10px calc(8px + env(safe-area-inset-bottom))',
+          alignItems: 'flex-start',
+          paddingTop: 10,
+          paddingLeft: 10,
+          paddingRight: 10,
+          // max() ensures a comfortable gap above the home indicator even when
+          // env(safe-area-inset-bottom) is 0 (desktop / non-notch devices).
+          paddingBottom: 'max(14px, env(safe-area-inset-bottom))',
           borderTop: '1px solid var(--border-subtle)',
           background: 'var(--surface-base)',
         }}
@@ -210,6 +323,6 @@ export default function Layout() {
           );
         })}
       </nav>
-    </div>
+    </>
   );
 }

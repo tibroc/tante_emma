@@ -6,12 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
 import { Icon, type IconName } from '../components/Icon';
-import { LargeTitleHeader } from '../components/Header';
 import { useTheme } from '../hooks/useTheme';
 import { useUserStore } from '../stores/userStore';
 import { LOCALES, setLocale } from '../lib/i18n';
 import { THEMES, THEME_BY_ACCENT } from '../lib/themes';
 import { ApiTokensSection } from '../components/ApiTokensSection';
+import { useSetHeader } from '../hooks/useSetHeader';
 
 function Group({ children }: { children: ReactNode }) {
   return (
@@ -143,6 +143,17 @@ export default function Settings() {
   const user = useUserStore((s) => s.user);
   const themeName = THEME_BY_ACCENT[accent.toLowerCase()]?.name ?? 'Custom';
 
+  useSetHeader({
+    title: (
+      <span
+        className="ff-display"
+        style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}
+      >
+        {t('settings.title')}
+      </span>
+    ),
+  });
+
   const logout = async () => {
     await api.post('/auth/logout', {}).catch(() => {});
     navigate('/login', { replace: true });
@@ -157,7 +168,6 @@ export default function Settings() {
         background: 'transparent',
       }}
     >
-      <LargeTitleHeader title={t('settings.title')} />
       <div className="scroll" style={{ flex: 1, overflowY: 'auto' }}>
         <div
           style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 16px 24px' }}

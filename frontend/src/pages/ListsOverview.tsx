@@ -7,14 +7,15 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { api } from '../lib/api';
-import { ulid } from '../lib/ulid';
+import { ulid, nowMs } from '../lib/ulid';
 import { LIST_COLORS } from '../lib/constants';
 import { Icon, type IconName } from '../components/Icon';
-import { LargeTitleHeader, ThemeToggle } from '../components/Header';
+import { ThemeToggle } from '../components/Header';
 import { PresenceAvatars } from '../components/PresenceAvatars';
 import { ListEditSheet, NewListSheet } from '../components/sheets';
 import { useTheme } from '../hooks/useTheme';
 import { useUserStore } from '../stores/userStore';
+import { useSetHeader } from '../hooks/useSetHeader';
 import type { List, ListDetail, Category } from '../lib/types';
 
 interface Member {
@@ -271,6 +272,42 @@ export default function ListsOverview() {
   const [editingList, setEditingList] = useState<List | null>(null);
   const [enteringFavId, setEnteringFavId] = useState<string | null>(null);
 
+  useSetHeader({
+    title: (
+      <span
+        className="ff-display"
+        style={{ fontSize: 18, fontWeight: 600, letterSpacing: '-0.01em' }}
+      >
+        {t('lists.title')}
+      </span>
+    ),
+    right: (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <ThemeToggle dark={dark} onToggle={toggleDark} />
+        {user?.role !== 'child' && (
+          <button
+            onClick={() => setNewListOpen(true)}
+            aria-label={t('lists.create_label')}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 11,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#fff',
+              background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
+              boxShadow: 'var(--shadow-pop)',
+            }}
+          >
+            <Icon name="plus" size={20} strokeWidth={2.4} />
+          </button>
+        )}
+      </div>
+    ),
+  });
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -347,7 +384,7 @@ export default function ListsOverview() {
       id: ulid(),
       type,
       payload,
-      client_ts: Date.now(),
+      client_ts: nowMs(),
     });
   };
 
@@ -392,12 +429,7 @@ export default function ListsOverview() {
       setLists((prev) => (prev ? sortLists(prev) : null));
     }
     try {
-      await api.post(`/api/lists/${list.id}/events`, {
-        id: ulid(),
-        type: newFav ? 'list.favorited' : 'list.unfavorited',
-        payload: {},
-        client_ts: Date.now(),
-      });
+      await submitListEvent(list.id, newFav ? 'list.favorited' : 'list.unfavorited', {});
     } catch {
       // Revert on failure.
       setLists((prev) =>
@@ -408,7 +440,6 @@ export default function ListsOverview() {
     }
   };
 
-  const totalOpen = lists ? lists.reduce((n, l) => n + (enriched[l.id]?.open ?? 0), 0) : 0;
   const isAdminOrOwner = (list: List) => user?.role === 'admin' || user?.id === list.owner_id;
 
   return (
@@ -420,36 +451,6 @@ export default function ListsOverview() {
         background: 'transparent',
       }}
     >
-      <LargeTitleHeader
-        title={t('lists.title')}
-        subtitle={lists ? t('lists.summary', { lists: lists.length, open: totalOpen }) : undefined}
-        trailing={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ThemeToggle dark={dark} onToggle={toggleDark} />
-            {user?.role !== 'child' && (
-              <button
-                onClick={() => setNewListOpen(true)}
-                aria-label={t('lists.create_label')}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 11,
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: '#fff',
-                  background: 'linear-gradient(145deg, var(--accent), var(--accent-600))',
-                  boxShadow: 'var(--shadow-pop)',
-                }}
-              >
-                <Icon name="plus" size={20} strokeWidth={2.4} />
-              </button>
-            )}
-          </div>
-        }
-      />
-
       <div className="scroll" style={{ flex: 1, overflowY: 'auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 16px 8px' }}>
           {/* (no inline create form — use the "+" header button or the dashed card) */}
