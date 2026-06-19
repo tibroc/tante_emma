@@ -8,7 +8,8 @@ import { CatChip } from './primitives';
 import { api, ApiError } from '../lib/api';
 import { ulid } from '../lib/ulid';
 import { resolveCategoryIcon } from '../lib/categories';
-import type { Category, ListItem, Product } from '../lib/types';
+import { useUserStore } from '../stores/userStore';
+import type { Category, ListItem, Product, Store } from '../lib/types';
 
 // ── keyframe animations injected once ────────────────────────────────────────
 const STYLES = `
@@ -207,6 +208,30 @@ const iconBtn: React.CSSProperties = {
   backdropFilter: 'blur(6px)',
 };
 
+// ── section label (uppercase, with optional " · optional" suffix) ─────────────
+const labelStyle: React.CSSProperties = {
+  fontSize: 11.5,
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  color: 'var(--text-muted)',
+  marginBottom: 8,
+};
+
+function SectionLabel({ children, optional }: { children: React.ReactNode; optional?: boolean }) {
+  return (
+    <div style={labelStyle}>
+      {children}
+      {optional && (
+        <span style={{ textTransform: 'none', fontWeight: 600, letterSpacing: 0 }}>
+          {' '}
+          · optional
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ── label input ───────────────────────────────────────────────────────────────
 function FieldInput({
   label,
@@ -214,27 +239,18 @@ function FieldInput({
   onChange,
   placeholder,
   autoFocus,
+  optional,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   autoFocus?: boolean;
+  optional?: boolean;
 }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div
-        style={{
-          fontSize: 11.5,
-          fontWeight: 700,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-          marginBottom: 8,
-        }}
-      >
-        {label}
-      </div>
+      <SectionLabel optional={optional}>{label}</SectionLabel>
       <input
         autoFocus={autoFocus}
         value={value}
@@ -270,18 +286,7 @@ function CategoryPicker({
 }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <div
-        style={{
-          fontSize: 11.5,
-          fontWeight: 700,
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-          marginBottom: 8,
-        }}
-      >
-        Kategorie
-      </div>
+      <SectionLabel>Kategorie</SectionLabel>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
         {categories.map((cat) => {
           const on = selectedId === cat.id;
@@ -317,10 +322,63 @@ function CategoryPicker({
   );
 }
 
+// ── preferred-store picker (admin only) ───────────────────────────────────────
+// Multi-select chips with the store's colour dot. Mirrors CategoryPicker's look.
+// Persists to the product's preferred-store set (admin-gated backend endpoint),
+// so the section is only rendered when the caller passes `stores`.
+function StorePicker({
+  stores,
+  selectedIds,
+  onToggle,
+}: {
+  stores: Store[];
+  selectedIds: string[];
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <SectionLabel optional>Bevorzugter Laden</SectionLabel>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+        {stores.map((s) => {
+          const on = selectedIds.includes(s.id);
+          const color = s.color || 'var(--text-muted)';
+          return (
+            <button
+              key={s.id}
+              onClick={() => onToggle(s.id)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 12px',
+                borderRadius: 11,
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 600,
+                fontFamily: "'DM Sans', sans-serif",
+                border: `1px solid ${on ? color : 'var(--border-subtle)'}`,
+                background: on
+                  ? `color-mix(in oklab, ${color} 14%, var(--surface-base))`
+                  : 'var(--surface-raised)',
+                color: on ? color : 'var(--text-secondary)',
+                transition: 'all .12s',
+              }}
+            >
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: color }} />
+              {s.name}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── result sheet: known product ───────────────────────────────────────────────
 function ResultFound({
   product,
   barcode,
+  categories,
   count,
   setCount,
   onAddMore,
@@ -334,18 +392,23 @@ function ResultFound({
     size?: string;
   };
   barcode: string;
+  categories: Category[];
   count: number;
   setCount: (fn: (c: number) => number) => void;
   onAddMore: () => void;
   onAddClose: () => void;
   onEdit: () => void;
 }) {
+  const category = product.category_id
+    ? categories.find((c) => c.id === product.category_id)
+    : undefined;
+  const catColor = product.category_color || category?.color || '#9ca3af';
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 13, marginBottom: 14 }}>
         <CatChip
-          color={product.category_color || '#9ca3af'}
-          icon={resolveCategoryIcon(product.category_icon)}
+          color={catColor}
+          icon={resolveCategoryIcon(product.category_icon || category?.icon)}
           size={48}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -360,16 +423,28 @@ function ResultFound({
           >
             {product.display_name}
           </div>
-          {product.brand && (
+          {(product.brand || category) && (
             <div
               style={{
-                fontSize: 13,
-                color: 'var(--text-secondary)',
-                fontWeight: 500,
-                marginTop: 4,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginTop: 5,
               }}
             >
-              {product.brand}
+              {product.brand && (
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  {product.brand}
+                </span>
+              )}
+              {category && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 7, height: 7, borderRadius: 2, background: catColor }} />
+                  <span style={{ fontSize: 12.5, color: 'var(--text-muted)', fontWeight: 600 }}>
+                    {category.name_de}
+                  </span>
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -405,9 +480,14 @@ function ResultFound({
             color: 'var(--text-muted)',
             fontSize: 13,
             padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
           }}
         >
-          Falsche Daten? manuell anpassen
+          <Icon name="pencil" size={14} />
+          Falsche Metadaten? Hier anpassen
         </button>
       </div>
     </>
@@ -419,6 +499,9 @@ function EditProduct({
   product,
   barcode,
   categories,
+  stores,
+  isAdmin,
+  initialStoreIds,
   count,
   setCount,
   onSaveAndAdd,
@@ -427,10 +510,18 @@ function EditProduct({
   product: Product & { display_name: string; category_color?: string; category_icon?: string };
   barcode: string;
   categories: Category[];
+  stores: Store[];
+  isAdmin: boolean;
+  initialStoreIds: string[];
   count: number;
   setCount: (fn: (c: number) => number) => void;
   onSaveAndAdd: (
-    patch: { name_de: string; brand: string; category_id: string | null },
+    patch: {
+      name_de: string;
+      brand: string;
+      category_id: string | null;
+      store_ids: string[];
+    },
     count: number,
   ) => Promise<void>;
   onBack: () => void;
@@ -438,15 +529,21 @@ function EditProduct({
   const [name, setName] = useState(product.name_de || product.display_name || '');
   const [brand, setBrand] = useState(product.brand || '');
   const [catId, setCatId] = useState<string | null>(product.category_id ?? null);
+  const [storeIds, setStoreIds] = useState<string[]>(initialStoreIds);
   const [saving, setSaving] = useState(false);
 
   const valid = name.trim().length > 0;
+  const toggleStore = (id: string) =>
+    setStoreIds((ids) => (ids.includes(id) ? ids.filter((s) => s !== id) : [...ids, id]));
 
   const handleSave = async () => {
     if (!valid || saving) return;
     setSaving(true);
     try {
-      await onSaveAndAdd({ name_de: name.trim(), brand: brand.trim(), category_id: catId }, count);
+      await onSaveAndAdd(
+        { name_de: name.trim(), brand: brand.trim(), category_id: catId, store_ids: storeIds },
+        count,
+      );
     } finally {
       setSaving(false);
     }
@@ -463,21 +560,21 @@ function EditProduct({
             flexShrink: 0,
             display: 'grid',
             placeItems: 'center',
-            background: 'var(--surface-overlay)',
-            color: 'var(--text-muted)',
+            background: 'var(--accent-light)',
+            color: 'var(--accent)',
           }}
         >
-          <Icon name="barcode" size={26} />
+          <Icon name="pencil" size={24} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             className="ff-display"
             style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-primary)' }}
           >
-            Daten anpassen
+            Angaben anpassen
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 3 }}>
-            Änderungen werden in der Datenbank gespeichert.
+            Daten aus der Produktdatenbank — hier korrigieren.
           </div>
         </div>
       </div>
@@ -487,15 +584,25 @@ function EditProduct({
       </div>
 
       <FieldInput
-        label="Name (DE)"
+        label="Name"
         value={name}
         onChange={setName}
         placeholder="z. B. Haferflocken"
         autoFocus
       />
-      <FieldInput label="Marke" value={brand} onChange={setBrand} placeholder="z. B. Bioland" />
+      <FieldInput
+        label="Marke / Detail"
+        value={brand}
+        onChange={setBrand}
+        placeholder="z. B. Bioland"
+        optional
+      />
 
       <CategoryPicker categories={categories} selectedId={catId} onSelect={setCatId} />
+
+      {isAdmin && stores.length > 0 && (
+        <StorePicker stores={stores} selectedIds={storeIds} onToggle={toggleStore} />
+      )}
 
       <div
         style={{
@@ -523,7 +630,7 @@ function EditProduct({
             boxShadow: valid && !saving ? 'var(--shadow-pop)' : 'none',
           }}
         >
-          <Icon name="plus" size={19} strokeWidth={2.4} />
+          <Icon name="check" size={19} strokeWidth={2.6} />
           {saving ? 'Speichern…' : 'Speichern & hinzufügen'}
         </button>
         <button onClick={onBack} style={secondaryBtn}>
@@ -538,6 +645,8 @@ function EditProduct({
 function ResultUnknown({
   barcode,
   categories,
+  stores,
+  isAdmin,
   count,
   setCount,
   onCreateAndAdd,
@@ -545,10 +654,12 @@ function ResultUnknown({
 }: {
   barcode: string | null;
   categories: Category[];
+  stores: Store[];
+  isAdmin: boolean;
   count: number;
   setCount: (fn: (c: number) => number) => void;
   onCreateAndAdd: (
-    data: { name_de: string; brand: string; category_id: string | null },
+    data: { name_de: string; brand: string; category_id: string | null; store_ids: string[] },
     count: number,
   ) => Promise<void>;
   onRescan: () => void;
@@ -556,16 +667,19 @@ function ResultUnknown({
   const [name, setName] = useState('');
   const [brand, setBrand] = useState('');
   const [catId, setCatId] = useState<string | null>(null);
+  const [storeIds, setStoreIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const valid = name.trim().length > 0;
+  const toggleStore = (id: string) =>
+    setStoreIds((ids) => (ids.includes(id) ? ids.filter((s) => s !== id) : [...ids, id]));
 
   const handleAdd = async () => {
     if (!valid || saving) return;
     setSaving(true);
     try {
       await onCreateAndAdd(
-        { name_de: name.trim(), brand: brand.trim(), category_id: catId },
+        { name_de: name.trim(), brand: brand.trim(), category_id: catId, store_ids: storeIds },
         count,
       );
     } finally {
@@ -617,13 +731,18 @@ function ResultUnknown({
         autoFocus
       />
       <FieldInput
-        label="Marke (optional)"
+        label="Marke / Detail"
         value={brand}
         onChange={setBrand}
         placeholder="z. B. Bioland"
+        optional
       />
 
       <CategoryPicker categories={categories} selectedId={catId} onSelect={setCatId} />
+
+      {isAdmin && stores.length > 0 && (
+        <StorePicker stores={stores} selectedIds={storeIds} onToggle={toggleStore} />
+      )}
 
       <div
         style={{
@@ -720,19 +839,29 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
   const [barcode, setBarcode] = useState<string | null>(null);
   const [product, setProduct] = useState<ScannedProduct | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [stores, setStores] = useState<Store[]>([]);
+  const [editStoreIds, setEditStoreIds] = useState<string[]>([]);
   const [count, setCount] = useState(1);
   const [cameraError, setCameraError] = useState(false);
+
+  // Preferred stores live in the product DB and are admin-gated on the backend,
+  // so the store picker is only offered to admins (matching AdminProducts).
+  const isAdmin = useUserStore((s) => s.user?.role === 'admin');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<{ stop: () => void } | null>(null);
   const trackRef = useRef<MediaStreamTrack | null>(null);
   const scanOnce = useRef(false); // prevent double-fire
 
-  // fetch categories once for the pickers
+  // fetch categories + stores once for the pickers
   useEffect(() => {
     api
       .get<Category[]>('/api/categories')
       .then(setCategories)
+      .catch(() => {});
+    api
+      .get<Store[]>('/api/stores')
+      .then(setStores)
       .catch(() => {});
   }, []);
 
@@ -835,7 +964,38 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
     setProduct(null);
     setBarcode(null);
     setCount(1);
+    setEditStoreIds([]);
     setPhase('scan');
+  };
+
+  // Open the edit sheet. The barcode lookup doesn't carry preferred stores, so
+  // (for admins) fetch them from the product detail endpoint to pre-select the
+  // picker. Best-effort: a failure just leaves the picker empty.
+  const openEdit = async () => {
+    if (isAdmin && product?.id) {
+      try {
+        const full = await api.get<Product & { preferred_store_ids?: string[] }>(
+          `/api/products/${product.id}`,
+        );
+        setEditStoreIds(full.preferred_store_ids ?? []);
+      } catch {
+        setEditStoreIds([]);
+      }
+    } else {
+      setEditStoreIds([]);
+    }
+    setPhase('edit');
+  };
+
+  // Persist a product's preferred-store set (admin-only endpoint). Best-effort:
+  // metadata/add already succeeded, so a store-save failure shouldn't block.
+  const saveStores = async (productId: string, storeIds: string[]) => {
+    if (!isAdmin) return;
+    try {
+      await api.put(`/api/products/${productId}/stores`, { store_ids: storeIds });
+    } catch {
+      /* non-fatal — the item is still added */
+    }
   };
 
   const flash = (msg: string) => {
@@ -865,13 +1025,14 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
     } else onClose();
   };
 
-  // patch an existing product then add it
+  // patch an existing product then add it. PUT /api/products/:id returns 204
+  // (no body), so build the optimistic item from the known id + patch values.
   const saveAndAdd = async (
-    patch: { name_de: string; brand: string; category_id: string | null },
+    patch: { name_de: string; brand: string; category_id: string | null; store_ids: string[] },
     qty: number,
   ) => {
     if (!product || !barcode) return;
-    const updated = await api.put<Product>(`/api/products/${product.id}`, {
+    await api.put(`/api/products/${product.id}`, {
       name_de: patch.name_de,
       name_en: product.name_en ?? '',
       name_pt: product.name_pt ?? '',
@@ -879,14 +1040,15 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
       category_id: patch.category_id,
       barcode,
     });
+    await saveStores(product.id, patch.store_ids);
     const cat = patch.category_id ? categories.find((c) => c.id === patch.category_id) : null;
     const id = ulid();
     onAdd(
-      { item_id: id, product_id: updated.id },
+      { item_id: id, product_id: product.id },
       makeOptimistic(
         listId,
-        updated.id,
-        patch.name_de || updated.name_de || barcode,
+        product.id,
+        patch.name_de || barcode,
         cat?.id ?? null,
         cat?.color ?? null,
         resolveCategoryIcon(cat?.icon) ?? null,
@@ -898,7 +1060,7 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
 
   // create a new product then add it
   const createAndAdd = async (
-    data: { name_de: string; brand: string; category_id: string | null },
+    data: { name_de: string; brand: string; category_id: string | null; store_ids: string[] },
     qty: number,
   ) => {
     const created = await api.post<Product>('/api/products', {
@@ -909,6 +1071,7 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
       category_id: data.category_id,
       barcode: barcode ?? undefined,
     });
+    await saveStores(created.id, data.store_ids);
     const cat = data.category_id ? categories.find((c) => c.id === data.category_id) : null;
     const id = ulid();
     onAdd(
@@ -1163,11 +1326,12 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
               <ResultFound
                 product={product}
                 barcode={barcode}
+                categories={categories}
                 count={count}
                 setCount={setCount}
                 onAddMore={() => addFound(true)}
                 onAddClose={() => addFound(false)}
-                onEdit={() => setPhase('edit')}
+                onEdit={openEdit}
               />
             )}
             {phase === 'edit' && product && barcode && (
@@ -1175,6 +1339,9 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
                 product={product}
                 barcode={barcode}
                 categories={categories}
+                stores={stores}
+                isAdmin={isAdmin}
+                initialStoreIds={editStoreIds}
                 count={count}
                 setCount={setCount}
                 onSaveAndAdd={saveAndAdd}
@@ -1185,6 +1352,8 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
               <ResultUnknown
                 barcode={barcode}
                 categories={categories}
+                stores={stores}
+                isAdmin={isAdmin}
                 count={count}
                 setCount={setCount}
                 onCreateAndAdd={createAndAdd}
