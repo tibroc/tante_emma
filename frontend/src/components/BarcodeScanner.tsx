@@ -1091,10 +1091,15 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
 
   const sheetOpen = phase === 'result' || phase === 'edit' || phase === 'unknown';
 
-  // Rendered through a portal to document.body so the full-screen overlay escapes
-  // the AddBar's positioned/overflow-clipped ancestors (sticky bar, scroll
-  // container, fixed <main>). Without this the fixed/absolute overlay can be
-  // trapped by an ancestor containing block and only fill the search bar.
+  // Portal target: the `.app` root, NOT document.body. The overlay is
+  // position:fixed, so it still escapes the AddBar's positioned/overflow-clipped
+  // ancestors (sticky bar, scroll container, fixed <main>) and fills the
+  // viewport. Portaling into `.app` keeps the design-token cascade intact —
+  // the surface/text/border vars, `data-theme`, and the inline `--accent` all
+  // live on `.app`. Rendering to document.body (outside `.app`) left every
+  // var(--*) unresolved, so the bottom sheet rendered black-on-black.
+  const portalTarget = document.querySelector('.app') ?? document.body;
+
   return createPortal(
     <div
       style={{
@@ -1364,6 +1369,6 @@ export function BarcodeScanner({ listId, onAdd, onClose }: BarcodeScannerProps) 
         </div>
       )}
     </div>,
-    document.body,
+    portalTarget,
   );
 }
