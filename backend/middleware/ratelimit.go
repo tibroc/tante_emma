@@ -1,12 +1,15 @@
 package middleware
 
 import (
+	"encoding/json"
 	"math"
 	"net"
 	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/tante-emma/tanteemma/models"
 )
 
 // RateLimit returns a middleware that throttles requests per client using a
@@ -90,6 +93,36 @@ func (l *ipRateLimiter) cleanupLoop() {
 			}
 		}
 		l.mu.Unlock()
+	}
+}
+
+// TokenRateLimit returns a middleware that rate-limits Personal Access Token
+// requests at perMinute req/min with an initial burst of burst requests.
+// The limit is keyed per token ID; cookie-session requests are never limited.
+// Exceeding the limit returns 429 with a Retry-After header and a JSON body.
+func TokenRateLimit(perMinute, burst int) func(http.Handler) http.Handler {
+	l := &ipRateLimiter{
+		buckets: make(map[string]*tokenBucket),
+		rate:    float64(perMinute) / 60.0,
+		burst:   float64(burst),
+		idleTTL: 10 * time.Minute,
+	}
+	go l.cleanupLoop()
+
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			sess := SessionFromContext(r.Context())
+			if sess != nil && sess.Method == models.AuthToken {
+				if !l.allow(sess.TokenID) {
+					w.Header().Set("Content-Type", "application/json")
+					w.Header().Set("Retry-After", "60")
+					w.WriteHeader(http.StatusTooManyRequests)
+					_ = json.NewEncoder(w).Encode(map[string]string{"error": "rate limit exceeded; retry after 60 seconds"})
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
 	}
 }
 

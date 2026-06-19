@@ -1,10 +1,13 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/tante-emma/tanteemma/models"
 )
 
 func TestRateLimiter_BurstThenThrottle(t *testing.T) {
@@ -65,6 +68,64 @@ func TestRateLimit_Middleware429(t *testing.T) {
 	}
 	if rec2.Header().Get("Retry-After") == "" {
 		t.Error("429 response should set Retry-After")
+	}
+}
+
+func TestTokenRateLimit_ExemptsSessionAuth(t *testing.T) {
+	h := TokenRateLimit(60, 1)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	sess := &models.Session{UserID: "u1", Method: models.AuthCookie}
+	ctx := WithSession(context.Background(), sess)
+
+	for i := 0; i < 5; i++ {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx)
+		h.ServeHTTP(rec, req)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("cookie session request %d should never be rate-limited, got %d", i+1, rec.Code)
+		}
+	}
+}
+
+func TestTokenRateLimit_LimitsPATAfterBurst(t *testing.T) {
+	h := TokenRateLimit(60, 1)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	sess := &models.Session{UserID: "u1", Method: models.AuthToken, TokenID: "tok-abc"}
+	ctx := WithSession(context.Background(), sess)
+
+	rec1 := httptest.NewRecorder()
+	h.ServeHTTP(rec1, httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx))
+	if rec1.Code != http.StatusOK {
+		t.Fatalf("first PAT request should pass, got %d", rec1.Code)
+	}
+
+	rec2 := httptest.NewRecorder()
+	h.ServeHTTP(rec2, httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx))
+	if rec2.Code != http.StatusTooManyRequests {
+		t.Fatalf("second immediate PAT request should be 429, got %d", rec2.Code)
+	}
+	if rec2.Header().Get("Retry-After") == "" {
+		t.Error("429 response must set Retry-After")
+	}
+}
+
+func TestTokenRateLimit_DifferentTokensIndependent(t *testing.T) {
+	h := TokenRateLimit(60, 1)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	for _, tokenID := range []string{"tok-1", "tok-2"} {
+		sess := &models.Session{UserID: "u1", Method: models.AuthToken, TokenID: tokenID}
+		ctx := WithSession(context.Background(), sess)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil).WithContext(ctx))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("token %s first request should pass, got %d", tokenID, rec.Code)
+		}
 	}
 }
 

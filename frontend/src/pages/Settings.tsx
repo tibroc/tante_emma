@@ -10,6 +10,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useUserStore } from '../stores/userStore';
 import { LOCALES, setLocale } from '../lib/i18n';
 import { THEMES, THEME_BY_ACCENT } from '../lib/themes';
+import { ApiTokensSection } from '../components/ApiTokensSection';
 import { useSetHeader } from '../hooks/useSetHeader';
 
 function Group({ children }: { children: ReactNode }) {
@@ -375,6 +376,9 @@ export default function Settings() {
               </Group>
             </div>
           )}
+
+          {/* API access (Personal Access Tokens) */}
+          <ApiTokensSection />
 
           {/* logout */}
           <Group>
