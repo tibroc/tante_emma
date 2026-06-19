@@ -311,7 +311,11 @@ function CreateSheet({
     const expires_at = opt?.days != null ? Date.now() + opt.days * DAY_MS : null;
     const scopes: TokenScope[] = scope === 'write' ? ['read', 'write'] : ['read'];
     try {
-      const tok = await api.post<CreatedToken>('/api/tokens', { name: trimmed, scopes, expires_at });
+      const tok = await api.post<CreatedToken>('/api/tokens', {
+        name: trimmed,
+        scopes,
+        expires_at,
+      });
       onCreated(tok);
     } catch {
       setError(true);
