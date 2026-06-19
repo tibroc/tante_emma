@@ -3,7 +3,7 @@ module github.com/tante-emma/tanteemma
 go 1.26.4
 
 require (
-	github.com/coreos/go-oidc/v3 v3.18.0
+	github.com/coreos/go-oidc/v3 v3.19.0
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/gorilla/securecookie v1.1.2
 	github.com/gorilla/websocket v1.5.3
