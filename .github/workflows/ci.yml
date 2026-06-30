@@ -186,3 +186,28 @@ jobs:
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
+
+  # ── Release ──────────────────────────────────────────────────────────────────
+  release:
+    name: Release
+    needs: [docker]
+    runs-on: ubuntu-latest
+    # Auto-release minor (vX.Y.0, Y>0) and patch (vX.Y.Z, Z>0) tags once
+    # Docker images are published. Major releases (vX.0.0) are created manually
+    # so release notes can be curated.
+    if: >-
+      startsWith(github.ref, 'refs/tags/v') &&
+      !endsWith(github.ref, '.0.0') &&
+      !contains(github.ref, '-')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --repo "${{ github.repository }}" \
+            --generate-notes \
+            --title "Release $GITHUB_REF_NAME"

@@ -5,6 +5,9 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 14
     open-pull-requests-limit: 5
     labels: ["dependencies", "go"]
     commit-message:
@@ -18,6 +21,9 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    cooldown:
+      semver-major-days: 14
+      semver-minor-days: 14
     open-pull-requests-limit: 10
     labels: ["dependencies", "frontend"]
     commit-message:
