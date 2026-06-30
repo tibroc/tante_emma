@@ -14,7 +14,8 @@ COPY frontend/ .
 RUN npm run build
 
 # Keep only runtime deps (the static server: sirv-cli).
-RUN npm prune --omit=dev
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
 FROM node:26-alpine
