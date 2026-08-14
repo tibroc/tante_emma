@@ -29,7 +29,7 @@
     "react-router-dom": "^7.18.2",
     "sirv-cli": "^3.0.0",
     "ulid": "^3.0.2",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
