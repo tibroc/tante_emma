@@ -25,8 +25,8 @@
     "idb": "^8.0.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-i18next": "^17.0.12",
-    "react-router-dom": "^7.18.2",
+    "react-i18next": "^17.0.13",
+    "react-router-dom": "^7.18.3",
     "sirv-cli": "^3.0.0",
     "ulid": "^3.0.2",
     "zustand": "^5.0.15"
